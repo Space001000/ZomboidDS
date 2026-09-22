@@ -1,0 +1,6 @@
+# Keep LF everywhere (shell scripts and gradlew break with CRLF); Windows batch files need CRLF.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.jar binary
+*.png binary
+*.zip binary

@@ -1,0 +1,8 @@
+{
+  "v": 1, "type": "player", "seq": 3,
+  "data": {
+    "health": 87.5,
+    "bleeding": false,
+    "stats": { "hunger": 0.12, "thirst": 0.34, "fatigue": 0.2, "endurance": 0.9 }
+  }
+}

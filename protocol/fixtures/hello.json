@@ -1,0 +1,1 @@
+{ "v": 1, "type": "hello", "seq": 1, "data": { "protocol": 1, "bridge": "0.1.0", "adapter": "b42" } }

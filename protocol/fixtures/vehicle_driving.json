@@ -1,0 +1,4 @@
+{
+  "v": 1, "type": "vehicle", "seq": 5,
+  "data": { "inVehicle": true, "name": "Chevalier Nyala", "speedKmh": 42.0, "engineRunning": true, "fuel": 0.63, "isDriver": true }
+}

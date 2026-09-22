@@ -1,0 +1,9 @@
+{
+  "v": 1, "type": "session", "seq": 2,
+  "data": {
+    "inGame": true,
+    "gameVersion": "42.12",
+    "adapter": "b42",
+    "capabilities": ["player", "inventory", "vehicle", "cmd.equip", "cmd.unequip", "cmd.drop", "cmd.wear"]
+  }
+}

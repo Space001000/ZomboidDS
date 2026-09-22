@@ -1,0 +1,1 @@
+{ "v": 1, "type": "command", "id": "c-17", "name": "equip", "args": { "itemId": 10234, "slot": "primary" } }

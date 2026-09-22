@@ -1,0 +1,105 @@
+package dev.zomboidds.companion.data
+
+import dev.zomboidds.companion.domain.CommandResult
+import dev.zomboidds.companion.domain.GameState
+import dev.zomboidds.companion.domain.ItemAction
+import dev.zomboidds.companion.domain.ItemCommand
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
+
+class ProtocolV1Test {
+
+    /** The shared contract fixtures; unit tests run with the module directory as working directory. */
+    private fun fixture(name: String) = File("../protocol/fixtures/$name").readText()
+
+    private fun applyAll(vararg fixtures: String) =
+        fixtures.fold(GameState()) { state, name -> ProtocolV1.apply(state, fixture(name)) }
+
+    @Test
+    fun `fixtures build up the game state`() {
+        val state = applyAll("hello.json", "session.json", "player.json")
+
+        assertEquals("b42", state.bridge?.adapter)
+        assertEquals(true, state.session?.inGame)
+        assertEquals("42.12", state.session?.gameVersion)
+        assertTrue("cmd.equip" in state.session!!.capabilities)
+        assertEquals(87.5f, state.player?.health)
+        assertEquals(0.34f, state.player?.thirst)
+    }
+
+    @Test
+    fun `leaving the game clears player data`() {
+        val inGame = applyAll("hello.json", "session.json", "player.json")
+        val atMenu = ProtocolV1.apply(inGame, """{"v":1,"type":"session","seq":9,"data":{"inGame":false}}""")
+
+        assertFalse(atMenu.session!!.inGame)
+        assertNull(atMenu.player)
+        assertEquals(inGame.bridge, atMenu.bridge)
+    }
+
+    @Test
+    fun `hello starts from a clean state`() {
+        val state = ProtocolV1.apply(applyAll("hello.json", "session.json", "player.json"), fixture("hello.json"))
+        assertNull(state.session)
+        assertNull(state.player)
+    }
+
+    @Test
+    fun `unknown message types are ignored`() {
+        val before = applyAll("hello.json")
+        assertSame(before, ProtocolV1.apply(before, """{"v":1,"type":"from_the_future","data":{}}"""))
+    }
+
+    @Test
+    fun `empty Lua tables are accepted where objects or lists are meant`() {
+        // Lua sends {} as [] (it can't tell them apart).
+        val state = ProtocolV1.apply(GameState(), """{"v":1,"type":"player","data":{"health":50,"stats":[]}}""")
+        assertEquals(50f, state.player?.health)
+        assertNull(state.player?.hunger)
+
+        val session = ProtocolV1.apply(GameState(), """{"v":1,"type":"session","data":{"inGame":true,"capabilities":[]}}""")
+        assertTrue(session.session!!.capabilities.isEmpty())
+    }
+
+    @Test
+    fun `item actions come from the game side`() {
+        val items = applyAll("inventory.json").inventory!!.items
+        assertEquals(listOf(ItemAction.UNEQUIP, ItemAction.DROP), items.first { it.name == "Axe" }.actions)
+        assertEquals(
+            listOf(ItemAction.EQUIP_PRIMARY, ItemAction.EQUIP_SECONDARY, ItemAction.DROP),
+            items.first { it.name == "Beans" }.actions,
+        )
+    }
+
+    @Test
+    fun `unknown actions from a newer mod are skipped`() {
+        val state = ProtocolV1.apply(GameState(), """{"v":1,"type":"inventory","data":{"items":[
+            {"id":1,"name":"Pan","actions":["cook","drop"]}]}}""")
+        assertEquals(listOf(ItemAction.DROP), state.inventory!!.items.single().actions)
+    }
+
+    @Test
+    fun `commands encode like the shared fixture`() {
+        val encoded = ProtocolV1.encode("c-17", ItemCommand(10234, ItemAction.EQUIP_PRIMARY))
+        val fixture = fixture("command_equip.json")
+        fun normalize(json: String) = kotlinx.serialization.json.Json.parseToJsonElement(json)
+        assertEquals(normalize(fixture), normalize(encoded))
+    }
+
+    @Test
+    fun `command results decode as replies`() {
+        val reply = ProtocolV1.decode(fixture("command_result.json")) as ProtocolV1.ServerMessage.Reply
+        assertEquals("c-17", reply.id)
+        assertEquals(CommandResult.Failed("item not found"), reply.result)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `other protocol versions are rejected`() {
+        ProtocolV1.apply(GameState(), """{"v":2,"type":"hello","data":{}}""")
+    }
+}

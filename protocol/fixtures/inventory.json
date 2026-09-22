@@ -1,0 +1,14 @@
+{
+  "v": 1, "type": "inventory", "seq": 4,
+  "data": {
+    "weight": {"current": 12.5, "max": 18.0},
+    "items": [
+      {"id": 10234, "type": "Base.Axe", "name": "Axe", "category": "Weapon", "icon": "Item_Axe", "weight": 3.0, "condition": 0.85, "equipped": "primary", "actions": ["unequip", "drop"]},
+      {"id": 10235, "type": "Base.Bandage", "name": "Bandage", "category": "FirstAid", "icon": "Item_Bandage", "weight": 0.1, "actions": ["equip.primary", "equip.secondary", "drop"]},
+      {"id": 10236, "type": "Base.Bandage", "name": "Bandage", "category": "FirstAid", "icon": "Item_Bandage", "weight": 0.1, "actions": ["equip.primary", "equip.secondary", "drop"]},
+      {"id": 10237, "type": "Base.WaterBottleFull", "name": "Water Bottle", "category": "Water", "icon": "Item_WaterBottle_Full", "weight": 1.0, "actions": ["equip.primary", "equip.secondary", "drop"]},
+      {"id": 10238, "type": "Base.Hat_BaseballCap", "name": "Baseball Cap", "category": "Clothing", "icon": "Item_Hat_BaseballCap", "weight": 0.1, "condition": 1.0, "equipped": "worn", "actions": ["unequip", "drop"]},
+      {"id": 10239, "type": "Base.TinnedBeans", "name": "Beans", "category": "Food", "icon": "Item_TinnedBeans", "weight": 0.6, "actions": ["equip.primary", "equip.secondary", "drop"]}
+    ]
+  }
+}
