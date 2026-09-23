@@ -1,6 +1,8 @@
 package dev.zomboidds.companion.data
 
 import dev.zomboidds.companion.domain.CommandResult
+import dev.zomboidds.companion.domain.ContainerKind
+import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
@@ -131,6 +133,51 @@ class ProtocolV1Test {
         assertEquals(
             parse("""{"v":1,"type":"command","id":"c-2","name":"menu_select","args":{"menuId":"m7","optionId":"2.1"}}"""),
             parse(ProtocolV1.encode("c-2", ProtocolV1.menuSelectRequest("m7", "2.1"))),
+        )
+    }
+
+    @Test
+    fun `containers list what the game's windows show`() {
+        val containers = applyAll("containers.json").containers!!
+        assertEquals(listOf("Inventory", "School Bag", "Shelves", "Crate", "Floor"), containers.map { it.name })
+        assertEquals(
+            listOf(ContainerKind.INVENTORY, ContainerKind.BAG, ContainerKind.NEARBY, ContainerKind.NEARBY, ContainerKind.FLOOR),
+            containers.map { it.kind },
+        )
+        assertNull("the inventory's items are in the inventory message", containers[0].items)
+        assertEquals(listOf("Book", "Pen"), containers[2].items!!.map { it.name })
+        assertEquals(50f, containers[2].capacity)
+        assertTrue(containers[3].locked)
+        assertNull("locked containers can't be looked into", containers[3].items)
+        assertEquals(emptyList<Any>(), containers[4].items)
+    }
+
+    @Test
+    fun `unknown container kinds from a newer mod count as nearby`() {
+        val state = ProtocolV1.apply(GameState(),
+            """{"v":1,"type":"containers","data":{"containers":[{"id":"c9","kind":"trunk","name":"Trunk"}]}}""")
+        assertEquals(ContainerKind.NEARBY, state.containers!!.single().kind)
+    }
+
+    @Test
+    fun `show asks the app to open a container`() {
+        val message = ProtocolV1.decode(fixture("show.json")) as ProtocolV1.ServerMessage.Event
+        assertEquals(GameEvent.ShowInventory("c3"), message.event)
+        // Events don't change the game state.
+        val before = applyAll("hello.json")
+        assertSame(before, ProtocolV1.apply(before, fixture("show.json")))
+    }
+
+    @Test
+    fun `transfer requests encode their arguments`() {
+        fun parse(json: String) = kotlinx.serialization.json.Json.parseToJsonElement(json).toString()
+        assertEquals(
+            parse("""{"v":1,"type":"command","id":"c-1","name":"transfer","args":{"itemId":10,"to":"c1"}}"""),
+            parse(ProtocolV1.encode("c-1", ProtocolV1.transferRequest(10, "c1"))),
+        )
+        assertEquals(
+            parse("""{"v":1,"type":"command","id":"c-2","name":"transfer_all","args":{"from":"c3","to":"c1"}}"""),
+            parse(ProtocolV1.encode("c-2", ProtocolV1.transferAllRequest("c3", "c1"))),
         )
     }
 

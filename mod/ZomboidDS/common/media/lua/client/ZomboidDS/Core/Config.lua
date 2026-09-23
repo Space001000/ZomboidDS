@@ -1,8 +1,9 @@
 --- Tunables for the version-neutral core.
 local Config = {
-    -- Hide the vanilla inventory/loot windows on the top screen. Leave off until the companion
-    -- app can do everything you need from them.
-    hideNativeUI = false,
+    -- While the app is connected, the controller's Loot/Inventory button (Y) shows the container on
+    -- the bottom screen instead of opening the game's windows on the top screen. Without the app
+    -- it always opens the game's windows.
+    redirectGameWindows = true,
 
     -- Commands executed per tick at most, so a burst from the app can't stall a frame.
     maxCommandsPerTick = 8,
@@ -12,6 +13,7 @@ local Config = {
     intervalsMs = {
         player = 500,
         inventory = 1000,
+        containers = 1000, -- also re-sent right away when the game refreshes its container lists
         vehicle = 100,     -- while in a vehicle (speedometer)
         vehicleIdle = 1000,
     },

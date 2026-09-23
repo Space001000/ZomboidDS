@@ -1,0 +1,17 @@
+{
+  "v": 1, "type": "containers", "seq": 9,
+  "data": {
+    "containers": [
+      {"id": "c1", "kind": "inventory", "name": "Inventory", "icon": "Icon_InventoryBasic", "weight": 3.0, "capacity": 12},
+      {"id": "c2", "kind": "bag", "name": "School Bag", "icon": "Item_Schoolbag", "weight": 1.0, "capacity": 13, "items": [
+        {"id": 2, "type": "Base.Apple", "name": "Apple", "category": "Food", "icon": "Item_Apple", "weight": 0.2, "actions": []}
+      ]},
+      {"id": "c3", "kind": "nearby", "name": "Shelves", "icon": "Container_Shelf", "weight": 1.1, "capacity": 50, "items": [
+        {"id": 10, "type": "Base.Book", "name": "Book", "category": "Literature", "icon": "Item_Book", "weight": 0.5, "actions": []},
+        {"id": 11, "type": "Base.Pen", "name": "Pen", "category": "Junk", "icon": "Item_Pen", "weight": 0.1, "actions": []}
+      ]},
+      {"id": "c4", "kind": "nearby", "name": "Crate", "icon": "lock", "weight": 5, "capacity": 50, "locked": true},
+      {"id": "c5", "kind": "floor", "name": "Floor", "icon": "Container_Floor", "weight": 2, "capacity": 50, "items": []}
+    ]
+  }
+}

@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 enum class InventoryLayout { GRID, LIST }
 
+/** SPLIT: your containers on top, the ones around you below. SINGLE: one container at a time. */
+enum class ContainerLayout { SPLIT, SINGLE }
+
 /** The user's display choices, kept across app restarts. */
 class AppSettings(context: Context) {
 
@@ -22,7 +25,18 @@ class AppSettings(context: Context) {
         _inventoryLayout.value = layout
     }
 
+    private val _containerLayout = MutableStateFlow(
+        ContainerLayout.entries.firstOrNull { it.name == prefs.getString(KEY_CONTAINER_LAYOUT, null) }
+            ?: ContainerLayout.SPLIT)
+    val containerLayout: StateFlow<ContainerLayout> = _containerLayout.asStateFlow()
+
+    fun setContainerLayout(layout: ContainerLayout) {
+        prefs.edit().putString(KEY_CONTAINER_LAYOUT, layout.name).apply()
+        _containerLayout.value = layout
+    }
+
     private companion object {
         const val KEY_INVENTORY_LAYOUT = "inventoryLayout"
+        const val KEY_CONTAINER_LAYOUT = "containerLayout"
     }
 }

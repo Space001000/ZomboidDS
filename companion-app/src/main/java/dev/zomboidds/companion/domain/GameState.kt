@@ -8,6 +8,8 @@ data class GameState(
     val inventory: Inventory? = null,
     /** Null until the game reported it. */
     val vehicle: Vehicle? = null,
+    /** Your inventory, bags and everything within reach; null until the game reported it. */
+    val containers: List<Container>? = null,
 )
 
 /** The mod's Java side, from `hello`. */
@@ -50,6 +52,38 @@ data class InventoryItem(
 )
 
 enum class EquipSlot { PRIMARY, SECONDARY, BOTH, WORN }
+
+/**
+ * A container the player can use right now, as the game's inventory and loot windows list it.
+ * Commands refer to it by [id], which stays the same while the container exists.
+ */
+data class Container(
+    val id: String,
+    val kind: ContainerKind,
+    val name: String,
+    val icon: String?,
+    val weight: Float?,
+    val capacity: Float?,
+    val locked: Boolean,
+    /**
+     * Null for the main inventory (its items are in [GameState.inventory]) and for locked
+     * containers (they can't be looked into).
+     */
+    val items: List<InventoryItem>?,
+)
+
+enum class ContainerKind {
+    /** The player's main inventory. */
+    INVENTORY,
+
+    /** A bag the player carries. */
+    BAG,
+
+    /** Furniture, corpses, vehicles, bags on the ground, ... within reach. */
+    NEARBY,
+
+    FLOOR,
+}
 
 /** The vehicle the player is in, or [OnFoot]. */
 sealed interface Vehicle {

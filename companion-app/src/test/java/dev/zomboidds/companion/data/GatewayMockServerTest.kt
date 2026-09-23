@@ -2,6 +2,7 @@ package dev.zomboidds.companion.data
 
 import dev.zomboidds.bridge.mock.MockServer
 import dev.zomboidds.companion.domain.CommandResult
+import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
@@ -74,6 +75,33 @@ class GatewayMockServerTest {
 
         // A menu is single-use, like in the game.
         assertTrue(gateway.selectMenuOption(menu.menuId, all.id) is CommandResult.Failed)
+    }
+
+    @Test
+    fun `items move between containers`() = runBlocking {
+        val containers = withTimeout(5_000) { gateway.state.first { it.containers != null } }.containers!!
+        val inventory = containers.first { it.kind == ContainerKind.INVENTORY }
+        val shelves = containers.first { it.name == "Shelves" }
+        val book = shelves.items!!.first { it.name == "Book" }
+
+        assertEquals(CommandResult.Ok, gateway.transfer(book.id, inventory.id))
+        withTimeout(5_000) { gateway.state.first { state -> state.inventory!!.items.any { it.id == book.id } } }
+
+        assertEquals(CommandResult.Ok, gateway.transferAll(shelves.id, containers.first { it.kind == ContainerKind.FLOOR }.id))
+        val after = withTimeout(5_000) {
+            gateway.state.first { state -> state.containers!!.first { it.id == shelves.id }.items!!.isEmpty() }
+        }
+        assertEquals(listOf("Pen"), after.containers!!.first { it.kind == ContainerKind.FLOOR }.items!!.map { it.name })
+
+        val crate = containers.first { it.locked }
+        assertEquals(CommandResult.Failed("That container is locked"), gateway.transfer(book.id, crate.id))
+    }
+
+    @Test
+    fun `items in containers have the game's menu too`() = runBlocking {
+        val containers = withTimeout(5_000) { gateway.state.first { it.containers != null } }.containers!!
+        val pen = containers.first { it.name == "Shelves" }.items!!.first { it.name == "Pen" }
+        assertTrue(gateway.itemMenu(pen.id) is ItemMenuResult.Ready)
     }
 
     @Test

@@ -1,5 +1,9 @@
 package dev.zomboidds.companion.ui
 
+import dev.zomboidds.companion.domain.GameEvent
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.zomboidds.companion.ContainerLayout
 import dev.zomboidds.companion.InventoryLayout
 import dev.zomboidds.companion.domain.BridgeInfo
 import dev.zomboidds.companion.domain.CommandResult
@@ -59,8 +64,9 @@ fun CompanionScreen(
     setupActions: SetupActions,
     iconUrl: (String) -> String,
     actions: ItemActions,
-    inventoryLayout: InventoryLayout,
-    onInventoryLayoutChange: (InventoryLayout) -> Unit,
+    inventoryDisplay: InventoryDisplay,
+    onInventoryDisplayChange: (InventoryDisplay) -> Unit,
+    events: Flow<GameEvent>,
 ) {
     MaterialTheme(colorScheme = darkColorScheme()) {
         Surface(Modifier.fillMaxSize()) {
@@ -68,7 +74,7 @@ fun CompanionScreen(
             Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
-                    InGame(state, iconUrl, actions, inventoryLayout, onInventoryLayoutChange)
+                    InGame(state, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange, events)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     Column(
@@ -91,8 +97,9 @@ private fun InGame(
     state: GameState,
     iconUrl: (String) -> String,
     actions: ItemActions,
-    inventoryLayout: InventoryLayout,
-    onInventoryLayoutChange: (InventoryLayout) -> Unit,
+    inventoryDisplay: InventoryDisplay,
+    onInventoryDisplayChange: (InventoryDisplay) -> Unit,
+    events: Flow<GameEvent>,
 ) {
     val driving = state.vehicle as? Vehicle.Driving
     // The Vehicle tab only exists while in a vehicle.
@@ -112,16 +119,30 @@ private fun InGame(
     }
     val shown = if (tab in tabs) tab else Tab.INVENTORY
 
+    // The game's Loot/Inventory button: show that container here instead of on the top screen.
+    var showRequest by remember { mutableStateOf<ShowRequest?>(null) }
+    LaunchedEffect(events) {
+        events.collect { event ->
+            when (event) {
+                is GameEvent.ShowInventory -> {
+                    tab = Tab.INVENTORY
+                    showRequest = ShowRequest(event.containerId)
+                }
+            }
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
         PrimaryTabRow(selectedTabIndex = tabs.indexOf(shown)) {
             tabs.forEach {
                 Tab(selected = shown == it, onClick = { tab = it }, text = { Text(it.title) })
             }
         }
-        Box(Modifier.fillMaxSize().padding(16.dp)) {
+        Box(Modifier.fillMaxSize().padding(10.dp)) {
             when (shown) {
                 Tab.VEHICLE -> driving?.let { VehicleScreen(it) }
-                Tab.INVENTORY -> InventoryScreen(state.inventory, iconUrl, actions, inventoryLayout, onInventoryLayoutChange)
+                Tab.INVENTORY -> InventoryScreen(state.inventory, state.containers, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange,
+                    show = showRequest, onShowHandled = { showRequest = null })
                 Tab.STATUS -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     StatusHeader(state, ConnectionStatus.Connected)
                     state.player?.let { PlayerCard(it) }
@@ -219,8 +240,11 @@ private fun InGamePreview() {
             override suspend fun perform(command: ItemCommand) = CommandResult.Ok
             override suspend fun itemMenu(itemId: Long) = ItemMenuResult.Failed("preview")
             override suspend fun selectMenuOption(menuId: String, optionId: String) = CommandResult.Ok
+            override suspend fun transfer(itemId: Long, toContainer: String) = CommandResult.Ok
+            override suspend fun transferAll(fromContainer: String, toContainer: String) = CommandResult.Ok
         },
-        inventoryLayout = InventoryLayout.GRID,
-        onInventoryLayoutChange = {},
+        inventoryDisplay = InventoryDisplay(InventoryLayout.GRID, ContainerLayout.SPLIT),
+        onInventoryDisplayChange = {},
+        events = emptyFlow(),
     )
 }

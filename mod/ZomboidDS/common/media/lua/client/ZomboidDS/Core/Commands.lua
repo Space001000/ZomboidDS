@@ -14,6 +14,18 @@ local function execute(adapter, player, command)
     return result ~= false, reason, data
 end
 
+--- "itemId=12 to=c3", for the game log.
+local function describeArgs(args)
+    local parts = {}
+    for key, value in pairs(args or {}) do
+        if type(value) ~= "table" then
+            parts[#parts + 1] = tostring(key) .. "=" .. tostring(value)
+        end
+    end
+    table.sort(parts)
+    return table.concat(parts, " ")
+end
+
 function Commands.pump(bridge, adapter, player, max)
     local batch = bridge.poll(max)
     if batch == nil then
@@ -22,6 +34,9 @@ function Commands.pump(bridge, adapter, player, max)
     for i = 1, #batch do
         local command = batch[i]
         local ok, reason, data = execute(adapter, player, command)
+        -- One line per command, so a report like "it didn't move" can be checked in the game log.
+        print("[ZomboidDS] command " .. tostring(command.name) .. " " .. describeArgs(command.args)
+            .. " -> " .. (ok and "ok" or ("failed: " .. tostring(reason))))
         bridge.emit("command_result", { id = command.id, ok = ok, error = reason, data = data })
     end
 end

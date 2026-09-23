@@ -45,7 +45,9 @@ older state messages of the same type are dropped in favour of the newest.
 | `player`         | Lua      | `health` (0–100), `bleeding`, `stats` { `hunger`, `thirst`, `fatigue`, `endurance` } (0–1) |
 | `inventory`      | Lua      | `weight` { `current`, `max` }, `items[]` (see below) |
 | `vehicle`        | Lua      | `inVehicle`; when true also `name`, `speedKmh`, `engineRunning`, `fuel` (0–1, optional), `isDriver` |
+| `containers`     | Lua      | `containers[]`: your bags and everything within reach, see below |
 | `command_result` | Lua      | `id`, `ok`, `error` (optional), `data` (optional, command-specific). Event, never replayed. |
+| `show`           | Lua      | `panel` (`inventory`), `container` (optional container id). The player asked the game for that panel, e.g. pressed the controller's Loot/Inventory button: the app shows it. Event, never replayed. |
 
 Inventory item:
 
@@ -62,11 +64,33 @@ Inventory item:
   doesn't guess from categories): `equip.primary`, `equip.secondary`, `equip.both`, `wear`,
   `unequip`, `drop`. Each maps to one command below. Unknown actions are ignored by the app.
 
+### Containers
+
+The containers the player can use right now, exactly as the game's own inventory window (your
+inventory, bags, key rings) and loot window (everything within reach) list them, so the game's
+rules apply: walls, safehouses, locks, corpses, vehicles, bags on the floor, containers from mods.
+
+```json
+{ "containers": [
+  { "id": "c1", "kind": "inventory", "name": "Inventory", "icon": "Icon_InventoryBasic", "weight": 3.0, "capacity": 12 },
+  { "id": "c2", "kind": "bag", "name": "School Bag", "icon": "Item_Schoolbag", "weight": 1.0, "capacity": 13, "items": [ ] },
+  { "id": "c3", "kind": "nearby", "name": "Shelves", "icon": "Container_Shelf", "weight": 1.1, "capacity": 50, "items": [ ] },
+  { "id": "c4", "kind": "nearby", "name": "Crate", "icon": "lock", "weight": 5, "capacity": 50, "locked": true },
+  { "id": "c5", "kind": "floor", "name": "Floor", "icon": "Container_Floor", "weight": 2, "capacity": 50, "items": [ ] } ] }
+```
+
+- `kind`: `inventory` (the main inventory: its items are in the `inventory` message, it's listed here
+  as a place to move things to), `bag`, `nearby`, `floor`.
+- `items` has the same shape as in `inventory`. Omitted for the main inventory and for `locked`
+  containers (they can't be looked into).
+- `id` stays the same while the container exists; commands refer to containers by it.
+- `icon` is a texture name for the icon endpoint, like item icons.
+
 ### Capabilities
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`, `item_menu`.
+`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`.
 
 ## Client → server
 
@@ -86,6 +110,18 @@ executed on the game thread on the next tick, usually as timed actions, so `ok: 
 | `drop`    | `itemId` |
 | `item_menu` | `itemId`. Result `data`: the game's own context menu for the item, see below |
 | `menu_select` | `menuId`, `optionId`: runs that option of the menu, like clicking it in the game |
+| `transfer` | `itemId`, `to` (container id): moves the item there from wherever it is (inventory, bag, or a container within reach) |
+| `transfer_all` | `from`, `to` (container ids): moves everything, with the filters of the game's Take All / Transfer All buttons |
+
+### Moving items
+
+`transfer` and `transfer_all` use the game's own transfer code (what its Take All / Transfer All
+buttons do): timed actions with animation and the game's capacity checks; the character walks to a
+container first if needed; moving to the floor is a normal drop. They fail with a reason when the
+destination is out of reach or locked, the item can't go there, or it's already there.
+`transfer_all` skips what the game's buttons skip: from your inventory equipped items, key rings,
+hotbar items and favourites; from elsewhere items you marked unwanted and heavy items (corpses,
+generators).
 
 ### The game's item menu
 
@@ -101,6 +137,9 @@ includes everything it offers: read, eat, bandage, craft, ... and options added 
   { "id": "3", "name": "Rip into sheets", "enabled": false, "tooltip": "Requires a knife" } ] }
 ```
 
+- Works for items you carry and for items in containers within reach (not locked ones). For the
+  latter it's the menu the game's loot window shows: Grab, plus options like Read or Eat that take
+  the item first. An option only runs while the item is still within reach.
 - Options with `children` are submenus; only options without children can be selected.
 - `enabled: false` options are shown greyed out, with the game's reason in `tooltip` if it gives one.
 - Only the latest menu is valid, and only for one `menu_select` within a minute. Otherwise the result

@@ -2,7 +2,10 @@ package dev.zomboidds.companion.data
 
 import dev.zomboidds.companion.domain.BridgeInfo
 import dev.zomboidds.companion.domain.CommandResult
+import dev.zomboidds.companion.domain.Container
+import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.EquipSlot
+import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.Inventory
 import dev.zomboidds.companion.domain.InventoryItem
@@ -88,6 +91,21 @@ object ProtocolV1 {
     )
 
     @Serializable
+    private data class ContainersDto(val containers: List<ContainerDto> = emptyList())
+
+    @Serializable
+    private data class ContainerDto(
+        val id: String,
+        val kind: String = "",
+        val name: String = "",
+        val icon: String? = null,
+        val weight: Float? = null,
+        val capacity: Float? = null,
+        val locked: Boolean = false,
+        val items: List<ItemDto>? = null,
+    )
+
+    @Serializable
     private data class CommandResultDto(
         val id: String? = null,
         val ok: Boolean,
@@ -105,10 +123,16 @@ object ProtocolV1 {
          * [data] is command-specific (e.g. the item menu).
          */
         data class Reply(val id: String?, val result: CommandResult, val data: JsonElement? = null) : ServerMessage
+
+        /** A one-off request from the game, for the UI. */
+        data class Event(val event: GameEvent) : ServerMessage
     }
 
     /** A command for the game: its protocol name and arguments. */
     class Request(val name: String, val args: JsonObject)
+
+    @Serializable
+    private data class ShowDto(val panel: String = "", val container: String? = null)
 
     @Serializable
     private data class MenuDto(val menuId: String, val options: List<MenuOptionDto> = emptyList())
@@ -130,6 +154,13 @@ object ProtocolV1 {
             val dto = json.decodeFromJsonElement<CommandResultDto>(envelope.data)
             val result = if (dto.ok) CommandResult.Ok else CommandResult.Failed(dto.error ?: "the game refused")
             return ServerMessage.Reply(dto.id, result, dto.data?.takeIf { it !is JsonNull })
+        }
+        if (envelope.type == "show") {
+            val dto = json.decodeFromJsonElement<ShowDto>(envelope.data)
+            return when (dto.panel) {
+                "inventory" -> ServerMessage.Event(GameEvent.ShowInventory(dto.container))
+                else -> ServerMessage.StateUpdate { it } // a panel from a newer mod: nothing to show
+            }
         }
         return ServerMessage.StateUpdate { state -> apply(state, envelope) }
     }
@@ -161,6 +192,16 @@ object ProtocolV1 {
     private fun MenuOptionDto.toDomain(): MenuOption =
         MenuOption(id, name, enabled, tooltip, children.map { it.toDomain() })
 
+    fun transferRequest(itemId: Long, toContainer: String) = Request("transfer", buildJsonObject {
+        put("itemId", JsonPrimitive(itemId))
+        put("to", toContainer)
+    })
+
+    fun transferAllRequest(fromContainer: String, toContainer: String) = Request("transfer_all", buildJsonObject {
+        put("from", fromContainer)
+        put("to", toContainer)
+    })
+
     fun request(command: ItemCommand): Request {
         val (name, slot) = when (command.action) {
             ItemAction.EQUIP_PRIMARY -> "equip" to "primary"
@@ -183,7 +224,7 @@ object ProtocolV1 {
     fun apply(state: GameState, text: String): GameState =
         when (val message = decode(text)) {
             is ServerMessage.StateUpdate -> message.update(state)
-            is ServerMessage.Reply -> state
+            is ServerMessage.Reply, is ServerMessage.Event -> state
         }
 
     private fun apply(state: GameState, envelope: Envelope): GameState {
@@ -213,9 +254,28 @@ object ProtocolV1 {
                     isDriver = it.isDriver,
                 ))
             }
+            "containers" -> json.decodeFromJsonElement<ContainersDto>(data).let { dto ->
+                state.copy(containers = dto.containers.map { it.toDomain() })
+            }
             else -> state
         }
     }
+
+    private fun ContainerDto.toDomain() = Container(
+        id = id,
+        kind = when (kind) {
+            "inventory" -> ContainerKind.INVENTORY
+            "bag" -> ContainerKind.BAG
+            "floor" -> ContainerKind.FLOOR
+            else -> ContainerKind.NEARBY // "nearby", or a kind from a newer mod
+        },
+        name = name.ifEmpty { id },
+        icon = icon,
+        weight = weight,
+        capacity = capacity,
+        locked = locked,
+        items = if (locked) null else items?.map { it.toDomain() },
+    )
 
     private fun ItemDto.toDomain() = InventoryItem(
         id = id,

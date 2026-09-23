@@ -23,6 +23,12 @@ interface ItemActions {
 
     /** Runs an option of a menu from [itemMenu], like clicking it in the game. Never throws. */
     suspend fun selectMenuOption(menuId: String, optionId: String): CommandResult
+
+    /** Moves an item into a container ([Container.id]), walking there first like the game. Never throws. */
+    suspend fun transfer(itemId: Long, toContainer: String): CommandResult
+
+    /** Moves everything the game's Take All / Transfer All would. Never throws. */
+    suspend fun transferAll(fromContainer: String, toContainer: String): CommandResult
 }
 
 sealed interface ItemMenuResult {

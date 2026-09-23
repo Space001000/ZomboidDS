@@ -98,7 +98,8 @@ function B42Menu.open(player, item)
 end
 
 --- Runs option `args.optionId` of menu `args.menuId`, like clicking it in the game.
-function B42Menu.select(player, args)
+--- `findItem(id)` says whether the item is still within reach (default: in the player's inventory).
+function B42Menu.select(player, args, findItem)
     local menu = current
     if menu == nil or menu.id ~= args.menuId or getTimestampMs() - menu.created > MENU_TTL_MS then
         return false, "This menu is out of date; tap the item again"
@@ -107,7 +108,8 @@ function B42Menu.select(player, args)
     if call == nil then
         return false, "That option isn't available"
     end
-    if player:getInventory():getItemWithIDRecursiv(menu.itemId) == nil then
+    local stillThere = findItem and findItem(menu.itemId) or player:getInventory():getItemWithIDRecursiv(menu.itemId)
+    if stillThere == nil then
         current = nil
         return false, "The item is no longer there"
     end

@@ -42,11 +42,16 @@ final class MockGame {
     private final Map<String, Object> player = fixtureData("player.json");
     private final Map<String, Object> vehicle = fixtureData("vehicle_driving.json");
     private final MockItemMenu menu = new MockItemMenu();
+    /** From containers.json; the "inventory" entry's items live in {@link #inventory}. */
+    private final List<Map<String, Object>> containers = containersFixture();
+    /** Containers that are left behind when you walk away ("w"): not on the player, not the floor. */
+    private final List<Map<String, Object>> furniture = new ArrayList<>();
     private boolean driving;
     private long nextItemId = 20000;
     private long tick;
     private boolean inventoryDirty = true;
     private boolean playerDirty = true;
+    private boolean containersDirty = true;
 
     MockGame(BridgeContext bridge, String inventoryFixture) {
         this.bridge = bridge;
@@ -70,6 +75,7 @@ final class MockGame {
                 case "d" -> gameThread.execute(() -> adjustHealth(-15));
                 case "h" -> gameThread.execute(() -> adjustHealth(+15));
                 case "i" -> gameThread.execute(this::addRandomItem);
+                case "w" -> gameThread.execute(this::walk);
                 case "q" -> { return; }
                 case "" -> { }
                 default -> printHelp();
@@ -83,7 +89,8 @@ final class MockGame {
         System.out.println("""
                 Mock game running. Commands:
                   v  enter/leave vehicle     d  take damage     h  heal
-                  i  add an item             q  quit""");
+                  i  add an item             w  walk away from / back to the furniture
+                  q  quit""");
     }
 
     // --- game thread ---
@@ -98,6 +105,10 @@ final class MockGame {
                 // Publish copies: the sender thread serializes them while we keep mutating.
                 bridge.state().publish("inventory", withActions(deepCopy(inventory)));
                 inventoryDirty = false;
+            }
+            if (containersDirty) {
+                bridge.state().publish("containers", Map.of("containers", containerSnapshot()));
+                containersDirty = false;
             }
             if (playerDirty) {
                 bridge.state().publish("player", deepCopy(player));
@@ -128,17 +139,23 @@ final class MockGame {
             case "unequip" -> setEquipped(command, null);
             case "drop" -> drop(command);
             case "item_menu" -> {
-                Map<String, Object> item = find(command);
+                // Like the adapter: items you carry and items in containers within reach.
+                Object id = command.args().get("itemId");
+                Map<String, Object> item = id instanceof Number n ? findAnywhere(n.longValue()) : null;
                 if (item == null) {
                     yield "item not found";
                 }
                 data[0] = menu.open(item, () -> {
                     items().remove(item);
+                    containers.forEach(c -> itemsOf(c).remove(item));
                     inventoryDirty = true;
+                    containersDirty = true;
                 });
                 yield null;
             }
             case "menu_select" -> menu.select(command.args().get("menuId"), command.args().get("optionId"));
+            case "transfer" -> transfer(command);
+            case "transfer_all" -> transferAll(command);
             default -> "unknown command '" + command.name() + "'";
         };
         Map<String, Object> result = new LinkedHashMap<>();
@@ -187,9 +204,135 @@ final class MockGame {
         if (item == null) {
             return "item not found";
         }
-        items().remove(item);
-        inventoryDirty = true;
+        item.remove("equipped");
+        moveItem(item, containerOfKind("floor"));
         return null;
+    }
+
+    // --- containers (like the B42 adapter: see PROTOCOL.md "containers" and "transfer") ---
+
+    private String transfer(Command command) {
+        Map<String, Object> destination = reachableContainer(command.args().get("to"));
+        if (destination == null) {
+            return "That container is out of reach";
+        }
+        if (Boolean.TRUE.equals(destination.get("locked"))) {
+            return "That container is locked";
+        }
+        Object id = command.args().get("itemId");
+        Map<String, Object> item = id instanceof Number n ? findAnywhere(n.longValue()) : null;
+        if (item == null) {
+            return "item not found";
+        }
+        if (itemsOf(destination).contains(item)) {
+            return "It's already there";
+        }
+        item.remove("equipped");
+        moveItem(item, destination);
+        return null;
+    }
+
+    private String transferAll(Command command) {
+        Map<String, Object> from = reachableContainer(command.args().get("from"));
+        Map<String, Object> to = reachableContainer(command.args().get("to"));
+        if (from == null || Boolean.TRUE.equals(from.get("locked"))) {
+            return "That container is out of reach";
+        }
+        if (to == null) {
+            return "That container is out of reach";
+        }
+        if (Boolean.TRUE.equals(to.get("locked"))) {
+            return "That container is locked";
+        }
+        // Like the game's Transfer All: equipped items stay on you.
+        List<Map<String, Object>> moving = itemsOf(from).stream().filter(item -> item.get("equipped") == null).toList();
+        if (moving.isEmpty()) {
+            return "Nothing to move";
+        }
+        moving.forEach(item -> moveItem(item, to));
+        return null;
+    }
+
+    private void moveItem(Map<String, Object> item, Map<String, Object> destination) {
+        items().remove(item);
+        containers.forEach(c -> itemsOf(c).remove(item));
+        itemsOf(destination).add(item);
+        inventoryDirty = true;
+        containersDirty = true;
+    }
+
+    private Map<String, Object> findAnywhere(long id) {
+        for (Map<String, Object> container : containers) {
+            if (Boolean.TRUE.equals(container.get("locked"))) {
+                continue;
+            }
+            for (Map<String, Object> item : itemsOf(container)) {
+                if (((Number) item.get("id")).longValue() == id) {
+                    return item;
+                }
+            }
+        }
+        return null;
+    }
+
+    private Map<String, Object> reachableContainer(Object id) {
+        return containers.stream().filter(c -> c.get("id").equals(id)).findFirst().orElse(null);
+    }
+
+    private Map<String, Object> containerOfKind(String kind) {
+        return containers.stream().filter(c -> kind.equals(c.get("kind"))).findFirst().orElseThrow();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> itemsOf(Map<String, Object> container) {
+        if ("inventory".equals(container.get("kind"))) {
+            return items();
+        }
+        return (List<Map<String, Object>>) container.computeIfAbsent("items", k -> new ArrayList<>());
+    }
+
+    /** Leaves the furniture behind, or comes back to it. */
+    private void walk() {
+        if (furniture.isEmpty()) {
+            containers.stream().filter(c -> "nearby".equals(c.get("kind"))).forEach(furniture::add);
+            containers.removeAll(furniture);
+            Log.info("walked away from " + furniture.stream().map(c -> c.get("name")).toList());
+        } else {
+            containers.addAll(containers.size() - 1, furniture); // back in front of the floor
+            furniture.clear();
+            Log.info("back at the furniture");
+        }
+        containersDirty = true;
+    }
+
+    /** The containers message: weights from the items, no item list for the inventory or locked ones. */
+    private List<Map<String, Object>> containerSnapshot() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Map<String, Object> container : containers) {
+            Map<String, Object> entry = deepCopy(container);
+            if (Boolean.TRUE.equals(container.get("locked"))) {
+                list.add(entry); // as in the fixture: can't be looked into, weight as the game reports it
+                continue;
+            }
+            double weight = itemsOf(container).stream().mapToDouble(i -> ((Number) i.getOrDefault("weight", 0)).doubleValue()).sum();
+            entry.put("weight", Math.round(weight * 100) / 100.0);
+            if ("inventory".equals(container.get("kind"))) {
+                entry.remove("items");
+            } else {
+                entry.put("items", itemsOf(container).stream().map(item -> {
+                    Map<String, Object> copy = deepCopy(item);
+                    copy.put("actions", List.of()); // like the adapter: quick actions only in the inventory
+                    return copy;
+                }).toList());
+            }
+            list.add(entry);
+        }
+        return list;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> containersFixture() {
+        return new ArrayList<>((List<Map<String, Object>>) fixtureData("containers.json").get("containers"));
     }
 
     private void adjustHealth(double delta) {

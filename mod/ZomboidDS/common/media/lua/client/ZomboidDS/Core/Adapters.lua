@@ -11,11 +11,13 @@
 ---   snapshotPlayer(player)    -> table   `player` message data
 ---   snapshotInventory(player) -> table   `inventory` message data
 ---   snapshotVehicle(player)   -> table   `vehicle` message data
+---   snapshotContainers(player) -> table  `containers` message data (optional)
 ---   isInVehicle(player)       -> boolean
 ---   commands                  table: name -> function(player, args) returning
 ---                             true [, nil, data] on success or false, "reason" on failure
 ---   dirtyEvents               table: channel -> array of Events names that mean "re-snapshot now"
----   hideNativeUI(playerNum)   optional
+---   redirectGameWindows(onShow) optional: when the player opens the game's inventory/loot windows,
+---                             calls onShow(playerNum, `show` message data); true keeps them closed
 ---   notify(player, text)      optional: short on-screen message for the player
 ---
 --- Snapshots must return plain tables (strings, numbers, booleans, nested tables) and never

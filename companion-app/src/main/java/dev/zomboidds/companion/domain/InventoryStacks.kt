@@ -6,13 +6,15 @@ data class ItemStack(val items: List<InventoryItem>) {
     val count: Int get() = items.size
 }
 
+fun Inventory.stacks(): List<ItemStack> = items.stacks()
+
 /**
- * Groups the inventory the way players expect: what's in hand first, then what's worn, then the
+ * Groups a container's items the way players expect: what's in hand first, then what's worn, then the
  * rest, with identical items stacked ("Bandage ×2"). Equipped items and items with a condition are
  * never stacked, since each one differs.
  */
-fun Inventory.stacks(): List<ItemStack> {
-    val (equipped, loose) = items.partition { it.equipped != null }
+fun List<InventoryItem>.stacks(): List<ItemStack> {
+    val (equipped, loose) = partition { it.equipped != null }
     val handsFirst = equipped.sortedBy { if (it.equipped == EquipSlot.WORN) 1 else 0 }
         .map { ItemStack(listOf(it)) }
     val grouped = loose

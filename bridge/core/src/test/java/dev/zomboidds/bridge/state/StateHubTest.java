@@ -25,6 +25,8 @@ class StateHubTest {
         hub.publish("player", Map.of("health", 50));
         hub.publish("player", Map.of("health", 40));
         hub.publish("command_result", Map.of("id", "c-1", "ok", true));
+        // An old button press must not make a newly connected app jump to a panel.
+        hub.publish("show", Map.of("panel", "inventory"));
 
         RecordingClient late = connect();
         late.awaitCount(2);

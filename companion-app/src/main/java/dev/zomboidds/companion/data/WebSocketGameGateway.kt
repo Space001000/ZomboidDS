@@ -3,6 +3,7 @@ package dev.zomboidds.companion.data
 import android.util.Log
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ConnectionStatus
+import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameGateway
 import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.ItemCommand
@@ -12,7 +13,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -45,6 +50,9 @@ class WebSocketGameGateway(
 
     private val _connection = MutableStateFlow<ConnectionStatus>(ConnectionStatus.Connecting)
     override val connection: StateFlow<ConnectionStatus> = _connection.asStateFlow()
+
+    private val _events = MutableSharedFlow<GameEvent>(extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    override val events: SharedFlow<GameEvent> = _events.asSharedFlow()
 
     private var job: Job? = null
 
@@ -101,6 +109,12 @@ class WebSocketGameGateway(
     override suspend fun selectMenuOption(menuId: String, optionId: String): CommandResult =
         send(ProtocolV1.menuSelectRequest(menuId, optionId)).result
 
+    override suspend fun transfer(itemId: Long, toContainer: String): CommandResult =
+        send(ProtocolV1.transferRequest(itemId, toContainer)).result
+
+    override suspend fun transferAll(fromContainer: String, toContainer: String): CommandResult =
+        send(ProtocolV1.transferAllRequest(fromContainer, toContainer)).result
+
     /** Sends a command and waits for the game's reply; failures come back as a failed reply. */
     private suspend fun send(request: ProtocolV1.Request): ProtocolV1.ServerMessage.Reply {
         fun failed(reason: String) = ProtocolV1.ServerMessage.Reply(null, CommandResult.Failed(reason))
@@ -139,6 +153,7 @@ class WebSocketGameGateway(
                 when (val message = ProtocolV1.decode(text)) {
                     is ProtocolV1.ServerMessage.StateUpdate -> _state.update(message.update)
                     is ProtocolV1.ServerMessage.Reply -> message.id?.let { pending.remove(it) }?.complete(message)
+                    is ProtocolV1.ServerMessage.Event -> _events.tryEmit(message.event)
                 }
             } catch (e: IllegalArgumentException) {
                 // One bad message (e.g. from a newer or broken mod) must not kill the connection.

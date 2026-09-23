@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import dev.zomboidds.companion.setup.SetupController
 import dev.zomboidds.companion.setup.ZomdroidStorage
 import dev.zomboidds.companion.ui.CompanionScreen
+import dev.zomboidds.companion.ui.InventoryDisplay
 import dev.zomboidds.companion.ui.SetupActions
 
 class MainActivity : ComponentActivity() {
@@ -55,12 +56,17 @@ class MainActivity : ComponentActivity() {
             val connection by gateway.connection.collectAsStateWithLifecycle()
             val report by setup.report.collectAsStateWithLifecycle()
             val inventoryLayout by container.settings.inventoryLayout.collectAsStateWithLifecycle()
+            val containerLayout by container.settings.containerLayout.collectAsStateWithLifecycle()
             CompanionScreen(
                 state, connection, report, setupActions,
                 iconUrl = gateway::iconUrl,
                 actions = gateway,
-                inventoryLayout = inventoryLayout,
-                onInventoryLayoutChange = container.settings::setInventoryLayout,
+                inventoryDisplay = InventoryDisplay(inventoryLayout, containerLayout),
+                onInventoryDisplayChange = {
+                    container.settings.setInventoryLayout(it.items)
+                    container.settings.setContainerLayout(it.containers)
+                },
+                events = gateway.events,
             )
         }
     }

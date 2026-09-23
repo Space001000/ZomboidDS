@@ -84,6 +84,9 @@ local function onGameStart()
     local emitter = Emitter.new(Bridge)
     emitter:addChannel("player", adapter.snapshotPlayer, Config.intervalsMs.player)
     emitter:addChannel("inventory", adapter.snapshotInventory, Config.intervalsMs.inventory)
+    if adapter.snapshotContainers then
+        emitter:addChannel("containers", adapter.snapshotContainers, Config.intervalsMs.containers)
+    end
     emitter:addChannel("vehicle", adapter.snapshotVehicle, function(player)
         return adapter.isInVehicle(player) and Config.intervalsMs.vehicle or Config.intervalsMs.vehicleIdle
     end)
@@ -99,8 +102,15 @@ local function onGameStart()
         capabilities = adapter.capabilities,
     })
 
-    if Config.hideNativeUI and adapter.hideNativeUI then
-        adapter.hideNativeUI(0)
+    if adapter.redirectGameWindows then
+        adapter.redirectGameWindows(function(playerNum, show)
+            -- Nobody on the bottom screen: the game's own windows are the only inventory there is.
+            if not Config.redirectGameWindows or playerNum ~= 0 or Bridge.clients() == 0 then
+                return false
+            end
+            Bridge.emit("show", show)
+            return true
+        end)
     end
 
     Events.OnTick.Add(onTick)

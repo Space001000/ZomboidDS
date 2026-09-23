@@ -80,6 +80,9 @@ pip install lupa && python tools/test-lua.py
   `-Pmock.args="inventory=full,gameDir=<PZ folder>"` for a 64-item inventory with the game's real
   icons. The emulator works too: set it to the Thor's bottom screen with
   `adb shell wm size 1080x1240` and `adb shell wm density 369`.
+- **Talk to the game without the app:** `adb forward tcp:7786 tcp:7786`, then
+  `python tools/bridge-client.py` lists the containers around the player and moves items
+  (`take`, `put`, `takeall`).
 - **Mod changes on the device:** `tools/deploy-mod.sh` builds the mod and installs it into Zomdroid
   through the companion app (which holds the folder permission; grant it once in the app).
   Restart the game afterwards. The mod's log goes to logcat under the tag `zomdroid-main`
