@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
  * The app's view of the game. The UI only talks to this interface; how the data gets here
  * (WebSocket to the mod, fake data for previews, ...) is an implementation detail.
  */
-interface GameGateway {
+interface GameGateway : ItemActions {
     val state: StateFlow<GameState>
     val connection: StateFlow<ConnectionStatus>
 
@@ -17,6 +17,5 @@ interface GameGateway {
     /** Where to load an item icon from, e.g. for "Item_Axe". */
     fun iconUrl(icon: String): String
 
-    /** Sends [command] to the game and waits for its answer. Never throws. */
-    suspend fun perform(command: ItemCommand): CommandResult
+
 }

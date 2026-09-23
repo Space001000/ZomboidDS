@@ -5,6 +5,7 @@ import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
+import dev.zomboidds.companion.domain.ItemMenuResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -56,6 +57,23 @@ class GatewayMockServerTest {
         val equipped = updated.inventory!!.items.first { it.id == bandage.id }
         assertEquals(EquipSlot.PRIMARY, equipped.equipped)
         assertEquals(listOf(ItemAction.UNEQUIP, ItemAction.DROP), equipped.actions)
+    }
+
+    @Test
+    fun `the game's item menu can be opened and used`() = runBlocking {
+        val inventory = withTimeout(5_000) { gateway.state.first { it.inventory != null } }.inventory!!
+        val beans = inventory.items.first { it.name == "Beans" }
+
+        val menu = (gateway.itemMenu(beans.id) as ItemMenuResult.Ready).menu
+        val eat = menu.options.first { it.name == "Eat" }
+        val all = eat.children.first { it.name == "All" }
+        assertTrue(menu.options.any { it.name == "Rename" && !it.enabled && it.tooltip != null })
+
+        assertEquals(CommandResult.Ok, gateway.selectMenuOption(menu.menuId, all.id))
+        withTimeout(5_000) { gateway.state.first { state -> state.inventory!!.items.none { it.id == beans.id } } }
+
+        // A menu is single-use, like in the game.
+        assertTrue(gateway.selectMenuOption(menu.menuId, all.id) is CommandResult.Failed)
     }
 
     @Test

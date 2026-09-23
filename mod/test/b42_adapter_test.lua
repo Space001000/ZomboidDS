@@ -81,6 +81,17 @@ check(inv.items[1].condition == 0.5 and inv.items[2].condition == nil, "conditio
 check(inv.items[1].weight == 1.23, "weights rounded")
 check(table.concat(inv.items[1].actions, ",") == "unequip,drop", "equipped item can be unequipped or dropped")
 check(table.concat(inv.items[2].actions, ",") == "equip.primary,equip.secondary,drop", "loose item can be held in either hand")
+
+-- Hidden items (B42 wounds are invisible worn clothing) aren't shown, like in the game's window.
+local wound = item(99, "Base.Wound_Abdomen_Bite_Male", "Clothing")
+wound.isHidden = function() return true end
+table.insert(items, wound)
+Events.OnContainerUpdate.fire(); Events.OnTick.fire()
+local ids = {}
+for _, it in ipairs(last("inventory").items) do ids[it.id] = true end
+check(not ids[99] and ids[1] and ids[2], "hidden items (wounds) are left out")
+table.remove(items)
+Events.OnContainerUpdate.fire(); Events.OnTick.fire()
 local p = last("player")
 check(p.health == 87.5 and p.bleeding == true and p.stats.hunger == 0.123, "player snapshot")
 check(p.stats.endurance == nil, "missing engine method degrades to nil, not an error")

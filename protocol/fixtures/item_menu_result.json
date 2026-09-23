@@ -1,0 +1,17 @@
+{
+  "v": 1, "type": "command_result", "seq": 8,
+  "data": {
+    "id": "c-18", "ok": true,
+    "data": {
+      "menuId": "m7",
+      "options": [
+        {"id": "1", "name": "Read", "enabled": true},
+        {"id": "2", "name": "Eat", "enabled": true, "children": [
+          {"id": "2.1", "name": "All", "enabled": true},
+          {"id": "2.2", "name": "Half", "enabled": true}
+        ]},
+        {"id": "3", "name": "Rip into sheets", "enabled": false, "tooltip": "Requires a knife"}
+      ]
+    }
+  }
+}

@@ -6,6 +6,8 @@ data class GameState(
     val session: SessionInfo? = null,
     val player: PlayerStatus? = null,
     val inventory: Inventory? = null,
+    /** Null until the game reported it. */
+    val vehicle: Vehicle? = null,
 )
 
 /** The mod's Java side, from `hello`. */
@@ -48,6 +50,21 @@ data class InventoryItem(
 )
 
 enum class EquipSlot { PRIMARY, SECONDARY, BOTH, WORN }
+
+/** The vehicle the player is in, or [OnFoot]. */
+sealed interface Vehicle {
+    data object OnFoot : Vehicle
+
+    data class Driving(
+        val name: String,
+        val speedKmh: Float,
+        val engineRunning: Boolean,
+        /** 0..1, null if the vehicle has no (readable) tank. */
+        val fuel: Float?,
+        /** False when the player is a passenger. */
+        val isDriver: Boolean,
+    ) : Vehicle
+}
 
 sealed interface ConnectionStatus {
     data object Connecting : ConnectionStatus

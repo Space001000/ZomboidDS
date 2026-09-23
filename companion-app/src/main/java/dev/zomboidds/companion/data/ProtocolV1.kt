@@ -8,8 +8,11 @@ import dev.zomboidds.companion.domain.Inventory
 import dev.zomboidds.companion.domain.InventoryItem
 import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
+import dev.zomboidds.companion.domain.ItemMenu
+import dev.zomboidds.companion.domain.MenuOption
 import dev.zomboidds.companion.domain.PlayerStatus
 import dev.zomboidds.companion.domain.SessionInfo
+import dev.zomboidds.companion.domain.Vehicle
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -75,16 +78,49 @@ object ProtocolV1 {
     )
 
     @Serializable
-    private data class CommandResultDto(val id: String? = null, val ok: Boolean, val error: String? = null)
+    private data class VehicleDto(
+        val inVehicle: Boolean = false,
+        val name: String? = null,
+        val speedKmh: Float = 0f,
+        val engineRunning: Boolean = false,
+        val fuel: Float? = null,
+        val isDriver: Boolean = false,
+    )
+
+    @Serializable
+    private data class CommandResultDto(
+        val id: String? = null,
+        val ok: Boolean,
+        val error: String? = null,
+        val data: JsonElement? = null,
+    )
 
     /** What a server message means for the app. */
     sealed interface ServerMessage {
         /** Changes the game state (everything except command results). */
         class StateUpdate(val update: (GameState) -> GameState) : ServerMessage
 
-        /** The game's answer to a command we sent. [id] is null if the bridge couldn't read it. */
-        data class Reply(val id: String?, val result: CommandResult) : ServerMessage
+        /**
+         * The game's answer to a command we sent. [id] is null if the bridge couldn't read it;
+         * [data] is command-specific (e.g. the item menu).
+         */
+        data class Reply(val id: String?, val result: CommandResult, val data: JsonElement? = null) : ServerMessage
     }
+
+    /** A command for the game: its protocol name and arguments. */
+    class Request(val name: String, val args: JsonObject)
+
+    @Serializable
+    private data class MenuDto(val menuId: String, val options: List<MenuOptionDto> = emptyList())
+
+    @Serializable
+    private data class MenuOptionDto(
+        val id: String,
+        val name: String,
+        val enabled: Boolean = false,
+        val tooltip: String? = null,
+        val children: List<MenuOptionDto> = emptyList(),
+    )
 
     /** Throws [IllegalArgumentException] for malformed messages. */
     fun decode(text: String): ServerMessage {
@@ -93,12 +129,39 @@ object ProtocolV1 {
         if (envelope.type == "command_result") {
             val dto = json.decodeFromJsonElement<CommandResultDto>(envelope.data)
             val result = if (dto.ok) CommandResult.Ok else CommandResult.Failed(dto.error ?: "the game refused")
-            return ServerMessage.Reply(dto.id, result)
+            return ServerMessage.Reply(dto.id, result, dto.data?.takeIf { it !is JsonNull })
         }
         return ServerMessage.StateUpdate { state -> apply(state, envelope) }
     }
 
-    fun encode(id: String, command: ItemCommand): String {
+    fun encode(id: String, command: ItemCommand): String = encode(id, request(command))
+
+    fun encode(id: String, request: Request): String = buildJsonObject {
+        put("v", VERSION)
+        put("type", "command")
+        put("id", id)
+        put("name", request.name)
+        put("args", request.args)
+    }.toString()
+
+    fun itemMenuRequest(itemId: Long) = Request("item_menu", buildJsonObject { put("itemId", JsonPrimitive(itemId)) })
+
+    fun menuSelectRequest(menuId: String, optionId: String) = Request("menu_select", buildJsonObject {
+        put("menuId", menuId)
+        put("optionId", optionId)
+    })
+
+    /** The `data` of an `item_menu` reply. Throws [IllegalArgumentException] if it isn't a menu. */
+    fun itemMenu(data: JsonElement?): ItemMenu {
+        requireNotNull(data) { "the game sent no menu" }
+        val dto = json.decodeFromJsonElement<MenuDto>(data)
+        return ItemMenu(dto.menuId, dto.options.map { it.toDomain() })
+    }
+
+    private fun MenuOptionDto.toDomain(): MenuOption =
+        MenuOption(id, name, enabled, tooltip, children.map { it.toDomain() })
+
+    fun request(command: ItemCommand): Request {
         val (name, slot) = when (command.action) {
             ItemAction.EQUIP_PRIMARY -> "equip" to "primary"
             ItemAction.EQUIP_SECONDARY -> "equip" to "secondary"
@@ -107,16 +170,10 @@ object ProtocolV1 {
             ItemAction.UNEQUIP -> "unequip" to null
             ItemAction.DROP -> "drop" to null
         }
-        return buildJsonObject {
-            put("v", VERSION)
-            put("type", "command")
-            put("id", id)
-            put("name", name)
-            put("args", buildJsonObject {
-                put("itemId", JsonPrimitive(command.itemId))
-                slot?.let { put("slot", it) }
-            })
-        }.toString()
+        return Request(name, buildJsonObject {
+            put("itemId", JsonPrimitive(command.itemId))
+            slot?.let { put("slot", it) }
+        })
     }
 
     /**
@@ -146,6 +203,15 @@ object ProtocolV1 {
             }
             "inventory" -> json.decodeFromJsonElement<InventoryDto>(data).let { dto ->
                 state.copy(inventory = Inventory(dto.weight.current, dto.weight.max, dto.items.map { it.toDomain() }))
+            }
+            "vehicle" -> json.decodeFromJsonElement<VehicleDto>(data).let {
+                state.copy(vehicle = if (!it.inVehicle) Vehicle.OnFoot else Vehicle.Driving(
+                    name = it.name ?: "Vehicle",
+                    speedKmh = it.speedKmh,
+                    engineRunning = it.engineRunning,
+                    fuel = it.fuel,
+                    isDriver = it.isDriver,
+                ))
             }
             else -> state
         }

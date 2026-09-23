@@ -5,11 +5,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -21,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -31,13 +35,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.zomboidds.companion.InventoryLayout
 import dev.zomboidds.companion.domain.BridgeInfo
 import dev.zomboidds.companion.domain.CommandResult
+import dev.zomboidds.companion.domain.ItemActions
 import dev.zomboidds.companion.domain.ItemCommand
+import dev.zomboidds.companion.domain.ItemMenuResult
 import dev.zomboidds.companion.domain.ConnectionStatus
 import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.PlayerStatus
 import dev.zomboidds.companion.domain.SessionInfo
+import dev.zomboidds.companion.domain.Vehicle
 import dev.zomboidds.companion.setup.SetupReport
 
 private val Healthy = Color(0xFF7CB342)
@@ -50,41 +58,70 @@ fun CompanionScreen(
     setup: SetupReport,
     setupActions: SetupActions,
     iconUrl: (String) -> String,
-    perform: suspend (ItemCommand) -> CommandResult,
+    actions: ItemActions,
+    inventoryLayout: InventoryLayout,
+    onInventoryLayoutChange: (InventoryLayout) -> Unit,
 ) {
     MaterialTheme(colorScheme = darkColorScheme()) {
         Surface(Modifier.fillMaxSize()) {
-            val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
-            if (inGame) {
-                InGame(state, iconUrl, perform)
-            } else {
-                // Outside a game is when setup matters: show what's left to do.
-                Column(
-                    Modifier.padding(24.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    StatusHeader(state, connection)
-                    SetupChecklist(setup, gameStep(connection), setupActions)
+            // Keep clear of system bars on ordinary phones (the Thor's bottom screen has none).
+            Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
+                if (inGame) {
+                    InGame(state, iconUrl, actions, inventoryLayout, onInventoryLayoutChange)
+                } else {
+                    // Outside a game is when setup matters: show what's left to do.
+                    Column(
+                        Modifier.padding(24.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        StatusHeader(state, connection)
+                        SetupChecklist(setup, gameStep(connection), setupActions)
+                    }
                 }
             }
         }
     }
 }
 
-private enum class Tab(val title: String) { INVENTORY("Inventory"), STATUS("Status") }
+private enum class Tab(val title: String) { VEHICLE("Vehicle"), INVENTORY("Inventory"), STATUS("Status") }
 
 @Composable
-private fun InGame(state: GameState, iconUrl: (String) -> String, perform: suspend (ItemCommand) -> CommandResult) {
+private fun InGame(
+    state: GameState,
+    iconUrl: (String) -> String,
+    actions: ItemActions,
+    inventoryLayout: InventoryLayout,
+    onInventoryLayoutChange: (InventoryLayout) -> Unit,
+) {
+    val driving = state.vehicle as? Vehicle.Driving
+    // The Vehicle tab only exists while in a vehicle.
+    val tabs = if (driving != null) Tab.entries else Tab.entries - Tab.VEHICLE
     var tab by rememberSaveable { mutableStateOf(Tab.INVENTORY) }
+    var tabBeforeVehicle by rememberSaveable { mutableStateOf(Tab.INVENTORY) }
+
+    // Getting in switches to the dashboard; getting out returns to where the player was.
+    val inVehicle = driving != null
+    LaunchedEffect(inVehicle) {
+        if (inVehicle && tab != Tab.VEHICLE) {
+            tabBeforeVehicle = tab
+            tab = Tab.VEHICLE
+        } else if (!inVehicle && tab == Tab.VEHICLE) {
+            tab = tabBeforeVehicle
+        }
+    }
+    val shown = if (tab in tabs) tab else Tab.INVENTORY
+
     Column(Modifier.fillMaxSize()) {
-        PrimaryTabRow(selectedTabIndex = tab.ordinal) {
-            Tab.entries.forEach {
-                Tab(selected = tab == it, onClick = { tab = it }, text = { Text(it.title) })
+        PrimaryTabRow(selectedTabIndex = tabs.indexOf(shown)) {
+            tabs.forEach {
+                Tab(selected = shown == it, onClick = { tab = it }, text = { Text(it.title) })
             }
         }
         Box(Modifier.fillMaxSize().padding(16.dp)) {
-            when (tab) {
-                Tab.INVENTORY -> InventoryScreen(state.inventory, iconUrl, perform)
+            when (shown) {
+                Tab.VEHICLE -> driving?.let { VehicleScreen(it) }
+                Tab.INVENTORY -> InventoryScreen(state.inventory, iconUrl, actions, inventoryLayout, onInventoryLayoutChange)
                 Tab.STATUS -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     StatusHeader(state, ConnectionStatus.Connected)
                     state.player?.let { PlayerCard(it) }
@@ -178,6 +215,12 @@ private fun InGamePreview() {
             override fun enableForNewGames() {}
         },
         iconUrl = { it },
-        perform = { CommandResult.Ok },
+        actions = object : ItemActions {
+            override suspend fun perform(command: ItemCommand) = CommandResult.Ok
+            override suspend fun itemMenu(itemId: Long) = ItemMenuResult.Failed("preview")
+            override suspend fun selectMenuOption(menuId: String, optionId: String) = CommandResult.Ok
+        },
+        inventoryLayout = InventoryLayout.GRID,
+        onInventoryLayoutChange = {},
     )
 }

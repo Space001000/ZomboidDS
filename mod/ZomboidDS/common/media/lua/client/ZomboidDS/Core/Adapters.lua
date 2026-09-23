@@ -12,7 +12,8 @@
 ---   snapshotInventory(player) -> table   `inventory` message data
 ---   snapshotVehicle(player)   -> table   `vehicle` message data
 ---   isInVehicle(player)       -> boolean
----   commands                  table: name -> function(player, args) returning true or false, "reason"
+---   commands                  table: name -> function(player, args) returning
+---                             true [, nil, data] on success or false, "reason" on failure
 ---   dirtyEvents               table: channel -> array of Events names that mean "re-snapshot now"
 ---   hideNativeUI(playerNum)   optional
 ---   notify(player, text)      optional: short on-screen message for the player

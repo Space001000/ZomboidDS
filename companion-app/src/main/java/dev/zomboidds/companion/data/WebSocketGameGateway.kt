@@ -6,6 +6,7 @@ import dev.zomboidds.companion.domain.ConnectionStatus
 import dev.zomboidds.companion.domain.GameGateway
 import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.ItemCommand
+import dev.zomboidds.companion.domain.ItemMenuResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -52,7 +53,7 @@ class WebSocketGameGateway(
     private var socket: WebSocket? = null
 
     /** Commands sent and waiting for their `command_result`, by id. */
-    private val pending = ConcurrentHashMap<String, CompletableDeferred<CommandResult>>()
+    private val pending = ConcurrentHashMap<String, CompletableDeferred<ProtocolV1.ServerMessage.Reply>>()
     private val commandIds = AtomicLong()
 
     override fun start(scope: CoroutineScope) {
@@ -83,22 +84,43 @@ class WebSocketGameGateway(
 
     override fun iconUrl(icon: String) = "$bridgeUrl/icons/$icon.png"
 
-    override suspend fun perform(command: ItemCommand): CommandResult {
-        val ws = socket ?: return CommandResult.Failed("Not connected to the game")
+    override suspend fun perform(command: ItemCommand): CommandResult = send(ProtocolV1.request(command)).result
+
+    override suspend fun itemMenu(itemId: Long): ItemMenuResult {
+        val reply = send(ProtocolV1.itemMenuRequest(itemId))
+        return when (val result = reply.result) {
+            is CommandResult.Failed -> ItemMenuResult.Failed(result.reason)
+            CommandResult.Ok -> try {
+                ItemMenuResult.Ready(ProtocolV1.itemMenu(reply.data))
+            } catch (e: IllegalArgumentException) {
+                ItemMenuResult.Failed("The game's menu couldn't be read")
+            }
+        }
+    }
+
+    override suspend fun selectMenuOption(menuId: String, optionId: String): CommandResult =
+        send(ProtocolV1.menuSelectRequest(menuId, optionId)).result
+
+    /** Sends a command and waits for the game's reply; failures come back as a failed reply. */
+    private suspend fun send(request: ProtocolV1.Request): ProtocolV1.ServerMessage.Reply {
+        fun failed(reason: String) = ProtocolV1.ServerMessage.Reply(null, CommandResult.Failed(reason))
+        val ws = socket ?: return failed("Not connected to the game")
         val id = "c-${commandIds.incrementAndGet()}"
-        val reply = CompletableDeferred<CommandResult>()
+        val reply = CompletableDeferred<ProtocolV1.ServerMessage.Reply>()
         pending[id] = reply
-        if (!ws.send(ProtocolV1.encode(id, command))) {
+        if (!ws.send(ProtocolV1.encode(id, request))) {
             pending.remove(id)
-            return CommandResult.Failed("Not connected to the game")
+            return failed("Not connected to the game")
         }
         // The game runs commands on its next tick; a paused game doesn't tick.
         return withTimeoutOrNull(COMMAND_TIMEOUT_MS) { reply.await() }
-            ?: CommandResult.Failed("The game didn't answer (is it paused?)").also { pending.remove(id) }
+            ?: failed("The game didn't answer (is it paused?)").also { pending.remove(id) }
     }
 
     private fun failPending(reason: String) {
-        pending.keys.toList().forEach { id -> pending.remove(id)?.complete(CommandResult.Failed(reason)) }
+        pending.keys.toList().forEach { id ->
+            pending.remove(id)?.complete(ProtocolV1.ServerMessage.Reply(id, CommandResult.Failed(reason)))
+        }
     }
 
     private inner class Listener(
@@ -116,7 +138,7 @@ class WebSocketGameGateway(
             try {
                 when (val message = ProtocolV1.decode(text)) {
                     is ProtocolV1.ServerMessage.StateUpdate -> _state.update(message.update)
-                    is ProtocolV1.ServerMessage.Reply -> message.id?.let { pending.remove(it) }?.complete(message.result)
+                    is ProtocolV1.ServerMessage.Reply -> message.id?.let { pending.remove(it) }?.complete(message)
                 }
             } catch (e: IllegalArgumentException) {
                 // One bad message (e.g. from a newer or broken mod) must not kill the connection.

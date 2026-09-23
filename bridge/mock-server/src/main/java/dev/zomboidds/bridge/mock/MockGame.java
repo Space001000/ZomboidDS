@@ -38,17 +38,19 @@ final class MockGame {
     });
 
     // State below is only touched on gameThread.
-    private final Map<String, Object> inventory = fixtureData("inventory.json");
+    private final Map<String, Object> inventory;
     private final Map<String, Object> player = fixtureData("player.json");
     private final Map<String, Object> vehicle = fixtureData("vehicle_driving.json");
+    private final MockItemMenu menu = new MockItemMenu();
     private boolean driving;
     private long nextItemId = 20000;
     private long tick;
     private boolean inventoryDirty = true;
     private boolean playerDirty = true;
 
-    MockGame(BridgeContext bridge) {
+    MockGame(BridgeContext bridge, String inventoryFixture) {
         this.bridge = bridge;
+        this.inventory = fixtureData(inventoryFixture);
     }
 
     void start() {
@@ -119,17 +121,33 @@ final class MockGame {
     }
 
     private void execute(Command command) {
+        Object[] data = new Object[1];
         String error = switch (command.name()) {
             case "equip" -> equip(command);
             case "wear" -> setEquipped(command, "worn");
             case "unequip" -> setEquipped(command, null);
             case "drop" -> drop(command);
+            case "item_menu" -> {
+                Map<String, Object> item = find(command);
+                if (item == null) {
+                    yield "item not found";
+                }
+                data[0] = menu.open(item, () -> {
+                    items().remove(item);
+                    inventoryDirty = true;
+                });
+                yield null;
+            }
+            case "menu_select" -> menu.select(command.args().get("menuId"), command.args().get("optionId"));
             default -> "unknown command '" + command.name() + "'";
         };
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("id", command.id());
         result.put("ok", error == null);
         result.put("error", error);
+        if (data[0] != null) {
+            result.put("data", data[0]);
+        }
         bridge.state().publish("command_result", result);
         Log.info("command " + command.name() + " " + command.args() + " -> " + (error == null ? "ok" : error));
     }

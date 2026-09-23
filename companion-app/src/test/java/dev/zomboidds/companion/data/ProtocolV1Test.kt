@@ -98,6 +98,42 @@ class ProtocolV1Test {
         assertEquals(CommandResult.Failed("item not found"), reply.result)
     }
 
+    @Test
+    fun `vehicle fixtures map to driving and on foot`() {
+        val driving = applyAll("vehicle_driving.json").vehicle as dev.zomboidds.companion.domain.Vehicle.Driving
+        assertEquals("Chevalier Nyala", driving.name)
+        assertEquals(42f, driving.speedKmh)
+        assertEquals(0.63f, driving.fuel)
+        assertTrue(driving.engineRunning && driving.isDriver)
+
+        assertSame(dev.zomboidds.companion.domain.Vehicle.OnFoot, applyAll("vehicle_driving.json", "vehicle_on_foot.json").vehicle)
+    }
+
+    @Test
+    fun `item menu replies carry the game's menu`() {
+        val reply = ProtocolV1.decode(fixture("item_menu_result.json")) as ProtocolV1.ServerMessage.Reply
+        assertEquals(CommandResult.Ok, reply.result)
+        val menu = ProtocolV1.itemMenu(reply.data)
+        assertEquals("m7", menu.menuId)
+        assertEquals(listOf("Read", "Eat", "Rip into sheets"), menu.options.map { it.name })
+        assertEquals(listOf("2.1", "2.2"), menu.options[1].children.map { it.id })
+        assertFalse(menu.options[2].enabled)
+        assertEquals("Requires a knife", menu.options[2].tooltip)
+    }
+
+    @Test
+    fun `menu requests encode their arguments`() {
+        fun parse(json: String) = kotlinx.serialization.json.Json.parseToJsonElement(json).toString()
+        assertEquals(
+            parse("""{"v":1,"type":"command","id":"c-1","name":"item_menu","args":{"itemId":42}}"""),
+            parse(ProtocolV1.encode("c-1", ProtocolV1.itemMenuRequest(42))),
+        )
+        assertEquals(
+            parse("""{"v":1,"type":"command","id":"c-2","name":"menu_select","args":{"menuId":"m7","optionId":"2.1"}}"""),
+            parse(ProtocolV1.encode("c-2", ProtocolV1.menuSelectRequest("m7", "2.1"))),
+        )
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun `other protocol versions are rejected`() {
         ProtocolV1.apply(GameState(), """{"v":2,"type":"hello","data":{}}""")

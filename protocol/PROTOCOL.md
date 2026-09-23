@@ -45,7 +45,7 @@ older state messages of the same type are dropped in favour of the newest.
 | `player`         | Lua      | `health` (0–100), `bleeding`, `stats` { `hunger`, `thirst`, `fatigue`, `endurance` } (0–1) |
 | `inventory`      | Lua      | `weight` { `current`, `max` }, `items[]` (see below) |
 | `vehicle`        | Lua      | `inVehicle`; when true also `name`, `speedKmh`, `engineRunning`, `fuel` (0–1, optional), `isDriver` |
-| `command_result` | Lua      | `id`, `ok`, `error` (optional). Event, never replayed. |
+| `command_result` | Lua      | `id`, `ok`, `error` (optional), `data` (optional, command-specific). Event, never replayed. |
 
 Inventory item:
 
@@ -66,7 +66,7 @@ Inventory item:
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`.
+`cmd.drop`, `cmd.wear`, `item_menu`.
 
 ## Client → server
 
@@ -84,6 +84,29 @@ executed on the game thread on the next tick, usually as timed actions, so `ok: 
 | `wear`    | `itemId` |
 | `unequip` | `itemId` |
 | `drop`    | `itemId` |
+| `item_menu` | `itemId`. Result `data`: the game's own context menu for the item, see below |
+| `menu_select` | `menuId`, `optionId`: runs that option of the menu, like clicking it in the game |
+
+### The game's item menu
+
+`item_menu` returns the game's right-click menu for an item, built by the game itself (so it
+includes everything it offers: read, eat, bandage, craft, ... and options added by other mods):
+
+```json
+{ "menuId": "m7", "options": [
+  { "id": "1", "name": "Read", "enabled": true },
+  { "id": "2", "name": "Eat", "enabled": true, "children": [
+    { "id": "2.1", "name": "All", "enabled": true },
+    { "id": "2.2", "name": "Half", "enabled": true } ] },
+  { "id": "3", "name": "Rip into sheets", "enabled": false, "tooltip": "Requires a knife" } ] }
+```
+
+- Options with `children` are submenus; only options without children can be selected.
+- `enabled: false` options are shown greyed out, with the game's reason in `tooltip` if it gives one.
+- Only the latest menu is valid, and only for one `menu_select` within a minute. Otherwise the result
+  is `ok: false` and the app should request a fresh menu.
+- No menu while the game is paused (`ok: false`, "The game is paused"), same as in the game.
+- Options that open a window (renaming, crafting, maps) open it on the game's screen.
 
 A command the bridge can't parse is answered directly by the bridge with `ok: false`.
 

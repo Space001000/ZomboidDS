@@ -8,6 +8,7 @@ import dev.zomboidds.bridge.DefaultGameEnvironment;
  *
  * <pre>
  *   ./gradlew :bridge:mock-server:run
+ *   ./gradlew :bridge:mock-server:run -Pmock.args="inventory=full,gameDir=C:/path/to/ProjectZomboid"
  *   adb reverse tcp:7786 tcp:7786     # lets an attached device reach it on 127.0.0.1
  * </pre>
  * The Android emulator can reach it at 10.0.2.2 instead.

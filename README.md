@@ -3,9 +3,11 @@
 Nintendo DS-style dual-screen play for Project Zomboid on handhelds like the AYN Thor. The game
 runs on the top screen (through [Zomdroid](https://github.com/udarmolota/zomdroid)); the
 **ZomboidDS Companion** app on the bottom screen shows your inventory with the game's own icons,
-your health and stats, and lets you equip, wear and drop items by tapping.
+your health and stats and your vehicle, and lets you use items by tapping: quick actions (equip,
+wear, drop) plus everything the game's own item menu offers (read, eat, apply, craft, ...).
 
-Status: in development. See [PLAN.md](PLAN.md) for the plan, device findings and what's next.
+Status: in development. See [PLAN.md](PLAN.md) for the plan, device findings and what's next, and
+[docs/USER_GUIDE.md](docs/USER_GUIDE.md) for how players set it up.
 
 ## How it fits together
 
@@ -74,7 +76,10 @@ pip install lupa && python tools/test-lua.py
 
 - **App against a fake game:** `./gradlew :bridge:mock-server:run` on the PC, then
   `adb reverse tcp:7786 tcp:7786` so the app on the device reaches it on `127.0.0.1`. The console
-  lets you change the fake game (enter/leave a vehicle, take damage, add items).
+  lets you change the fake game (enter/leave a vehicle, take damage, add items). Add
+  `-Pmock.args="inventory=full,gameDir=<PZ folder>"` for a 64-item inventory with the game's real
+  icons. The emulator works too: set it to the Thor's bottom screen with
+  `adb shell wm size 1080x1240` and `adb shell wm density 369`.
 - **Mod changes on the device:** `tools/deploy-mod.sh` builds the mod and installs it into Zomdroid
   through the companion app (which holds the folder permission; grant it once in the app).
   Restart the game afterwards. The mod's log goes to logcat under the tag `zomdroid-main`

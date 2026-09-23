@@ -24,4 +24,6 @@ class AppContainer(context: Context) {
         httpClient, "http://${BuildConfig.BRIDGE_HOST}:${BuildConfig.BRIDGE_PORT}")
 
     val setup = SetupController(context.applicationContext, appScope, httpClient)
+
+    val settings = AppSettings(context.applicationContext)
 }

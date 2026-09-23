@@ -5,10 +5,11 @@
 --- instead of breaking the whole snapshot. Every call below was checked against 42.20's Lua
 --- sources and projectzomboid.jar (2026-09-22).
 local Adapters = require("ZomboidDS/Core/Adapters")
+local B42Menu = require("ZomboidDS/Adapters/B42Menu")
 
 local B42 = {
     id = "b42",
-    capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop" },
+    capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop", "item_menu" },
     dirtyEvents = {
         inventory = { "OnContainerUpdate", "OnRefreshInventoryWindowContainers", "OnClothingUpdated",
                       "OnEquipPrimary", "OnEquipSecondary" },
@@ -156,13 +157,18 @@ local function describeItem(player, item)
     }
 end
 
---- Main inventory only for now. TODO: equipped bags and nearby containers (loot).
+--- Main inventory only; equipped bags and nearby containers come with container management (PLAN.md, Phase 6).
 function B42.snapshotInventory(player)
     local inventory = player:getInventory()
     local items = inventory:getItems()
     local list = {}
     for i = 0, items:size() - 1 do
-        list[#list + 1] = describeItem(player, items:get(i))
+        local item = items:get(i)
+        -- Like the game's inventory window (ISInventoryPane), skip hidden items: e.g. B42 models
+        -- wounds as invisible worn "Wound_*" clothing.
+        if try(item, "isHidden") ~= true then
+            list[#list + 1] = describeItem(player, item)
+        end
     end
     return {
         weight = {
@@ -244,6 +250,15 @@ local function withItem(handler)
 end
 
 B42.commands = {
+    -- The game's own right-click menu for an item (see B42Menu.lua).
+    item_menu = withItem(function(player, item)
+        return B42Menu.open(player, item)
+    end),
+
+    menu_select = function(player, args)
+        return B42Menu.select(player, args)
+    end,
+
     equip = withItem(function(player, item, args)
         local slot = args.slot or "primary"
         local playerNum = player:getPlayerNum()

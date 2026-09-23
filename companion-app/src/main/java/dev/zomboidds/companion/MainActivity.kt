@@ -54,7 +54,14 @@ class MainActivity : ComponentActivity() {
             val state by gateway.state.collectAsStateWithLifecycle()
             val connection by gateway.connection.collectAsStateWithLifecycle()
             val report by setup.report.collectAsStateWithLifecycle()
-            CompanionScreen(state, connection, report, setupActions, iconUrl = gateway::iconUrl, perform = gateway::perform)
+            val inventoryLayout by container.settings.inventoryLayout.collectAsStateWithLifecycle()
+            CompanionScreen(
+                state, connection, report, setupActions,
+                iconUrl = gateway::iconUrl,
+                actions = gateway,
+                inventoryLayout = inventoryLayout,
+                onInventoryLayoutChange = container.settings::setInventoryLayout,
+            )
         }
     }
 
