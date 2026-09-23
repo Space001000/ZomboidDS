@@ -91,6 +91,21 @@ final class MockItemMenu {
         return menu;
     }
 
+    /** The treatment menu for a body part: one option, one greyed out with the game's reason. */
+    Map<String, Object> openHealth() {
+        Map<String, Supplier<String>> actions = new LinkedHashMap<>();
+        List<Object> options = new ArrayList<>();
+        options.add(option("1", "Apply Bandage", true, null, null));
+        actions.put("1", () -> null);
+        options.add(option("2", "Disinfect", false, "Requires a disinfectant", null));
+        currentId = "m" + (++nextId);
+        currentActions = actions;
+        Map<String, Object> menu = new LinkedHashMap<>();
+        menu.put("menuId", currentId);
+        menu.put("options", options);
+        return menu;
+    }
+
     /** Runs an option; returns an error message, or null on success. */
     String select(Object menuId, Object optionId) {
         if (currentId == null || !currentId.equals(String.valueOf(menuId))) {

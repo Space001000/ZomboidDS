@@ -20,7 +20,7 @@ local MAX_DEPTH = 4
 
 -- Only the latest menu of each kind is kept: the item menu (the app asks for a fresh one each time
 -- an item is tapped) and the world menu ("Here"), so one never invalidates the other.
-local menus = { item = nil, world = nil }
+local menus = { item = nil, world = nil, health = nil }
 local nextMenuId = 0
 
 --- The game's tooltips use rich-text tags (<RGB:1,0,0>, <LINE>, ...): keep only the text.
@@ -146,9 +146,58 @@ function B42Menu.openWorld(player)
         nextMenuId = nextMenuId + 1
         id = "m" .. nextMenuId
     end
-    menus.world = { id = id, created = getTimestampMs(), calls = calls, signature = signature,
+    menus.world = { id = id, created = getTimestampMs(), calls = calls, signature = signature, world = true,
                     square = square, dir = player:getDir() }
     return true, nil, { menuId = id, options = options }
+end
+
+--- The game's treatment menu for one of the player's body parts (bandage, disinfect, remove glass,
+--- splint, ... with what they carry), as its health panel builds it on a click
+--- (42.20 ISHealthPanel:doBodyPartContextMenu, on the player's own panel from getPlayerInfoPanel).
+--- With a controller the game moves the controller focus to that menu: we put it back.
+--- Returns true, nil, { menuId, options } or false, reason.
+function B42Menu.openHealth(player, partId)
+    local playerNum = player:getPlayerNum()
+    local info = getPlayerInfoPanel and getPlayerInfoPanel(playerNum)
+    local panel = info and info.healthView
+    if panel == nil or panel.doBodyPartContextMenu == nil then
+        return false, "The game's health panel is not available"
+    end
+    if isPaused() then
+        return false, "The game is paused"
+    end
+    local bodyPart = nil
+    local parts = player:getBodyDamage():getBodyParts()
+    for i = 0, parts:size() - 1 do
+        if tostring(parts:get(i):getType()) == partId then
+            bodyPart = parts:get(i)
+        end
+    end
+    if bodyPart == nil then
+        return false, "No such body part"
+    end
+
+    local joypad = JoypadState and JoypadState.players[playerNum + 1]
+    local focusBefore = joypad and joypad.focus
+    panel:doBodyPartContextMenu(bodyPart, 0, 0)
+    local menu = getPlayerContextMenu(playerNum)
+    local calls = {}
+    local ok, options = pcall(snapshot, menu, calls, "", 1)
+    menu:hideAndChildren() -- same tick as the game built it, so it never shows on the top screen
+    if joypad and joypad.focus ~= focusBefore then
+        joypad.focus = focusBefore
+        if updateJoypadFocus then updateJoypadFocus(joypad) end
+    end
+    if not ok then
+        return false, "Could not read the game's menu: " .. tostring(options)
+    end
+    if #options == 0 then
+        return false, "Nothing you can do for this with what you carry"
+    end
+
+    nextMenuId = nextMenuId + 1
+    menus.health = { id = "m" .. nextMenuId, created = getTimestampMs(), calls = calls }
+    return true, nil, { menuId = menus.health.id, options = options }
 end
 
 --- Runs option `args.optionId` of menu `args.menuId`, like clicking it in the game.
@@ -161,8 +210,8 @@ function B42Menu.select(player, args, findItem)
         end
     end
     local menu = slot and menus[slot]
-    -- Item menus expire; a world menu stays valid while the player stays put (checked below).
-    if menu == nil or (menu.itemId ~= nil and getTimestampMs() - menu.created > MENU_TTL_MS) then
+    -- Item and health menus expire; a world menu stays valid while the player stays put (checked below).
+    if menu == nil or (not menu.world and getTimestampMs() - menu.created > MENU_TTL_MS) then
         return false, "This menu is out of date; tap the item again"
     end
     local call = menu.calls[tostring(args.optionId)]
@@ -175,7 +224,7 @@ function B42Menu.select(player, args, findItem)
             menus[slot] = nil
             return false, "The item is no longer there"
         end
-    elseif menu.square ~= player:getCurrentSquare() or menu.dir ~= player:getDir() then
+    elseif menu.world and (menu.square ~= player:getCurrentSquare() or menu.dir ~= player:getDir()) then
         -- A world menu is about what was around the player then; don't act on the wrong spot.
         menus[slot] = nil
         return false, "You've moved; the menu will update"

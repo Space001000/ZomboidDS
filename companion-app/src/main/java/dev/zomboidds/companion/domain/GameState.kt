@@ -14,7 +14,17 @@ data class GameState(
     val time: TimeState? = null,
     /** "Here" while the app watches it ([GameControls.watchHere]); null otherwise. */
     val here: HereState? = null,
+    /** Injuries, as the game's health panel lists them; null until the game reported them. */
+    val health: List<BodyPartStatus>? = null,
 )
+
+/** A body part the game's health panel lists, with its lines ("Scratched (Severe)", "Bandaged"). */
+data class BodyPartStatus(val id: String, val name: String, val lines: List<HealthLine>)
+
+data class HealthLine(val text: String, val tone: HealthTone)
+
+/** From the game's colours: a problem, treated, or needs attention (dirty bandage, infection). */
+enum class HealthTone { BAD, GOOD, WARN, NEUTRAL }
 
 /** The game's world menu for where the player stands, or why there is none (e.g. paused). */
 data class HereState(val menu: ItemMenu?, val unavailable: String?)
@@ -86,6 +96,8 @@ data class Container(
      * containers (they can't be looked into).
      */
     val items: List<InventoryItem>?,
+    /** The game's loot window has it selected: the container the game outlines in the world. */
+    val selected: Boolean = false,
 )
 
 enum class ContainerKind {

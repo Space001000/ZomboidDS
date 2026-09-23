@@ -148,10 +148,7 @@ private fun InGame(
                 Tab.INVENTORY -> InventoryScreen(state.inventory, state.containers, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange,
                     show = showRequest, onShowHandled = { showRequest = null })
                 Tab.DECK -> CommandDeckScreen(state.time, state.here, controls, actions, iconUrl)
-                Tab.STATUS -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    StatusHeader(state, ConnectionStatus.Connected)
-                    state.player?.let { PlayerCard(it) }
-                }
+                Tab.STATUS -> StatusScreen(state, controls, actions)
             }
         }
     }
@@ -182,7 +179,7 @@ private fun StatusHeader(state: GameState, connection: ConnectionStatus) {
 }
 
 @Composable
-private fun PlayerCard(player: PlayerStatus) {
+internal fun PlayerCard(player: PlayerStatus) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -247,10 +244,12 @@ private fun InGamePreview() {
             override suspend fun selectMenuOption(menuId: String, optionId: String) = CommandResult.Ok
             override suspend fun transfer(itemId: Long, toContainer: String) = CommandResult.Ok
             override suspend fun transferAll(fromContainer: String, toContainer: String) = CommandResult.Ok
+            override suspend fun selectContainer(containerId: String) = CommandResult.Ok
         },
         controls = object : GameControls {
             override suspend fun setSpeed(speed: GameSpeed) = CommandResult.Ok
             override fun watchHere(on: Boolean) {}
+            override suspend fun bodyPartMenu(partId: String) = ItemMenuResult.Failed("preview")
         },
         inventoryDisplay = InventoryDisplay(InventoryLayout.GRID, ContainerLayout.SPLIT),
         onInventoryDisplayChange = {},

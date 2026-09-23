@@ -99,6 +99,15 @@ class GatewayMockServerTest {
     }
 
     @Test
+    fun `opening a container selects it in the game`() = runBlocking {
+        val containers = withTimeout(5_000) { gateway.state.first { it.containers != null } }.containers!!
+        val floor = containers.first { it.kind == ContainerKind.FLOOR }
+        assertEquals(CommandResult.Ok, gateway.selectContainer(floor.id))
+        withTimeout(5_000) { gateway.state.first { state -> state.containers!!.single { it.selected }.id == floor.id } }
+        Unit
+    }
+
+    @Test
     fun `items in containers have the game's menu too`() = runBlocking {
         val containers = withTimeout(5_000) { gateway.state.first { it.containers != null } }.containers!!
         val pen = containers.first { it.name == "Shelves" }.items!!.first { it.name == "Pen" }
@@ -117,6 +126,14 @@ class GatewayMockServerTest {
         gateway.watchHere(false)
         withTimeout(5_000) { gateway.state.first { it.here == null } }
         Unit
+    }
+
+    @Test
+    fun `a body part has the game's treatment menu`() = runBlocking {
+        val part = withTimeout(5_000) { gateway.state.first { !it.health.isNullOrEmpty() } }.health!!.first()
+        val menu = (gateway.bodyPartMenu(part.id) as ItemMenuResult.Ready).menu
+        assertTrue(menu.options.any { it.name == "Apply Bandage" && it.enabled })
+        assertTrue(menu.options.any { !it.enabled && it.tooltip != null })
     }
 
     @Test

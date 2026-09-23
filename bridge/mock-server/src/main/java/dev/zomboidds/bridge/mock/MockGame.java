@@ -64,7 +64,10 @@ final class MockGame {
     }
 
     void start() {
-        gameThread.execute(() -> bridge.state().publish("session", fixtureData("session.json")));
+        gameThread.execute(() -> {
+            bridge.state().publish("session", fixtureData("session.json"));
+            bridge.state().publish("health", fixtureData("health.json"));
+        });
         gameThread.scheduleAtFixedRate(this::tick, 0, 100, TimeUnit.MILLISECONDS);
     }
 
@@ -176,6 +179,10 @@ final class MockGame {
                 hereDirty = true;
                 yield null;
             }
+            case "health_menu" -> {
+                data[0] = menu.openHealth();
+                yield null;
+            }
             case "world_menu" -> {
                 data[0] = menu.openWorld();
                 yield null;
@@ -186,6 +193,16 @@ final class MockGame {
                 yield failed;
             }
             case "transfer" -> transfer(command);
+            case "select_container" -> {
+                Map<String, Object> target = reachableContainer(command.args().get("id"));
+                if (target == null || Boolean.TRUE.equals(target.get("locked"))) {
+                    yield "That container is out of reach";
+                }
+                containers.forEach(c -> c.remove("selected"));
+                target.put("selected", true);
+                containersDirty = true;
+                yield null;
+            }
             case "set_speed" -> {
                 Object value = command.args().get("speed");
                 if (!(value instanceof Number n) || n.intValue() < 0 || n.intValue() > 4) {

@@ -29,6 +29,9 @@ interface ItemActions {
 
     /** Moves everything the game's Take All / Transfer All would. Never throws. */
     suspend fun transferAll(fromContainer: String, toContainer: String): CommandResult
+
+    /** Selects a container around the player in the game, which outlines it in the world. Never throws. */
+    suspend fun selectContainer(containerId: String): CommandResult
 }
 
 sealed interface ItemMenuResult {

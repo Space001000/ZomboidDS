@@ -153,7 +153,9 @@ fun InventoryScreen(
     val mine = views.filter { it.onPlayer }
     val around = views.filterNot { it.onPlayer }
     val mineShown = mine.firstOrNull { it.id == mineOpen } ?: main
-    val aroundShown = around.firstOrNull { it.id == aroundOpen } ?: around.firstOrNull()
+    // Until you pick one, the bottom half shows what the game's loot window has selected (and outlines).
+    val aroundShown = around.firstOrNull { it.id == aroundOpen }
+        ?: around.firstOrNull { it.container.selected } ?: around.firstOrNull()
     val singleShown = views.firstOrNull { it.id == singleOpen } ?: main
 
     // The game asked for a container (Loot button): open its tab, in whichever half it belongs.
@@ -198,6 +200,14 @@ fun InventoryScreen(
 
     fun moveAll(from: ContainerView, to: ContainerView) = run(from.label) { actions.transferAll(from.id, to.id) }
 
+    // Opening a container around you selects it in the game too, which outlines it in the world.
+    fun highlight(id: String) {
+        val view = views.firstOrNull { it.id == id } ?: return
+        if (canMove && !view.onPlayer && !view.container.locked) {
+            scope.launch { actions.selectContainer(id) }
+        }
+    }
+
     fun takeAll(view: ContainerView) =
         ("Take all" to { moveAll(view, main) }).takeIf { canMove && !view.container.locked && view.container.kind != ContainerKind.INVENTORY }
 
@@ -218,11 +228,11 @@ fun InventoryScreen(
                     allAction = putAll, modifier = Modifier.weight(mineShare), trailing = switch)
                 HorizontalDivider(thickness = 2.dp)
                 if (aroundShown != null) {
-                    ContainerPane(around, aroundShown, { aroundOpen = it }, display.items, iconUrl, selection?.second, onItem,
+                    ContainerPane(around, aroundShown, { aroundOpen = it; highlight(it) }, display.items, iconUrl, selection?.second, onItem,
                         allAction = takeAll(aroundShown), modifier = Modifier.weight(1f - mineShare))
                 }
             } else {
-                ContainerPane(views, singleShown, { singleOpen = it }, display.items, iconUrl, selection?.second, onItem,
+                ContainerPane(views, singleShown, { singleOpen = it; highlight(it) }, display.items, iconUrl, selection?.second, onItem,
                     allAction = takeAll(singleShown), modifier = Modifier.weight(1f), trailing = switch)
             }
         }

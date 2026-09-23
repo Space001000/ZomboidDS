@@ -9,7 +9,8 @@ vehicle on the bottom screen.
 
 - An **AYN Thor** (other dual-screen handhelds may work, but aren't tested).
 - **[Zomdroid](https://github.com/udarmolota/zomdroid)** with **Project Zomboid Build 42** installed
-  and working.
+  and working. Use this version of Zomdroid (udarmolota's): it's the one that's still maintained and
+  the one ZomboidDS is built and tested with. The original Zomdroid stopped development in 2025.
 - The **ZomboidDS Companion** app (`ZomboidDS.apk`). It contains the ZomboidDS mod; you don't need to
   download the mod separately.
 

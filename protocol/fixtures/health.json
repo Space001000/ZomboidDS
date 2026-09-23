@@ -1,0 +1,10 @@
+{
+  "v": 1, "type": "health", "seq": 16,
+  "data": { "parts": [
+    { "id": "Hand_L", "name": "Left Hand", "lines": [
+      { "text": "Scratched (Severe)", "tone": "bad" },
+      { "text": "Bleeding", "tone": "bad" } ] },
+    { "id": "LowerLeg_R", "name": "Right Shin", "lines": [
+      { "text": "Bandaged", "tone": "good" } ] }
+  ] }
+}

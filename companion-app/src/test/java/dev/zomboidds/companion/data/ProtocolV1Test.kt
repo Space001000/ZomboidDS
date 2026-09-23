@@ -1,5 +1,7 @@
 package dev.zomboidds.companion.data
 
+import dev.zomboidds.companion.domain.HealthLine
+import dev.zomboidds.companion.domain.HealthTone
 import dev.zomboidds.companion.domain.HereState
 import dev.zomboidds.companion.domain.GameSpeed
 import dev.zomboidds.companion.domain.TimeState
@@ -171,6 +173,16 @@ class ProtocolV1Test {
             kotlinx.serialization.json.Json.parseToJsonElement("""{"v":1,"type":"command","id":"c-1","name":"set_speed","args":{"speed":0}}"""),
             kotlinx.serialization.json.Json.parseToJsonElement(ProtocolV1.encode("c-1", ProtocolV1.setSpeedRequest(GameSpeed.PAUSED))),
         )
+    }
+
+    @Test
+    fun `health lists the game's injury lines with their tone`() {
+        val parts = applyAll("health.json").health!!
+        assertEquals(listOf("Left Hand", "Right Shin"), parts.map { it.name })
+        assertEquals(HealthLine("Scratched (Severe)", HealthTone.BAD), parts[0].lines[0])
+        assertEquals(HealthTone.GOOD, parts[1].lines[0].tone)
+        val empty = ProtocolV1.apply(GameState(), """{"v":1,"type":"health","data":{"parts":[]}}""")
+        assertEquals("no injuries is an empty list, not unknown", emptyList<Any>(), empty.health)
     }
 
     @Test

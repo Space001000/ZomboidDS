@@ -90,6 +90,9 @@ local function onGameStart()
     if adapter.snapshotTime then
         emitter:addChannel("time", adapter.snapshotTime, Config.intervalsMs.time)
     end
+    if adapter.snapshotHealth then
+        emitter:addChannel("health", adapter.snapshotHealth, Config.intervalsMs.health)
+    end
     if adapter.snapshotHere then
         emitter:addChannel("here", adapter.snapshotHere, Config.intervalsMs.here)
     end

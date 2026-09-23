@@ -157,4 +157,20 @@ lootPage.backpacks = {}
 B42.snapshotContainers(player)
 local ok3, reason3 = B42.commands.menu_select(player, { menuId = menu2.menuId, optionId = "1" })
 check(ok3 == false and reason3:find("no longer"), "walked away: the option no longer runs")
+-- The loot window's selection: reported, and set from the app (the game outlines it in the world).
+lootPage.backpacks = { button(shelf, "Shelves", 50, texture("media/ui/Container_Shelf.png")),
+  button(floor, "Floor", 50, texture("media/ui/Container_Floor.png")) }
+lootPage.inventoryPane.inventory = floor
+local selectedCalls = {}
+function lootPage:selectButtonForContainer(c) table.insert(selectedCalls, c) ; self.inventoryPane.inventory = c end
+function floor:isInCharacterInventory() return false end
+local snap = B42.snapshotContainers(player)
+local byName2 = {}
+for _, x in ipairs(snap.containers) do byName2[x.name] = x end
+check(byName2["Floor"].selected == true and byName2["Shelves"].selected == nil, "containers: the game's selected loot container is marked")
+check(B42.commands.select_container(player, { id = byName2["Shelves"].id }) == true and selectedCalls[1] == shelf,
+  "select_container selects it in the game's loot window (which outlines it)")
+check(B42.commands.select_container(player, { id = byName2["Inventory"].id }) == false and #selectedCalls == 1,
+  "your own bags aren't loot: not selected there")
+check(B42.commands.select_container(player, { id = "c999" }) == false, "out of reach: refused")
 print("ALL LUA CHECKS PASSED")

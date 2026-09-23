@@ -34,6 +34,9 @@ interface GameControls {
      * [ItemActions.selectMenuOption]. Fire and forget.
      */
     fun watchHere(on: Boolean)
+
+    /** The game's treatment menu for a body part ([BodyPartStatus.id]). Never throws. */
+    suspend fun bodyPartMenu(partId: String): ItemMenuResult
 }
 
 sealed interface GameEvent {

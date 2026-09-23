@@ -99,6 +99,8 @@ class WebSocketGameGateway(
 
     override suspend fun itemMenu(itemId: Long): ItemMenuResult = menuFrom(send(ProtocolV1.itemMenuRequest(itemId)))
 
+    override suspend fun bodyPartMenu(partId: String): ItemMenuResult = menuFrom(send(ProtocolV1.bodyPartMenuRequest(partId)))
+
     override fun watchHere(on: Boolean) {
         scope?.launch { send(ProtocolV1.watchHereRequest(on)) }
     }
@@ -121,6 +123,9 @@ class WebSocketGameGateway(
 
     override suspend fun transfer(itemId: Long, toContainer: String): CommandResult =
         send(ProtocolV1.transferRequest(itemId, toContainer)).result
+
+    override suspend fun selectContainer(containerId: String): CommandResult =
+        send(ProtocolV1.selectContainerRequest(containerId)).result
 
     override suspend fun transferAll(fromContainer: String, toContainer: String): CommandResult =
         send(ProtocolV1.transferAllRequest(fromContainer, toContainer)).result

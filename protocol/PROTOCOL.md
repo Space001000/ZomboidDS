@@ -46,6 +46,7 @@ older state messages of the same type are dropped in favour of the newest.
 | `inventory`      | Lua      | `weight` { `current`, `max` }, `items[]` (see below) |
 | `vehicle`        | Lua      | `inVehicle`; when true also `name`, `speedKmh`, `engineRunning`, `fuel` (0–1, optional), `isDriver` |
 | `containers`     | Lua      | `containers[]`: your bags and everything within reach, see below |
+| `health`         | Lua      | `parts[]`: the body parts the game's health panel lists (injured, bandaged, stitched, splinted, in pain), each `{ id, name, lines[] }` with `lines` = `{ text, tone }`: the game's own lines ("Scratched (Severe)", "Bandaged", ...) as the player's First Aid level lets them see, `tone` from the game's colour: `bad`, `good` (treated) or `warn` (dirty bandage, infection, stiffness). |
 | `here`           | Lua      | "Here", while the app watches (`watch_here`): `watching`; then either `menuId` + `options` (the world menu for where the player stands, same shape as `item_menu`'s) or `unavailable` (the reason, e.g. paused). `{ "watching": false }` otherwise. |
 | `time`           | Lua      | `speed`: the game's speed button, 0 pause, 1 play, 2 fast forward (×5), 3 faster (×20), 4 wait (×40); `canChange` (false in multiplayer); `gameMenuOpen` (true while the game's pause menu is open: `set_speed` is refused then, as the game's own buttons are) |
 | `command_result` | Lua      | `id`, `ok`, `error` (optional), `data` (optional, command-specific). Event, never replayed. |
@@ -86,13 +87,14 @@ rules apply: walls, safehouses, locks, corpses, vehicles, bags on the floor, con
 - `items` has the same shape as in `inventory`. Omitted for the main inventory and for `locked`
   containers (they can't be looked into).
 - `id` stays the same while the container exists; commands refer to containers by it.
+- `selected: true` marks the container the game's loot window has selected: the one it outlines in the world.
 - `icon` is a texture name for the icon endpoint, like item icons.
 
 ### Capabilities
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`.
+`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`.
 
 ## Client → server
 
@@ -112,10 +114,12 @@ executed on the game thread on the next tick (also while the game is paused), us
 | `drop`    | `itemId` |
 | `item_menu` | `itemId`. Result `data`: the game's own context menu for the item, see below |
 | `watch_here` | `on` (default true): the app shows "Here". Lasts 10 s, so the app repeats it every few seconds while it's shown; `on: false` stops it. |
+| `health_menu` | `part` (a body part `id` from `health`). Result `data`: the game's treatment menu for it (bandage, disinfect, remove glass, splint, ... with what the player carries), same shape as `item_menu` |
 | `world_menu` | none. Result `data`: the game's world menu for where the player stands ("Here"), same shape as `item_menu` |
 | `menu_select` | `menuId`, `optionId`: runs that option of the menu, like clicking it in the game |
 | `transfer` | `itemId`, `to` (container id): moves the item there from wherever it is (inventory, bag, or a container within reach) |
 | `transfer_all` | `from`, `to` (container ids): moves everything, with the filters of the game's Take All / Transfer All buttons |
+| `select_container` | `id`: selects a container around the player in the game's loot window, as clicking its tab would. The game then outlines it in the world and plays its open/close sound. Refused for your own bags and locked or out-of-reach containers. |
 | `set_speed` | `speed` (0–4, as in `time`): presses the game's own speed button. Refused in multiplayer, like in the game. Works while paused. |
 
 ### Moving items

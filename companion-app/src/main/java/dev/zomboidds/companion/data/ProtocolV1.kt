@@ -1,6 +1,9 @@
 package dev.zomboidds.companion.data
 
+import dev.zomboidds.companion.domain.BodyPartStatus
 import dev.zomboidds.companion.domain.BridgeInfo
+import dev.zomboidds.companion.domain.HealthLine
+import dev.zomboidds.companion.domain.HealthTone
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.Container
 import dev.zomboidds.companion.domain.ContainerKind
@@ -94,6 +97,15 @@ object ProtocolV1 {
     )
 
     @Serializable
+    private data class HealthDto(val parts: List<BodyPartDto> = emptyList())
+
+    @Serializable
+    private data class BodyPartDto(val id: String, val name: String = "", val lines: List<HealthLineDto> = emptyList())
+
+    @Serializable
+    private data class HealthLineDto(val text: String, val tone: String? = null)
+
+    @Serializable
     private data class HereDto(
         val watching: Boolean = false,
         val menuId: String? = null,
@@ -117,6 +129,7 @@ object ProtocolV1 {
         val capacity: Float? = null,
         val locked: Boolean = false,
         val items: List<ItemDto>? = null,
+        val selected: Boolean = false,
     )
 
     @Serializable
@@ -189,6 +202,8 @@ object ProtocolV1 {
         put("args", request.args)
     }.toString()
 
+    fun bodyPartMenuRequest(partId: String) = Request("health_menu", buildJsonObject { put("part", partId) })
+
     fun watchHereRequest(on: Boolean) = Request("watch_here", buildJsonObject { put("on", on) })
 
     fun itemMenuRequest(itemId: Long) = Request("item_menu", buildJsonObject { put("itemId", JsonPrimitive(itemId)) })
@@ -214,6 +229,8 @@ object ProtocolV1 {
         put("itemId", JsonPrimitive(itemId))
         put("to", toContainer)
     })
+
+    fun selectContainerRequest(containerId: String) = Request("select_container", buildJsonObject { put("id", containerId) })
 
     fun transferAllRequest(fromContainer: String, toContainer: String) = Request("transfer_all", buildJsonObject {
         put("from", fromContainer)
@@ -272,6 +289,18 @@ object ProtocolV1 {
                     isDriver = it.isDriver,
                 ))
             }
+            "health" -> json.decodeFromJsonElement<HealthDto>(data).let { dto ->
+                state.copy(health = dto.parts.map { part ->
+                    BodyPartStatus(part.id, part.name.ifEmpty { part.id }, part.lines.map { line ->
+                        HealthLine(line.text, when (line.tone) {
+                            "bad" -> HealthTone.BAD
+                            "good" -> HealthTone.GOOD
+                            "warn" -> HealthTone.WARN
+                            else -> HealthTone.NEUTRAL
+                        })
+                    })
+                })
+            }
             "here" -> json.decodeFromJsonElement<HereDto>(data).let { dto ->
                 state.copy(here = if (!dto.watching) null else HereState(
                     menu = dto.menuId?.let { ItemMenu(it, dto.options.map { option -> option.toDomain() }) },
@@ -303,6 +332,7 @@ object ProtocolV1 {
         capacity = capacity,
         locked = locked,
         items = if (locked) null else items?.map { it.toDomain() },
+        selected = selected,
     )
 
     private fun ItemDto.toDomain() = InventoryItem(

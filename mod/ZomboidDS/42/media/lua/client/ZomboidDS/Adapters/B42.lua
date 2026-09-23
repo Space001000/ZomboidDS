@@ -10,7 +10,7 @@ local B42Menu = require("ZomboidDS/Adapters/B42Menu")
 local B42 = {
     id = "b42",
     capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop", "item_menu",
-                     "containers", "transfer", "time", "world_menu", "here" },
+                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health" },
     dirtyEvents = {
         inventory = { "OnContainerUpdate", "OnRefreshInventoryWindowContainers", "OnClothingUpdated",
                       "OnEquipPrimary", "OnEquipSecondary" },
@@ -252,6 +252,9 @@ function B42.snapshotContainers(player)
     local locked = {}
     for _, source in ipairs(pages) do
         local buttons = source.page and source.page.backpacks or {}
+        -- The loot window's selected container: the one the game outlines in the world.
+        local selected = not source.onCharacter and source.page and source.page.inventoryPane
+            and source.page.inventoryPane.inventory or nil
         for _, button in ipairs(buttons) do
             local container = button.inventory
             if container ~= nil then
@@ -262,6 +265,7 @@ function B42.snapshotContainers(player)
                     kind = try(container, "getType") == "floor" and "floor" or "nearby"
                 end
                 local entry = describeContainer(player, button, kind)
+                entry.selected = (selected ~= nil and container == selected) or nil
                 seen[entry.id] = container
                 locked[entry.id] = entry.locked
                 list[#list + 1] = entry
@@ -440,6 +444,58 @@ local function withItem(handler)
     end
 end
 
+-- Health ------------------------------------------------------------------------------
+-- The game's health panel decides which body parts to list (ISHealthPanel.getDamagedParts) and what
+-- to say about each (ISHealthBodyPartListBox.doDrawItem: "Scratched (Severe)", "Bandaged", ...,
+-- depending on the player's First Aid level, in its own colours). We call both with stand-ins that
+-- record the text instead of drawing it, so the lines, translations and rules are the game's own
+-- (and other mods' changes to them), not a copy that drifts.
+
+--- The game's colours: green = treated, red = a problem, orange = dirty bandage, infection, stiffness.
+local function tone(r, g)
+    if g > 0.8 and r < 0.5 then return "good" end
+    if r > 0.95 then return "warn" end
+    if r > 0.8 and g < 0.5 then return "bad" end
+    return nil
+end
+
+local function describeBodyPart(player, panel, bodyPart)
+    local lines = {}
+    local recorder = {
+        parent = panel, selected = -1, mouseoverselected = -1, width = 400,
+        getWidth = function() return 400 end,
+        drawText = function(_, text, _x, _y, r, g) lines[#lines + 1] = { text = text, r = r or 1, g = g or 1 } end,
+        drawRect = function() end, drawRectBorder = function() end, drawProgressBar = function() end,
+    }
+    ISHealthBodyPartListBox.doDrawItem(recorder, 0, { item = { bodyPart = bodyPart }, height = 0, itemindex = 0 }, false)
+    local entry = { id = tostring(bodyPart:getType()), name = lines[1] and lines[1].text or tostring(bodyPart:getType()), lines = {} }
+    for i = 2, #lines do
+        local text = string.gsub(lines[i].text, "^%s*%-%s*", "")
+        entry.lines[#entry.lines + 1] = { text = text, tone = tone(lines[i].r, lines[i].g) }
+    end
+    return entry
+end
+
+function B42.snapshotHealth(player)
+    if ISHealthPanel == nil or ISHealthBodyPartListBox == nil then
+        return { parts = {} }
+    end
+    local panel = {
+        character = player, otherPlayer = nil, bodyPartAction = nil, actions = {},
+        doctorLevel = try(player, "getPerkLevel", Perks and Perks.Doctor) or 0,
+        getPatient = function() return player end, getDoctor = function() return player end,
+    }
+    local parts = {}
+    local ok, damaged = pcall(ISHealthPanel.getDamagedParts, panel)
+    for _, bodyPart in ipairs(ok and damaged or {}) do
+        local described, entry = pcall(describeBodyPart, player, panel, bodyPart)
+        if described then
+            parts[#parts + 1] = entry
+        end
+    end
+    return { parts = parts }
+end
+
 -- Game speed ------------------------------------------------------------------------
 -- The game's own speed buttons (top right; zombie.ui.SpeedControls in 42.20): speeds 0 pause,
 -- 1 play, 2 fast forward (x5), 3 faster (x20), 4 wait (x40). We press its buttons by name with
@@ -553,6 +609,23 @@ B42.commands = {
         return true
     end,
 
+    -- Select a container around the player in the game's (hidden) loot window, as clicking its tab
+    -- would: the game then outlines it in the world (ISInventoryPage:updateContainerHighlight keeps
+    -- running while the window is hidden) and plays its open/close sounds. Same call the game's
+    -- transfer action uses (42.20 ISInventoryPage:selectButtonForContainer).
+    select_container = function(player, args)
+        local container = reachable[args.id]
+        local loot = getPlayerLoot and getPlayerLoot(player:getPlayerNum())
+        if container == nil or loot == nil or lockedIds[args.id] then
+            return false, "That container is out of reach"
+        end
+        if try(container, "isInCharacterInventory", player) == true then
+            return false, "Only containers around you are highlighted"
+        end
+        loot:selectButtonForContainer(container)
+        return true
+    end,
+
     -- The game's speed buttons (see "Game speed").
     set_speed = function(_player, args)
         return setSpeed(tonumber(args.speed))
@@ -603,6 +676,11 @@ B42.commands = {
             return false, "item not found"
         end
         return B42Menu.open(player, item)
+    end,
+
+    -- The game's treatment menu for a body part from `health` (see B42Menu.openHealth).
+    health_menu = function(player, args)
+        return B42Menu.openHealth(player, tostring(args.part))
     end,
 
     -- The game's world menu for where the player stands (see B42Menu.openWorld).
