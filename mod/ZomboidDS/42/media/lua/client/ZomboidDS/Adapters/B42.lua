@@ -10,7 +10,7 @@ local B42Menu = require("ZomboidDS/Adapters/B42Menu")
 local B42 = {
     id = "b42",
     capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop", "item_menu",
-                     "containers", "transfer" },
+                     "containers", "transfer", "time", "world_menu", "here" },
     dirtyEvents = {
         inventory = { "OnContainerUpdate", "OnRefreshInventoryWindowContainers", "OnClothingUpdated",
                       "OnEquipPrimary", "OnEquipSecondary" },
@@ -440,7 +440,124 @@ local function withItem(handler)
     end
 end
 
+-- Game speed ------------------------------------------------------------------------
+-- The game's own speed buttons (top right; zombie.ui.SpeedControls in 42.20): speeds 0 pause,
+-- 1 play, 2 fast forward (x5), 3 faster (x20), 4 wait (x40). We press its buttons by name with
+-- ButtonClicked, like the controller's back-button wheel (ISBackButtonWheel), so its icons and
+-- state stay in sync. Not in multiplayer, same as the game.
+
+local SPEED_BUTTONS = { [0] = "Pause", [1] = "Play", [2] = "Fast Forward x 1", [3] = "Fast Forward x 2", [4] = "Wait" }
+
+local function speedControls()
+    return UIManager and try(UIManager, "getSpeedControls") or nil
+end
+
+--- The game's pause menu (Esc: settings, quit, ...) is open. The game ignores its speed buttons
+--- behind it; so do we, or the game would run on under a menu that no longer takes the controller.
+--- Same check as the game's controller code (42.20 JoyPadSetup.lua).
+local function pauseMenuOpen()
+    local screen = MainScreen and MainScreen.instance
+    return screen ~= nil and screen.inGame == true and try(screen, "isReallyVisible") == true
+end
+
+function B42.snapshotTime(_player)
+    return {
+        speed = try(speedControls(), "getCurrentGameSpeed"),
+        canChange = speedControls() ~= nil and not (isClient and isClient()),
+        gameMenuOpen = pauseMenuOpen() or nil,
+    }
+end
+
+local function setSpeed(speed)
+    local controls = speedControls()
+    if controls == nil then
+        return false, "The game's speed controls aren't available"
+    end
+    if isClient and isClient() then
+        return false, "Game speed can't be changed in multiplayer"
+    end
+    if pauseMenuOpen() then
+        return false, "Close the game's menu first"
+    end
+    local button = SPEED_BUTTONS[speed]
+    if button == nil then
+        return false, "unknown speed " .. tostring(speed)
+    end
+    local current = try(controls, "getCurrentGameSpeed")
+    if current == speed then
+        return true
+    end
+    -- "Pause" while paused toggles back to play in the game, so only press it when running.
+    controls:ButtonClicked(button)
+    return true
+end
+
+-- "Here" follows the player ------------------------------------------------------
+-- While the app watches (its Deck is open), the world menu for where the player stands is rebuilt
+-- when they step onto another tile or turn, when their action finishes (the door is open now),
+-- shortly after an option from the app ran, and every few seconds as a fallback. Never while the
+-- game's own context menu is open on the top screen: the game has one per player, and building
+-- ours would close it. Unchanged menus keep their id (B42Menu.openWorld), so the Emitter doesn't
+-- re-send them.
+
+local HERE_WATCH_MS = 10000   -- the app repeats watch_here while its Deck is open; expires otherwise
+local HERE_FALLBACK_MS = 3000 -- rebuild at least this often while watched (things change around you)
+local HERE_AFTER_SELECT_MS = 400
+
+local here = { watchUntil = 0, last = nil, square = nil, dir = nil, busy = false, builtAt = 0, forceAt = nil }
+
+local function gameMenuOpen(player)
+    local menu = getPlayerContextMenu and getPlayerContextMenu(player:getPlayerNum())
+    return menu ~= nil and try(menu, "isVisible") == true
+end
+
+function B42.snapshotHere(player)
+    local now = getTimestampMs()
+    if now >= here.watchUntil then
+        here.last = nil
+        return { watching = false }
+    end
+    local square, dir = player:getCurrentSquare(), player:getDir()
+    local busy = ISTimedActionQueue ~= nil and ISTimedActionQueue.isPlayerDoingAction(player) == true
+    local finished = here.busy and not busy
+    here.busy = busy
+    local due = here.last == nil or square ~= here.square or dir ~= here.dir or finished
+        or now - here.builtAt >= HERE_FALLBACK_MS or (here.forceAt ~= nil and now >= here.forceAt)
+        -- no menu (paused, nothing here): look again soon, e.g. right after unpausing
+        or (here.last.unavailable ~= nil and now - here.builtAt >= 1000)
+    if not due or gameMenuOpen(player) then
+        return here.last or { watching = true }
+    end
+    here.square, here.dir, here.builtAt, here.forceAt = square, dir, now, nil
+    local ok, reason, menu = B42Menu.openWorld(player)
+    local buildMs = getTimestampMs() - now
+    if ok then
+        here.last = { watching = true, menuId = menu.menuId, options = menu.options }
+    else
+        here.last = { watching = true, unavailable = reason }
+    end
+    if buildMs > 20 then
+        print("[ZomboidDS] building the world menu took " .. buildMs .. " ms")
+    end
+    return here.last
+end
+
 B42.commands = {
+    -- The app's Deck is open (on = true, repeated every few seconds) or closed.
+    watch_here = function(_player, args)
+        if args.on == false then
+            here.watchUntil = 0
+        else
+            here.watchUntil = getTimestampMs() + HERE_WATCH_MS
+        end
+        return true
+    end,
+
+    -- The game's speed buttons (see "Game speed").
+    set_speed = function(_player, args)
+        return setSpeed(tonumber(args.speed))
+    end,
+
     -- Move one item to a container (see "Moving items").
     transfer = function(player, args)
         local destination, reason = destinationFor(args.to)
@@ -488,8 +605,16 @@ B42.commands = {
         return B42Menu.open(player, item)
     end,
 
+    -- The game's world menu for where the player stands (see B42Menu.openWorld).
+    world_menu = function(player, _args)
+        return B42Menu.openWorld(player)
+    end,
+
     menu_select = function(player, args)
-        return B42Menu.select(player, args, function(id) return findItemAnywhere(player, id) end)
+        local ok, reason = B42Menu.select(player, args, function(id) return findItemAnywhere(player, id) end)
+        -- Whatever ran may change what's here (a door opens): look again shortly.
+        here.forceAt = getTimestampMs() + HERE_AFTER_SELECT_MS
+        return ok, reason
     end,
 
     equip = withItem(function(player, item, args)

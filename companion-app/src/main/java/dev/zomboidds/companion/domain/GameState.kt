@@ -10,7 +10,23 @@ data class GameState(
     val vehicle: Vehicle? = null,
     /** Your inventory, bags and everything within reach; null until the game reported it. */
     val containers: List<Container>? = null,
+    /** The game's speed; null until the game reported it (or an older mod that doesn't). */
+    val time: TimeState? = null,
+    /** "Here" while the app watches it ([GameControls.watchHere]); null otherwise. */
+    val here: HereState? = null,
 )
+
+/** The game's world menu for where the player stands, or why there is none (e.g. paused). */
+data class HereState(val menu: ItemMenu?, val unavailable: String?)
+
+/** The game's speed buttons (top right in the game). */
+enum class GameSpeed(val multiplier: Int) { PAUSED(0), PLAY(1), FAST(5), FASTER(20), WAIT(40) }
+
+/**
+ * [canChange] is false in multiplayer, where the game doesn't allow it either. [gameMenuOpen]: the
+ * game's pause menu (Esc) is open, and speed changes wait until it's closed, as in the game.
+ */
+data class TimeState(val speed: GameSpeed?, val canChange: Boolean, val gameMenuOpen: Boolean = false)
 
 /** The mod's Java side, from `hello`. */
 data class BridgeInfo(val protocol: Int, val version: String, val adapter: String)

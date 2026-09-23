@@ -1,0 +1,6 @@
+{
+  "v": 1, "type": "here", "seq": 15,
+  "data": { "watching": true, "menuId": "m9", "options": [
+    { "id": "1", "name": "Sit on chair", "enabled": true },
+    { "id": "2", "name": "Open door", "enabled": true } ] }
+}

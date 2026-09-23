@@ -46,6 +46,8 @@ older state messages of the same type are dropped in favour of the newest.
 | `inventory`      | Lua      | `weight` { `current`, `max` }, `items[]` (see below) |
 | `vehicle`        | Lua      | `inVehicle`; when true also `name`, `speedKmh`, `engineRunning`, `fuel` (0–1, optional), `isDriver` |
 | `containers`     | Lua      | `containers[]`: your bags and everything within reach, see below |
+| `here`           | Lua      | "Here", while the app watches (`watch_here`): `watching`; then either `menuId` + `options` (the world menu for where the player stands, same shape as `item_menu`'s) or `unavailable` (the reason, e.g. paused). `{ "watching": false }` otherwise. |
+| `time`           | Lua      | `speed`: the game's speed button, 0 pause, 1 play, 2 fast forward (×5), 3 faster (×20), 4 wait (×40); `canChange` (false in multiplayer); `gameMenuOpen` (true while the game's pause menu is open: `set_speed` is refused then, as the game's own buttons are) |
 | `command_result` | Lua      | `id`, `ok`, `error` (optional), `data` (optional, command-specific). Event, never replayed. |
 | `show`           | Lua      | `panel` (`inventory`), `container` (optional container id). The player asked the game for that panel, e.g. pressed the controller's Loot/Inventory button: the app shows it. Event, never replayed. |
 
@@ -90,7 +92,7 @@ rules apply: walls, safehouses, locks, corpses, vehicles, bags on the floor, con
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`.
+`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`.
 
 ## Client → server
 
@@ -99,7 +101,7 @@ the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equi
 ```
 
 The game answers every command with a `command_result` carrying the same `id`. Commands are
-executed on the game thread on the next tick, usually as timed actions, so `ok: true` means
+executed on the game thread on the next tick (also while the game is paused), usually as timed actions, so `ok: true` means
 "queued", not "finished". The effect shows up in the next state update.
 
 | name      | args |
@@ -109,9 +111,12 @@ executed on the game thread on the next tick, usually as timed actions, so `ok: 
 | `unequip` | `itemId` |
 | `drop`    | `itemId` |
 | `item_menu` | `itemId`. Result `data`: the game's own context menu for the item, see below |
+| `watch_here` | `on` (default true): the app shows "Here". Lasts 10 s, so the app repeats it every few seconds while it's shown; `on: false` stops it. |
+| `world_menu` | none. Result `data`: the game's world menu for where the player stands ("Here"), same shape as `item_menu` |
 | `menu_select` | `menuId`, `optionId`: runs that option of the menu, like clicking it in the game |
 | `transfer` | `itemId`, `to` (container id): moves the item there from wherever it is (inventory, bag, or a container within reach) |
 | `transfer_all` | `from`, `to` (container ids): moves everything, with the filters of the game's Take All / Transfer All buttons |
+| `set_speed` | `speed` (0–4, as in `time`): presses the game's own speed button. Refused in multiplayer, like in the game. Works while paused. |
 
 ### Moving items
 
@@ -146,6 +151,16 @@ includes everything it offers: read, eat, bandage, craft, ... and options added 
   is `ok: false` and the app should request a fresh menu.
 - No menu while the game is paused (`ok: false`, "The game is paused"), same as in the game.
 - Options that open a window (renaming, crafting, maps) open it on the game's screen.
+
+`world_menu` is what the controller's interact button opens: the game's world right-click menu for
+the objects on the player's tile and the three tiles they face (not through walls), including options
+other mods add. None while paused or in a vehicle. An option only runs while the player still stands
+and faces the same way as when the menu was built; otherwise `ok: false`.
+
+While watched, the mod sends `here` by itself: rebuilt when the player steps onto another tile or
+turns, when their action finishes, shortly after a `menu_select`, and every few seconds, but never
+while the game's own context menu is open on the game's screen (the game has one per player, so
+building ours would close it). A rebuild with the same options keeps the same `menuId` and isn't re-sent.
 
 A command the bridge can't parse is answered directly by the bridge with `ok: false`.
 

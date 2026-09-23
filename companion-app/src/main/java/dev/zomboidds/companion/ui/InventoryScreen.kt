@@ -612,7 +612,7 @@ private fun ActionPanel(
 
 /** The game's right-click menu: submenus open in place, greyed options show the game's reason. */
 @Composable
-private fun GameMenu(menu: ItemMenu, onSelect: (optionId: String) -> Unit) {
+internal fun GameMenu(menu: ItemMenu, onSelect: (optionId: String) -> Unit) {
     var path by remember(menu.menuId) { mutableStateOf(listOf<MenuOption>()) }
     val options = path.lastOrNull()?.children ?: menu.options
     Column {

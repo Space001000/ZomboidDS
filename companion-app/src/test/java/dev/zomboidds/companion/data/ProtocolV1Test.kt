@@ -1,5 +1,8 @@
 package dev.zomboidds.companion.data
 
+import dev.zomboidds.companion.domain.HereState
+import dev.zomboidds.companion.domain.GameSpeed
+import dev.zomboidds.companion.domain.TimeState
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.GameEvent
@@ -157,6 +160,27 @@ class ProtocolV1Test {
         val state = ProtocolV1.apply(GameState(),
             """{"v":1,"type":"containers","data":{"containers":[{"id":"c9","kind":"trunk","name":"Trunk"}]}}""")
         assertEquals(ContainerKind.NEARBY, state.containers!!.single().kind)
+    }
+
+    @Test
+    fun `time carries the game's speed`() {
+        assertEquals(TimeState(GameSpeed.FAST, canChange = true), applyAll("time.json").time)
+        val unknown = ProtocolV1.apply(GameState(), """{"v":1,"type":"time","data":{"speed":9}}""")
+        assertEquals("a speed from a newer game is unknown, not a crash", TimeState(null, false), unknown.time)
+        assertEquals(
+            kotlinx.serialization.json.Json.parseToJsonElement("""{"v":1,"type":"command","id":"c-1","name":"set_speed","args":{"speed":0}}"""),
+            kotlinx.serialization.json.Json.parseToJsonElement(ProtocolV1.encode("c-1", ProtocolV1.setSpeedRequest(GameSpeed.PAUSED))),
+        )
+    }
+
+    @Test
+    fun `here carries the world menu while watched`() {
+        val here = applyAll("here.json").here!!
+        assertEquals("m9", here.menu!!.menuId)
+        assertEquals(listOf("Sit on chair", "Open door"), here.menu!!.options.map { it.name })
+        val paused = ProtocolV1.apply(GameState(), """{"v":1,"type":"here","data":{"watching":true,"unavailable":"The game is paused"}}""")
+        assertEquals(HereState(null, "The game is paused"), paused.here)
+        assertNull(ProtocolV1.apply(GameState(), """{"v":1,"type":"here","data":{"watching":false}}""").here)
     }
 
     @Test

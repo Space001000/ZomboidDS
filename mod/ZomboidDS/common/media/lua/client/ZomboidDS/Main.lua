@@ -87,6 +87,12 @@ local function onGameStart()
     if adapter.snapshotContainers then
         emitter:addChannel("containers", adapter.snapshotContainers, Config.intervalsMs.containers)
     end
+    if adapter.snapshotTime then
+        emitter:addChannel("time", adapter.snapshotTime, Config.intervalsMs.time)
+    end
+    if adapter.snapshotHere then
+        emitter:addChannel("here", adapter.snapshotHere, Config.intervalsMs.here)
+    end
     emitter:addChannel("vehicle", adapter.snapshotVehicle, function(player)
         return adapter.isInVehicle(player) and Config.intervalsMs.vehicle or Config.intervalsMs.vehicleIdle
     end)
@@ -113,7 +119,11 @@ local function onGameStart()
         end)
     end
 
-    Events.OnTick.Add(onTick)
+    -- OnTickEvenPaused, not OnTick: it fires at the start of every game update whether or not the
+    -- game is paused (42.20 IngameState.updateInternal), so the app can still unpause it, and
+    -- commands and state don't stall while paused.
+    local tickEvent = Events.OnTickEvenPaused or Events.OnTick
+    tickEvent.Add(onTick)
 end
 
 -- Lua (and this file) is reloaded when entering or leaving a game, so anything the bridge still

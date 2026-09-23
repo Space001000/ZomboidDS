@@ -1,5 +1,7 @@
 package dev.zomboidds.companion.ui
 
+import dev.zomboidds.companion.domain.GameControls
+import dev.zomboidds.companion.domain.GameSpeed
 import dev.zomboidds.companion.domain.GameEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -64,6 +66,7 @@ fun CompanionScreen(
     setupActions: SetupActions,
     iconUrl: (String) -> String,
     actions: ItemActions,
+    controls: GameControls,
     inventoryDisplay: InventoryDisplay,
     onInventoryDisplayChange: (InventoryDisplay) -> Unit,
     events: Flow<GameEvent>,
@@ -74,7 +77,7 @@ fun CompanionScreen(
             Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
-                    InGame(state, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange, events)
+                    InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     Column(
@@ -90,13 +93,14 @@ fun CompanionScreen(
     }
 }
 
-private enum class Tab(val title: String) { VEHICLE("Vehicle"), INVENTORY("Inventory"), STATUS("Status") }
+private enum class Tab(val title: String) { VEHICLE("Vehicle"), INVENTORY("Inventory"), DECK("Deck"), STATUS("Status") }
 
 @Composable
 private fun InGame(
     state: GameState,
     iconUrl: (String) -> String,
     actions: ItemActions,
+    controls: GameControls,
     inventoryDisplay: InventoryDisplay,
     onInventoryDisplayChange: (InventoryDisplay) -> Unit,
     events: Flow<GameEvent>,
@@ -143,6 +147,7 @@ private fun InGame(
                 Tab.VEHICLE -> driving?.let { VehicleScreen(it) }
                 Tab.INVENTORY -> InventoryScreen(state.inventory, state.containers, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange,
                     show = showRequest, onShowHandled = { showRequest = null })
+                Tab.DECK -> CommandDeckScreen(state.time, state.here, controls, actions, iconUrl)
                 Tab.STATUS -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     StatusHeader(state, ConnectionStatus.Connected)
                     state.player?.let { PlayerCard(it) }
@@ -242,6 +247,10 @@ private fun InGamePreview() {
             override suspend fun selectMenuOption(menuId: String, optionId: String) = CommandResult.Ok
             override suspend fun transfer(itemId: Long, toContainer: String) = CommandResult.Ok
             override suspend fun transferAll(fromContainer: String, toContainer: String) = CommandResult.Ok
+        },
+        controls = object : GameControls {
+            override suspend fun setSpeed(speed: GameSpeed) = CommandResult.Ok
+            override fun watchHere(on: Boolean) {}
         },
         inventoryDisplay = InventoryDisplay(InventoryLayout.GRID, ContainerLayout.SPLIT),
         onInventoryDisplayChange = {},

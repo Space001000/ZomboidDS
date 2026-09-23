@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
  * The app's view of the game. The UI only talks to this interface; how the data gets here
  * (WebSocket to the mod, fake data for previews, ...) is an implementation detail.
  */
-interface GameGateway : ItemActions {
+interface GameGateway : ItemActions, GameControls {
     val state: StateFlow<GameState>
     val connection: StateFlow<ConnectionStatus>
 
@@ -20,6 +20,20 @@ interface GameGateway : ItemActions {
 
     /** Where to load an item icon from, e.g. for "Item_Axe". */
     fun iconUrl(icon: String): String
+}
+
+/** What the app can ask of the game itself. */
+interface GameControls {
+    /** Presses the game's own speed button. Never throws. */
+    suspend fun setSpeed(speed: GameSpeed): CommandResult
+
+    /**
+     * Whether the app shows "Here": while on, the game keeps [GameState.here] up to date as the
+     * player moves (the game's world menu, what the controller's interact button opens). Call with
+     * true every few seconds while shown (it expires), false when hidden. Options run with
+     * [ItemActions.selectMenuOption]. Fire and forget.
+     */
+    fun watchHere(on: Boolean)
 }
 
 sealed interface GameEvent {

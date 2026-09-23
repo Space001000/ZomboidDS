@@ -52,6 +52,11 @@ final class MockGame {
     private boolean inventoryDirty = true;
     private boolean playerDirty = true;
     private boolean containersDirty = true;
+    /** The game's speed button, 0 pause ... 4 wait (see PROTOCOL.md "time"). */
+    private int speed = 1;
+    private boolean timeDirty = true;
+    private boolean watchingHere;
+    private boolean hereDirty;
 
     MockGame(BridgeContext bridge, String inventoryFixture) {
         this.bridge = bridge;
@@ -110,6 +115,19 @@ final class MockGame {
                 bridge.state().publish("containers", Map.of("containers", containerSnapshot()));
                 containersDirty = false;
             }
+            if (hereDirty) {
+                Map<String, Object> here = new LinkedHashMap<>();
+                here.put("watching", watchingHere);
+                if (watchingHere) {
+                    here.putAll(menu.openWorld());
+                }
+                bridge.state().publish("here", here);
+                hereDirty = false;
+            }
+            if (timeDirty) {
+                bridge.state().publish("time", Map.of("speed", speed, "canChange", true));
+                timeDirty = false;
+            }
             if (playerDirty) {
                 bridge.state().publish("player", deepCopy(player));
                 playerDirty = false;
@@ -153,8 +171,30 @@ final class MockGame {
                 });
                 yield null;
             }
-            case "menu_select" -> menu.select(command.args().get("menuId"), command.args().get("optionId"));
+            case "watch_here" -> {
+                watchingHere = !Boolean.FALSE.equals(command.args().get("on"));
+                hereDirty = true;
+                yield null;
+            }
+            case "world_menu" -> {
+                data[0] = menu.openWorld();
+                yield null;
+            }
+            case "menu_select" -> {
+                String failed = menu.select(command.args().get("menuId"), command.args().get("optionId"));
+                hereDirty = true; // like the adapter: what's here may have changed
+                yield failed;
+            }
             case "transfer" -> transfer(command);
+            case "set_speed" -> {
+                Object value = command.args().get("speed");
+                if (!(value instanceof Number n) || n.intValue() < 0 || n.intValue() > 4) {
+                    yield "unknown speed " + value;
+                }
+                speed = n.intValue();
+                timeDirty = true;
+                yield null;
+            }
             case "transfer_all" -> transferAll(command);
             default -> "unknown command '" + command.name() + "'";
         };

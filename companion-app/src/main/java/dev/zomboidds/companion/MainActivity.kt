@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
                 state, connection, report, setupActions,
                 iconUrl = gateway::iconUrl,
                 actions = gateway,
+                controls = gateway,
                 inventoryDisplay = InventoryDisplay(inventoryLayout, containerLayout),
                 onInventoryDisplayChange = {
                     container.settings.setInventoryLayout(it.items)

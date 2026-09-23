@@ -4,6 +4,7 @@ import dev.zomboidds.bridge.mock.MockServer
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.EquipSlot
+import dev.zomboidds.companion.domain.GameSpeed
 import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenuResult
@@ -102,6 +103,28 @@ class GatewayMockServerTest {
         val containers = withTimeout(5_000) { gateway.state.first { it.containers != null } }.containers!!
         val pen = containers.first { it.name == "Shelves" }.items!!.first { it.name == "Pen" }
         assertTrue(gateway.itemMenu(pen.id) is ItemMenuResult.Ready)
+    }
+
+    @Test
+    fun `Here follows the game while watched`() = runBlocking {
+        withTimeout(5_000) { gateway.state.first { it.inventory != null } }
+        gateway.watchHere(true)
+        val menu = withTimeout(5_000) { gateway.state.first { it.here?.menu != null } }.here!!.menu!!
+        val door = menu.options.first { it.name == "Open door" }
+        assertEquals(CommandResult.Ok, gateway.selectMenuOption(menu.menuId, door.id))
+        // No request: the game sends what's here now by itself.
+        withTimeout(5_000) { gateway.state.first { state -> state.here?.menu?.options?.any { it.name == "Close door" } == true } }
+        gateway.watchHere(false)
+        withTimeout(5_000) { gateway.state.first { it.here == null } }
+        Unit
+    }
+
+    @Test
+    fun `the game speed can be changed`() = runBlocking {
+        withTimeout(5_000) { gateway.state.first { it.time?.speed == GameSpeed.PLAY } }
+        assertEquals(CommandResult.Ok, gateway.setSpeed(GameSpeed.PAUSED))
+        withTimeout(5_000) { gateway.state.first { it.time?.speed == GameSpeed.PAUSED } }
+        Unit
     }
 
     @Test

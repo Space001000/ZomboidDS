@@ -69,6 +69,28 @@ final class MockItemMenu {
         return menu;
     }
 
+    private boolean doorOpen;
+
+    /** The world menu for where the player stands ("Here"): a chair, a door, a light switch. */
+    Map<String, Object> openWorld() {
+        Map<String, Supplier<String>> actions = new LinkedHashMap<>();
+        List<Object> options = new ArrayList<>();
+        options.add(option("1", "Sit on chair", true, null, null));
+        actions.put("1", () -> null);
+        options.add(option("2", doorOpen ? "Close door" : "Open door", true, null, null));
+        actions.put("2", () -> {
+            doorOpen = !doorOpen;
+            return null;
+        });
+        options.add(option("3", "Turn on light", false, "There's no power", null));
+        currentId = "m" + (++nextId);
+        currentActions = actions;
+        Map<String, Object> menu = new LinkedHashMap<>();
+        menu.put("menuId", currentId);
+        menu.put("options", options);
+        return menu;
+    }
+
     /** Runs an option; returns an error message, or null on success. */
     String select(Object menuId, Object optionId) {
         if (currentId == null || !currentId.equals(String.valueOf(menuId))) {

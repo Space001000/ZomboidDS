@@ -6,6 +6,9 @@ import dev.zomboidds.companion.domain.Container
 import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.GameEvent
+import dev.zomboidds.companion.domain.GameSpeed
+import dev.zomboidds.companion.domain.HereState
+import dev.zomboidds.companion.domain.TimeState
 import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.Inventory
 import dev.zomboidds.companion.domain.InventoryItem
@@ -89,6 +92,17 @@ object ProtocolV1 {
         val fuel: Float? = null,
         val isDriver: Boolean = false,
     )
+
+    @Serializable
+    private data class HereDto(
+        val watching: Boolean = false,
+        val menuId: String? = null,
+        val options: List<MenuOptionDto> = emptyList(),
+        val unavailable: String? = null,
+    )
+
+    @Serializable
+    private data class TimeDto(val speed: Int? = null, val canChange: Boolean = false, val gameMenuOpen: Boolean = false)
 
     @Serializable
     private data class ContainersDto(val containers: List<ContainerDto> = emptyList())
@@ -175,6 +189,8 @@ object ProtocolV1 {
         put("args", request.args)
     }.toString()
 
+    fun watchHereRequest(on: Boolean) = Request("watch_here", buildJsonObject { put("on", on) })
+
     fun itemMenuRequest(itemId: Long) = Request("item_menu", buildJsonObject { put("itemId", JsonPrimitive(itemId)) })
 
     fun menuSelectRequest(menuId: String, optionId: String) = Request("menu_select", buildJsonObject {
@@ -191,6 +207,8 @@ object ProtocolV1 {
 
     private fun MenuOptionDto.toDomain(): MenuOption =
         MenuOption(id, name, enabled, tooltip, children.map { it.toDomain() })
+
+    fun setSpeedRequest(speed: GameSpeed) = Request("set_speed", buildJsonObject { put("speed", speed.ordinal) })
 
     fun transferRequest(itemId: Long, toContainer: String) = Request("transfer", buildJsonObject {
         put("itemId", JsonPrimitive(itemId))
@@ -253,6 +271,16 @@ object ProtocolV1 {
                     fuel = it.fuel,
                     isDriver = it.isDriver,
                 ))
+            }
+            "here" -> json.decodeFromJsonElement<HereDto>(data).let { dto ->
+                state.copy(here = if (!dto.watching) null else HereState(
+                    menu = dto.menuId?.let { ItemMenu(it, dto.options.map { option -> option.toDomain() }) },
+                    unavailable = dto.unavailable,
+                ))
+            }
+            "time" -> json.decodeFromJsonElement<TimeDto>(data).let {
+                // The wire numbers are the game's own (0 pause ... 4 wait), in GameSpeed's order.
+                state.copy(time = TimeState(it.speed?.let { speed -> GameSpeed.entries.getOrNull(speed) }, it.canChange, it.gameMenuOpen))
             }
             "containers" -> json.decodeFromJsonElement<ContainersDto>(data).let { dto ->
                 state.copy(containers = dto.containers.map { it.toDomain() })

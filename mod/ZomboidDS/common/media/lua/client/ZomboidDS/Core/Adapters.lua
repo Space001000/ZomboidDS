@@ -12,6 +12,8 @@
 ---   snapshotInventory(player) -> table   `inventory` message data
 ---   snapshotVehicle(player)   -> table   `vehicle` message data
 ---   snapshotContainers(player) -> table  `containers` message data (optional)
+---   snapshotTime(player)      -> table   `time` message data (optional)
+---   snapshotHere(player)      -> table   `here` message data (optional)
 ---   isInVehicle(player)       -> boolean
 ---   commands                  table: name -> function(player, args) returning
 ---                             true [, nil, data] on success or false, "reason" on failure

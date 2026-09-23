@@ -1,5 +1,6 @@
 package dev.zomboidds.companion.data
 
+import dev.zomboidds.companion.domain.GameSpeed
 import android.util.Log
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ConnectionStatus
@@ -55,6 +56,7 @@ class WebSocketGameGateway(
     override val events: SharedFlow<GameEvent> = _events.asSharedFlow()
 
     private var job: Job? = null
+    private var scope: CoroutineScope? = null
 
     /** The open connection, if any. */
     @Volatile
@@ -66,6 +68,7 @@ class WebSocketGameGateway(
 
     override fun start(scope: CoroutineScope) {
         if (job?.isActive == true) return
+        this.scope = scope
         job = scope.launch { connectLoop() }
     }
 
@@ -94,8 +97,13 @@ class WebSocketGameGateway(
 
     override suspend fun perform(command: ItemCommand): CommandResult = send(ProtocolV1.request(command)).result
 
-    override suspend fun itemMenu(itemId: Long): ItemMenuResult {
-        val reply = send(ProtocolV1.itemMenuRequest(itemId))
+    override suspend fun itemMenu(itemId: Long): ItemMenuResult = menuFrom(send(ProtocolV1.itemMenuRequest(itemId)))
+
+    override fun watchHere(on: Boolean) {
+        scope?.launch { send(ProtocolV1.watchHereRequest(on)) }
+    }
+
+    private fun menuFrom(reply: ProtocolV1.ServerMessage.Reply): ItemMenuResult {
         return when (val result = reply.result) {
             is CommandResult.Failed -> ItemMenuResult.Failed(result.reason)
             CommandResult.Ok -> try {
@@ -108,6 +116,8 @@ class WebSocketGameGateway(
 
     override suspend fun selectMenuOption(menuId: String, optionId: String): CommandResult =
         send(ProtocolV1.menuSelectRequest(menuId, optionId)).result
+
+    override suspend fun setSpeed(speed: GameSpeed): CommandResult = send(ProtocolV1.setSpeedRequest(speed)).result
 
     override suspend fun transfer(itemId: Long, toContainer: String): CommandResult =
         send(ProtocolV1.transferRequest(itemId, toContainer)).result
