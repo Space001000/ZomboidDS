@@ -12,6 +12,7 @@
 --- The game reuses ONE menu object per player and wipes its option tables when the next menu
 --- opens, so we copy what we need instead of keeping references to them.
 local Signature = require("ZomboidDS/Core/Signature")
+local Util = require("ZomboidDS/Adapters/B42/Util")
 
 local B42Menu = {}
 
@@ -46,12 +47,8 @@ local function iconName(texture)
         return nil
     end
     local ok, name = pcall(function() return texture:getName() end)
-    if not ok or type(name) ~= "string" or name == "" then
-        return nil
-    end
-    name = string.gsub(name, "^.*[/\]", "")
-    name = string.gsub(name, "%.png$", "")
-    if string.lower(name) == "white" then
+    name = ok and Util.textureFileName(name) or nil
+    if name == nil or name == "" or string.lower(name) == "white" then
         return nil
     end
     return name

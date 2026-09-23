@@ -141,9 +141,9 @@ class WebSocketGameGateway(
             pending.remove(id)
             return failed("Not connected to the game")
         }
-        // The game runs commands on its next tick; a paused game doesn't tick.
+        // The game runs commands on its next tick (paused or not); no answer means it's stuck or loading.
         return withTimeoutOrNull(COMMAND_TIMEOUT_MS) { reply.await() }
-            ?: failed("The game didn't answer (is it paused?)").also { pending.remove(id) }
+            ?: failed("The game didn't answer").also { pending.remove(id) }
     }
 
     private fun failPending(reason: String) {

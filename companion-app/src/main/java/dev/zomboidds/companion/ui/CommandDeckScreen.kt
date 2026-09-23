@@ -75,7 +75,7 @@ fun CommandDeckScreen(
             Text("The game's menu is open: close it to change the speed.", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        failure?.let { Text(it, color = Color(0xFFE57373), style = MaterialTheme.typography.bodySmall) }
+        failure?.let { Text(it, color = ErrorText, style = MaterialTheme.typography.bodySmall) }
         HorizontalDivider()
         Here(here, controls, actions, iconUrl, Modifier.weight(1f))
     }

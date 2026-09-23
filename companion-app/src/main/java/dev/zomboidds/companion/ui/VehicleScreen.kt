@@ -20,8 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.zomboidds.companion.domain.Vehicle
 
-private val Warning = Color(0xFFE53935)
-private val Good = Color(0xFF7CB342)
 
 /** Dashboard for the vehicle the player is in. */
 @Composable
@@ -54,13 +52,13 @@ fun VehicleScreen(vehicle: Vehicle.Driving) {
                 Row {
                     Text("Fuel", Modifier.weight(1f))
                     Text(fuel?.let { "${(it * 100).toInt()}%" } ?: "unknown",
-                        color = if (fuel != null && fuel < 0.15f) Warning else MaterialTheme.colorScheme.onSurface)
+                        color = if (fuel != null && fuel < 0.15f) Danger else MaterialTheme.colorScheme.onSurface)
                 }
                 if (fuel != null) {
                     LinearProgressIndicator(
                         progress = { fuel.coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth().height(10.dp),
-                        color = if (fuel < 0.15f) Warning else MaterialTheme.colorScheme.primary,
+                        color = if (fuel < 0.15f) Danger else MaterialTheme.colorScheme.primary,
                         drawStopIndicator = {},
                         gapSize = 0.dp,
                     )

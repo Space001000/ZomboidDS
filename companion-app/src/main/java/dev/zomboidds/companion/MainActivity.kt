@@ -47,7 +47,8 @@ class MainActivity : ComponentActivity() {
         // (Zomdroid stops listening to it when its activity pauses). Touches still arrive.
         // On the Thor the firmware already routes the gamepad to the top screen; this is a safety net.
         window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-        handleDevIntent(intent)
+        // Debug builds only: this activity can be started by any app, and these reset or remove mods.
+        if (BuildConfig.DEBUG) handleDevIntent(intent)
         keepSetupFresh()
 
         val gateway = container.gateway

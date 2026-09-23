@@ -84,20 +84,14 @@ local function onGameStart()
     local emitter = Emitter.new(Bridge)
     emitter:addChannel("player", adapter.snapshotPlayer, Config.intervalsMs.player)
     emitter:addChannel("inventory", adapter.snapshotInventory, Config.intervalsMs.inventory)
-    if adapter.snapshotContainers then
-        emitter:addChannel("containers", adapter.snapshotContainers, Config.intervalsMs.containers)
-    end
-    if adapter.snapshotTime then
-        emitter:addChannel("time", adapter.snapshotTime, Config.intervalsMs.time)
-    end
-    if adapter.snapshotHealth then
-        emitter:addChannel("health", adapter.snapshotHealth, Config.intervalsMs.health)
-    end
-    if adapter.snapshotMoodles then
-        emitter:addChannel("moodles", adapter.snapshotMoodles, Config.intervalsMs.moodles)
-    end
-    if adapter.snapshotHere then
-        emitter:addChannel("here", adapter.snapshotHere, Config.intervalsMs.here)
+    -- Channels an adapter may leave out (an older game build without them).
+    for _, channel in ipairs({ { "containers", "snapshotContainers" }, { "time", "snapshotTime" },
+                               { "health", "snapshotHealth" }, { "moodles", "snapshotMoodles" },
+                               { "here", "snapshotHere" } }) do
+        local name, snapshot = channel[1], adapter[channel[2]]
+        if snapshot then
+            emitter:addChannel(name, snapshot, Config.intervalsMs[name])
+        end
     end
     emitter:addChannel("vehicle", adapter.snapshotVehicle, function(player)
         return adapter.isInVehicle(player) and Config.intervalsMs.vehicle or Config.intervalsMs.vehicleIdle

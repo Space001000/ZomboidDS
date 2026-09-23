@@ -9,8 +9,8 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 /**
- * Development helpers, not part of the product. They use the folder permission granted in the app
- * and are triggered over adb (see tools/deploy-mod.sh):
+ * Development helpers, not part of the product: debug builds only (MainActivity). They use the
+ * folder permission granted in the app and are triggered over adb (see tools/deploy-mod.sh):
  *
  *   --es devList    "<path below Zomdroid's files dir>"   log a folder's contents
  *   --es devExport  "<path>"                               zip its .class/.jar files to export.zip

@@ -1,0 +1,155 @@
+--- Items as the app shows them: name, icon, category, condition, freshness, what it may offer.
+local Util = require("ZomboidDS/Adapters/B42/Util")
+local try, round = Util.try, Util.round
+
+local Items = {}
+
+--- Texture name as the bridge's /icons endpoint knows it (e.g. "Item_Axe").
+local function iconName(item)
+    local name = Util.textureFileName(try(try(item, "getTex"), "getName"))
+    if name then
+        return name
+    end
+    local scriptIcon = try(try(item, "getScriptItem"), "getIcon")
+    if scriptIcon then
+        return "Item_" .. scriptIcon
+    end
+    return nil
+end
+
+local function equippedSlot(player, item)
+    local primary = try(player, "getPrimaryHandItem")
+    local secondary = try(player, "getSecondaryHandItem")
+    if item == primary and item == secondary then
+        return "both"
+    elseif item == primary then
+        return "primary"
+    elseif item == secondary then
+        return "secondary"
+    elseif try(player, "isEquippedClothing", item) then
+        return "worn"
+    end
+    return nil
+end
+
+local function condition(item)
+    if not (instanceof(item, "HandWeapon") or instanceof(item, "Clothing")) then
+        return nil
+    end
+    local max = try(item, "getConditionMax")
+    if not max or max <= 0 then
+        return nil
+    end
+    return round((try(item, "getCondition") or 0) / max, 2)
+end
+
+--- What the companion app may offer for this item, decided the way the game's own inventory menu
+--- does (ISInventoryPaneContextMenu). The app shows exactly these; see protocol/PROTOCOL.md.
+local function actionsFor(item, equipped)
+    local actions = {}
+    local function add(action) actions[#actions + 1] = action end
+
+    if equipped then
+        add("unequip")
+    else
+        local isClothing = try(item, "IsClothing") == true
+        local wearable = (isClothing and try(item, "getBodyLocation") ~= nil)
+            or (instanceof(item, "InventoryContainer") and try(item, "canBeEquipped") ~= nil)
+        if wearable then add("wear") end
+        if not isClothing then -- clothes are worn, not held
+            if try(item, "isRequiresEquippedBothHands") == true then
+                add("equip.both")
+            else
+                add("equip.primary")
+                add(try(item, "isTwoHandWeapon") == true and "equip.both" or "equip.secondary")
+            end
+        end
+    end
+    if try(item, "isFavorite") ~= true then add("drop") end -- vanilla won't drop favourites
+    return actions
+end
+
+--- The category as the game's inventory list shows it ("Cooking", not "CookingWeapon").
+local function categoryName(item)
+    local category = try(item, "getDisplayCategory") or try(item, "getCategory")
+    if category == nil then
+        return nil
+    end
+    local ok, text = pcall(getText, "IGUI_ItemCat_" .. category)
+    if not ok or text == nil or text == "IGUI_ItemCat_" .. category then
+        return category -- no translation (e.g. a mod's category)
+    end
+    return text
+end
+
+--- Food's age as the game names it (Food:getName in 42.20: "Fresh" while age < offAge, "Stale"
+--- from offAge, "Rotten" from offAgeMax; 1e9 means it never goes off). Nil for other items.
+local NEVER = 1000000000
+local function freshness(item)
+    if not instanceof(item, "Food") or try(item, "isFertilized") == true then
+        return nil
+    end
+    local age, offAge, offAgeMax = try(item, "getAge"), try(item, "getOffAge"), try(item, "getOffAgeMax")
+    if age == nil or offAge == nil or offAgeMax == nil then
+        return nil
+    end
+    if offAgeMax < NEVER and age >= offAgeMax then return "rotten" end
+    if offAgeMax < NEVER and age >= offAge then return "stale" end
+    if offAge < NEVER and age < offAge then return "fresh" end
+    return nil
+end
+
+--- An item as the app shows it. `inInventory`: whether it's in the player's main inventory, the
+--- only place the quick actions (equip, wear, drop) apply; elsewhere the app moves it first.
+function Items.describe(player, item, inInventory)
+    local equipped = equippedSlot(player, item)
+    return {
+        id = item:getID(),
+        type = try(item, "getFullType"),
+        name = try(item, "getDisplayName"),
+        category = categoryName(item),
+        freshness = freshness(item),
+        icon = iconName(item),
+        weight = round(try(item, "getActualWeight"), 2),
+        condition = condition(item),
+        equipped = equipped,
+        actions = inInventory and actionsFor(item, equipped) or {},
+    }
+end
+
+--- The visible items of a container, like the game's inventory window shows them: hidden items are
+--- skipped (e.g. B42 models wounds as invisible worn "Wound_*" clothing).
+function Items.of(player, container, inInventory)
+    local items = container:getItems()
+    local list = {}
+    for i = 0, items:size() - 1 do
+        local item = items:get(i)
+        if try(item, "isHidden") ~= true then
+            list[#list + 1] = Items.describe(player, item, inInventory)
+        end
+    end
+    return list
+end
+
+--- The main inventory (`inventory` message); bags and containers around are in Containers.
+function Items.snapshotInventory(player)
+    local inventory = player:getInventory()
+    return {
+        weight = {
+            current = round(try(inventory, "getCapacityWeight"), 2),
+            max = round(try(player, "getMaxWeight"), 2),
+        },
+        items = Items.of(player, inventory, true),
+    }
+end
+
+--- Item `id` in the player's inventory, including bags.
+function Items.inInventory(player, id)
+    return try(player:getInventory(), "getItemWithIDRecursiv", id)
+end
+
+function Items.isKeyRing(item)
+    return try(item, "isItemType", ItemType.KEY_RING) == true or try(item, "hasTag", ItemTag.KEY_RING) == true
+end
+
+return Items

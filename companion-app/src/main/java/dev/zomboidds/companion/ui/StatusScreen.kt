@@ -1,5 +1,6 @@
 package dev.zomboidds.companion.ui
 
+import androidx.compose.foundation.layout.BoxScope
 import dev.zomboidds.companion.domain.TimeState
 import dev.zomboidds.companion.domain.GameSpeed
 import androidx.compose.foundation.horizontalScroll
@@ -102,7 +103,7 @@ fun StatusScreen(state: GameState, controls: GameControls, actions: ItemActions,
                     }
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    failure?.let { Text(it, color = Color(0xFFE57373)) }
+                    failure?.let { Text(it, color = ErrorText) }
                     when {
                         parts == null -> Hint("Waiting for the game...")
                         parts.isEmpty() -> Hint("No injuries")
@@ -124,12 +125,6 @@ fun StatusScreen(state: GameState, controls: GameControls, actions: ItemActions,
             }
         }
         if (selected != null) {
-            // Drawn in this window, not as a dialog: a new window could take focus from the game.
-            Box(
-                Modifier.fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.4f))
-                    .clickable(interactionSource = null, indication = null) { selectedId = null },
-            )
             TreatmentPanel(
                 selected,
                 time = state.time,
@@ -143,7 +138,6 @@ fun StatusScreen(state: GameState, controls: GameControls, actions: ItemActions,
                     }
                 },
                 onClose = { selectedId = null },
-                modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
     }
@@ -247,60 +241,37 @@ private fun Hint(text: String) {
 
 /** The game's treatment menu for one body part, fetched when the panel opens. */
 @Composable
-private fun TreatmentPanel(
+private fun BoxScope.TreatmentPanel(
     part: BodyPartStatus,
     time: TimeState?,
     onUnpause: () -> Unit,
     loadMenu: suspend () -> ItemMenuResult,
     onSelect: (menuId: String, optionId: String) -> Unit,
     onClose: () -> Unit,
-    modifier: Modifier,
-) {
-    var reload by remember { mutableIntStateOf(0) }
-    // The game builds no treatment menu while paused: wait, and load it by itself once it runs.
-    val paused = time?.speed == GameSpeed.PAUSED
-    val menu by produceState<ItemMenuResult?>(null, part.id, reload, paused) {
-        value = null
-        if (!paused) value = loadMenu()
+) = BottomPanel(onDismiss = onClose) {
+    // One line: the list behind the panel already shows the rest.
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.Medium)) { append(part.name) }
+                if (part.lines.isNotEmpty()) {
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) { append(" · ") }
+                    append(healthLines(part))
+                }
+            },
+            Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        )
+        TextButton(onClick = onClose) { Text("Close") }
     }
-    Card(modifier.fillMaxWidth()) {
-        Column(
-            Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            // One line: the list behind the panel already shows the rest.
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    buildAnnotatedString {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Medium)) { append(part.name) }
-                        if (part.lines.isNotEmpty()) {
-                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) { append(" · ") }
-                            append(healthLines(part))
-                        }
-                    },
-                    Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
-                TextButton(onClick = onClose) { Text("Close") }
-            }
-            HorizontalDivider()
-            when (val result = menu) {
-                null if paused -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        if (time?.gameMenuOpen == true) "Close the game's menu, then unpause to treat" else "Unpause to treat",
-                        Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (time?.canChange == true && !time.gameMenuOpen) TextButton(onClick = onUnpause) { Text("Unpause") }
-                }
-                null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text("Loading the game's options...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                is ItemMenuResult.Failed -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(result.reason, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(onClick = { reload++ }) { Text("Retry") }
-                }
-                is ItemMenuResult.Ready -> GameMenu(result.menu, onSelect = { optionId -> onSelect(result.menu.menuId, optionId) })
-            }
+    HorizontalDivider()
+    // The game builds no treatment menu while paused: wait, and load it by itself once it runs.
+    LoadingGameMenu(key = part.id, load = loadMenu, onSelect = onSelect, enabled = time?.speed != GameSpeed.PAUSED) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (time?.gameMenuOpen == true) "Close the game's menu, then unpause to treat" else "Unpause to treat",
+                Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (time?.canChange == true && !time.gameMenuOpen) TextButton(onClick = onUnpause) { Text("Unpause") }
         }
     }
 }
@@ -308,8 +279,8 @@ private fun TreatmentPanel(
 /** The game's own colours for health lines. */
 @Composable
 private fun color(tone: HealthTone) = when (tone) {
-    HealthTone.BAD -> Color(0xFFE35050)
-    HealthTone.GOOD -> Color(0xFF6BD36B)
-    HealthTone.WARN -> Color(0xFFFF9447)
+    HealthTone.BAD -> Danger
+    HealthTone.GOOD -> Good
+    HealthTone.WARN -> Warning
     HealthTone.NEUTRAL -> MaterialTheme.colorScheme.onSurface
 }

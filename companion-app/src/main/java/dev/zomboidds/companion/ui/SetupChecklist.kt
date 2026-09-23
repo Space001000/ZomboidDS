@@ -43,7 +43,7 @@ fun SetupChecklist(report: SetupReport, gameStep: String, actions: SetupActions)
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("Setup", style = MaterialTheme.typography.titleMedium)
             report.busy?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
-            report.error?.let { Text(it, color = Color(0xFFE57373)) }
+            report.error?.let { Text(it, color = ErrorText) }
 
             Step(
                 if (report.zomdroidInstalled) Check.OK else Check.TODO,
@@ -135,7 +135,7 @@ private fun Step(check: Check, title: String, detail: String, action: String? = 
         Text(
             when (check) { Check.OK -> "✓"; Check.TODO -> "•"; Check.BLOCKED -> "–" },
             Modifier.width(28.dp),
-            color = if (check == Check.OK) Color(0xFF7CB342) else MaterialTheme.colorScheme.onSurface.copy(alpha = dim),
+            color = if (check == Check.OK) Good else MaterialTheme.colorScheme.onSurface.copy(alpha = dim),
             fontWeight = FontWeight.Bold,
         )
         Column(Modifier.weight(1f)) {

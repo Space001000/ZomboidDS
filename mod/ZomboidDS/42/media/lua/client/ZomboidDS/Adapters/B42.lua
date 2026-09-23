@@ -1,11 +1,19 @@
---- Build 42 adapter: the only Lua file that calls the game API.
---- Implements the contract documented in ZomboidDS/Core/Adapters.lua.
+--- Build 42 adapter: this file and the modules next to it (B42Menu.lua, B42/) are the only Lua that
+--- calls the game API. Implements the contract documented in ZomboidDS/Core/Adapters.lua.
 ---
---- Engine calls go through `try`, so one renamed method in a B42 update degrades one field to nil
---- instead of breaking the whole snapshot. Every call below was checked against 42.20's Lua
---- sources and projectzomboid.jar (2026-09-22).
+--- Each area has its own module in B42/ (items, containers, health, moodles, time, Here); this file
+--- puts them together, with the player, vehicle and item commands. Engine calls go through Util.try
+--- (see there). Every call was checked against 42.20's Lua sources and projectzomboid.jar.
 local Adapters = require("ZomboidDS/Core/Adapters")
 local B42Menu = require("ZomboidDS/Adapters/B42Menu")
+local Util = require("ZomboidDS/Adapters/B42/Util")
+local Items = require("ZomboidDS/Adapters/B42/Items")
+local Containers = require("ZomboidDS/Adapters/B42/Containers")
+local Health = require("ZomboidDS/Adapters/B42/Health")
+local Moodles = require("ZomboidDS/Adapters/B42/Moodles")
+local Time = require("ZomboidDS/Adapters/B42/Time")
+local Here = require("ZomboidDS/Adapters/B42/Here")
+local try, round = Util.try, Util.round
 
 local B42 = {
     id = "b42",
@@ -24,27 +32,13 @@ function B42.matches(major, _minor)
     return major == 42
 end
 
--- Helpers --------------------------------------------------------------------
-
---- obj:method(...), or nil if obj is nil, the method doesn't exist, or it throws.
-local function try(obj, method, ...)
-    if obj == nil then
-        return nil
-    end
-    local ok, result = pcall(obj[method], obj, ...)
-    if ok then
-        return result
-    end
-    return nil
-end
-
-local function round(x, digits)
-    if type(x) ~= "number" then
-        return nil
-    end
-    local m = 10 ^ (digits or 2)
-    return math.floor(x * m + 0.5) / m
-end
+B42.snapshotInventory = Items.snapshotInventory
+B42.snapshotContainers = Containers.snapshot
+B42.reachableContainer = Containers.reachable
+B42.snapshotHealth = Health.snapshot
+B42.snapshotMoodles = Moodles.snapshot
+B42.snapshotTime = Time.snapshot
+B42.snapshotHere = Here.snapshot
 
 -- Player ---------------------------------------------------------------------
 
@@ -74,335 +68,6 @@ function B42.snapshotPlayer(player)
             endurance = round(stat(stats, "getEndurance", "ENDURANCE"), 3),
         },
     }
-end
-
--- Inventory ------------------------------------------------------------------
-
---- Texture name as the bridge's /icons endpoint knows it (e.g. "Item_Axe").
-local function iconName(item)
-    local name = try(try(item, "getTex"), "getName")
-    if name then
-        name = string.gsub(name, "^.*[/\\]", "")
-        name = string.gsub(name, "%.png$", "")
-        return name
-    end
-    local scriptIcon = try(try(item, "getScriptItem"), "getIcon")
-    if scriptIcon then
-        return "Item_" .. scriptIcon
-    end
-    return nil
-end
-
-local function equippedSlot(player, item)
-    local primary = try(player, "getPrimaryHandItem")
-    local secondary = try(player, "getSecondaryHandItem")
-    if item == primary and item == secondary then
-        return "both"
-    elseif item == primary then
-        return "primary"
-    elseif item == secondary then
-        return "secondary"
-    elseif try(player, "isEquippedClothing", item) then
-        return "worn"
-    end
-    return nil
-end
-
-local function condition(item)
-    if not (instanceof(item, "HandWeapon") or instanceof(item, "Clothing")) then
-        return nil
-    end
-    local max = try(item, "getConditionMax")
-    if not max or max <= 0 then
-        return nil
-    end
-    return round((try(item, "getCondition") or 0) / max, 2)
-end
-
---- What the companion app may offer for this item, decided the way the game's own inventory menu
---- does (ISInventoryPaneContextMenu). The app shows exactly these; see protocol/PROTOCOL.md.
-local function actionsFor(item, equipped)
-    local actions = {}
-    local function add(action) actions[#actions + 1] = action end
-
-    if equipped then
-        add("unequip")
-    else
-        local isClothing = try(item, "IsClothing") == true
-        local wearable = (isClothing and try(item, "getBodyLocation") ~= nil)
-            or (instanceof(item, "InventoryContainer") and try(item, "canBeEquipped") ~= nil)
-        if wearable then add("wear") end
-        if not isClothing then -- clothes are worn, not held
-            if try(item, "isRequiresEquippedBothHands") == true then
-                add("equip.both")
-            else
-                add("equip.primary")
-                add(try(item, "isTwoHandWeapon") == true and "equip.both" or "equip.secondary")
-            end
-        end
-    end
-    if try(item, "isFavorite") ~= true then add("drop") end -- vanilla won't drop favourites
-    return actions
-end
-
---- The category as the game's inventory list shows it ("Cooking", not "CookingWeapon").
-local function categoryName(item)
-    local category = try(item, "getDisplayCategory") or try(item, "getCategory")
-    if category == nil then
-        return nil
-    end
-    local ok, text = pcall(getText, "IGUI_ItemCat_" .. category)
-    if not ok or text == nil or text == "IGUI_ItemCat_" .. category then
-        return category -- no translation (e.g. a mod's category)
-    end
-    return text
-end
-
---- Food's age as the game names it (Food:getName in 42.20: "Fresh" while age < offAge, "Stale"
---- from offAge, "Rotten" from offAgeMax; 1e9 means it never goes off). Nil for other items.
-local NEVER = 1000000000
-local function freshness(item)
-    if not instanceof(item, "Food") or try(item, "isFertilized") == true then
-        return nil
-    end
-    local age, offAge, offAgeMax = try(item, "getAge"), try(item, "getOffAge"), try(item, "getOffAgeMax")
-    if age == nil or offAge == nil or offAgeMax == nil then
-        return nil
-    end
-    if offAgeMax < NEVER and age >= offAgeMax then return "rotten" end
-    if offAgeMax < NEVER and age >= offAge then return "stale" end
-    if offAge < NEVER and age < offAge then return "fresh" end
-    return nil
-end
-
---- `inInventory`: whether the item is in the player's main inventory. Quick actions only apply
---- there for now; items in bags and nearby containers get theirs with transfers (Phase 6).
-local function describeItem(player, item, inInventory)
-    local equipped = equippedSlot(player, item)
-    return {
-        id = item:getID(),
-        type = try(item, "getFullType"),
-        name = try(item, "getDisplayName"),
-        category = categoryName(item),
-        freshness = freshness(item),
-        icon = iconName(item),
-        weight = round(try(item, "getActualWeight"), 2),
-        condition = condition(item),
-        equipped = equipped,
-        actions = inInventory and actionsFor(item, equipped) or {},
-    }
-end
-
---- The visible items of a container, like the game's inventory window shows them: hidden items are
---- skipped (e.g. B42 models wounds as invisible worn "Wound_*" clothing).
-local function itemsOf(player, container, inInventory)
-    local items = container:getItems()
-    local list = {}
-    for i = 0, items:size() - 1 do
-        local item = items:get(i)
-        if try(item, "isHidden") ~= true then
-            list[#list + 1] = describeItem(player, item, inInventory)
-        end
-    end
-    return list
-end
-
---- Main inventory only; equipped bags and nearby containers come with container management (PLAN.md, Phase 6).
-function B42.snapshotInventory(player)
-    local inventory = player:getInventory()
-    return {
-        weight = {
-            current = round(try(inventory, "getCapacityWeight"), 2),
-            max = round(try(player, "getMaxWeight"), 2),
-        },
-        items = itemsOf(player, inventory, true),
-    }
-end
-
--- Containers -------------------------------------------------------------------
--- We read the game's own container lists, i.e. the tabs of its inventory window (your inventory,
--- bags, key rings) and loot window (everything within reach, the floor). So the rules are exactly
--- the game's: reachability through walls, safehouses, locks, corpses, vehicles, bags on the floor,
--- loot generated on first look, and containers other mods add. 42.20's ISInventoryPage keeps them in
--- `page.backpacks` (buttons with `.inventory`, `.name`, `.capacity`, an image, and `onclick == nil`
--- plus a lock image for locked containers) and refreshes them when the player moves or turns.
-
-local containerIds = {} -- ItemContainer -> short id, stable while the container exists
-local nextContainerId = 0
-local reachable = {}    -- id -> ItemContainer, from the latest snapshot (commands resolve ids here)
-local lockedIds = {}    -- id -> true for locked containers in the latest snapshot
-
-local function containerId(container)
-    local id = containerIds[container]
-    if id == nil then
-        nextContainerId = nextContainerId + 1
-        id = "c" .. nextContainerId
-        containerIds[container] = id
-    end
-    return id
-end
-
-local function textureName(texture)
-    local name = try(texture, "getName")
-    if name == nil then
-        return nil
-    end
-    name = string.gsub(name, "^.*[/\\]", "")
-    name = string.gsub(name, "%.png$", "")
-    return name
-end
-
-local function describeContainer(player, button, kind)
-    local container = button.inventory
-    local locked = button.onclick == nil
-    local entry = {
-        id = containerId(container),
-        kind = kind,
-        name = button.name or try(container, "getType"),
-        icon = textureName(button.textureOverride or button.image),
-        weight = round(try(container, "getCapacityWeight"), 2),
-        capacity = round(button.capacity, 2),
-        locked = locked or nil,
-    }
-    -- The main inventory's items are in the `inventory` message; locked containers can't be looked into.
-    if kind ~= "inventory" and not locked then
-        entry.items = itemsOf(player, container, false)
-    end
-    return entry
-end
-
---- The containers a player can use right now, as the game's inventory and loot windows list them.
-function B42.snapshotContainers(player)
-    local playerNum = player:getPlayerNum()
-    local pages = {}
-    if getPlayerInventory then pages[#pages + 1] = { page = getPlayerInventory(playerNum), onCharacter = true } end
-    if getPlayerLoot then pages[#pages + 1] = { page = getPlayerLoot(playerNum), onCharacter = false } end
-
-    local list = {}
-    local seen = {}
-    local locked = {}
-    for _, source in ipairs(pages) do
-        local buttons = source.page and source.page.backpacks or {}
-        -- The loot window's selected container: the one the game outlines in the world.
-        local selected = not source.onCharacter and source.page and source.page.inventoryPane
-            and source.page.inventoryPane.inventory or nil
-        for _, button in ipairs(buttons) do
-            local container = button.inventory
-            if container ~= nil then
-                local kind
-                if source.onCharacter then
-                    kind = container == player:getInventory() and "inventory" or "bag"
-                else
-                    kind = try(container, "getType") == "floor" and "floor" or "nearby"
-                end
-                local entry = describeContainer(player, button, kind)
-                entry.selected = (selected ~= nil and container == selected) or nil
-                seen[entry.id] = container
-                locked[entry.id] = entry.locked
-                list[#list + 1] = entry
-            end
-        end
-    end
-    reachable = seen
-    lockedIds = locked
-    return { containers = list }
-end
-
---- A container from the latest snapshot, or nil if it's no longer within reach.
-function B42.reachableContainer(id)
-    return reachable[id]
-end
-
--- Moving items -------------------------------------------------------------------
--- Moves go through the game's own ISInventoryPane:transferItemsByWeight (what its Take All /
--- Transfer All buttons use): timed transfer actions with animation, the game's capacity checks and
--- interruptions; a move to the floor is a normal drop; corpse storage has its own action.
-
---- Item `id` in the player's inventory (including bags) or in an unlocked container within reach.
-local function findItemAnywhere(player, id)
-    local item = try(player:getInventory(), "getItemWithIDRecursiv", id)
-    if item ~= nil then
-        return item
-    end
-    for containerId, container in pairs(reachable) do
-        if not lockedIds[containerId] then -- the game doesn't let you into locked containers either
-            item = try(container, "getItemWithIDRecursiv", id)
-            if item ~= nil then
-                return item
-            end
-        end
-    end
-    return nil
-end
-
---- Like the game's buttons: walk to the containers that aren't on the player, then transfer.
-local function transferItems(player, items, destination)
-    local playerNum = player:getPlayerNum()
-    local loot = getPlayerLoot and getPlayerLoot(playerNum)
-    local pane = loot and loot.inventoryPane
-    if pane == nil or pane.transferItemsByWeight == nil then
-        return false, "The game's inventory window isn't available"
-    end
-    local toVisit = { destination }
-    for _, item in ipairs(items) do
-        toVisit[#toVisit + 1] = item:getContainer()
-    end
-    local visited = {}
-    for _, container in ipairs(toVisit) do
-        if container ~= nil and not visited[container] and not container:isInCharacterInventory(player) then
-            visited[container] = true
-            if not luautils.walkToContainer(container, playerNum) then
-                return false, "Can't reach that container"
-            end
-        end
-    end
-    pane:transferItemsByWeight(items, destination)
-    return true
-end
-
-local function destinationFor(id)
-    local destination = reachable[id]
-    if destination == nil then
-        return nil, "That container is out of reach"
-    end
-    if lockedIds[id] then
-        return nil, "That container is locked"
-    end
-    return destination
-end
-
-local function isKeyRing(item)
-    return try(item, "isItemType", ItemType.KEY_RING) == true or try(item, "hasTag", ItemTag.KEY_RING) == true
-end
-
---- Which items "move all" takes, with the filters of the game's own buttons:
---- from your inventory like Transfer All (not equipped, key rings, hotbar or favourites), from
---- elsewhere like Take All (not items you marked unwanted, not heavy items like corpses/generators).
-local function itemsToMoveAll(player, from, to)
-    local playerNum = player:getPlayerNum()
-    local hotbar = getPlayerHotbar and getPlayerHotbar(playerNum)
-    local fromPlayer = from == player:getInventory()
-    local toFloor = try(to, "getType") == "floor"
-    local items = {}
-    local list = from:getItems()
-    for i = 0, list:size() - 1 do
-        local item = list:get(i)
-        local ok = try(item, "isHidden") ~= true
-        if fromPlayer then
-            ok = ok and not try(item, "isEquipped") and not isKeyRing(item) and try(item, "isFavorite") ~= true
-                and not (hotbar and try(hotbar, "isInHotbar", item))
-        else
-            ok = ok and try(item, "isUnwanted", player) ~= true and not (isForceDropHeavyItem and isForceDropHeavyItem(item))
-        end
-        if toFloor and instanceof(item, "Moveable") and try(item, "getSpriteGrid") == nil
-            and try(item, "CanBeDroppedOnFloor") == false then
-            ok = false
-        end
-        if ok then
-            items[#items + 1] = item
-        end
-    end
-    return items
 end
 
 -- Vehicle --------------------------------------------------------------------
@@ -448,7 +113,7 @@ local function findItem(player, args)
     if id == nil then
         return nil, "missing itemId"
     end
-    local item = try(player:getInventory(), "getItemWithIDRecursiv", id)
+    local item = Items.inInventory(player, id)
     if item == nil then
         return nil, "item not found"
     end
@@ -475,294 +140,23 @@ local function withItem(handler)
     end
 end
 
--- Health ------------------------------------------------------------------------------
--- The game's health panel decides which body parts to list (ISHealthPanel.getDamagedParts) and what
--- to say about each (ISHealthBodyPartListBox.doDrawItem: "Scratched (Severe)", "Bandaged", ...,
--- depending on the player's First Aid level, in its own colours). We call both with stand-ins that
--- record the text instead of drawing it, so the lines, translations and rules are the game's own
--- (and other mods' changes to them), not a copy that drifts.
-
---- The game's colours: green = treated, red = a problem, orange = dirty bandage, infection, stiffness.
-local function tone(r, g)
-    if g > 0.8 and r < 0.5 then return "good" end
-    if r > 0.95 then return "warn" end
-    if r > 0.8 and g < 0.5 then return "bad" end
-    return nil
-end
-
-local function describeBodyPart(player, panel, bodyPart)
-    local lines = {}
-    local recorder = {
-        parent = panel, selected = -1, mouseoverselected = -1, width = 400,
-        getWidth = function() return 400 end,
-        drawText = function(_, text, _x, _y, r, g) lines[#lines + 1] = { text = text, r = r or 1, g = g or 1 } end,
-        drawRect = function() end, drawRectBorder = function() end, drawProgressBar = function() end,
-    }
-    ISHealthBodyPartListBox.doDrawItem(recorder, 0, { item = { bodyPart = bodyPart }, height = 0, itemindex = 0 }, false)
-    local entry = { id = tostring(bodyPart:getType()), name = lines[1] and lines[1].text or tostring(bodyPart:getType()), lines = {} }
-    for i = 2, #lines do
-        local text = string.gsub(lines[i].text, "^%s*%-%s*", "")
-        entry.lines[#entry.lines + 1] = { text = text, tone = tone(lines[i].r, lines[i].g) }
-    end
-    return entry
-end
-
-function B42.snapshotHealth(player)
-    if ISHealthPanel == nil or ISHealthBodyPartListBox == nil then
-        return { parts = {} }
-    end
-    local panel = {
-        character = player, otherPlayer = nil, bodyPartAction = nil, actions = {},
-        doctorLevel = try(player, "getPerkLevel", Perks and Perks.Doctor) or 0,
-        getPatient = function() return player end, getDoctor = function() return player end,
-    }
-    local parts = {}
-    local ok, damaged = pcall(ISHealthPanel.getDamagedParts, panel)
-    for _, bodyPart in ipairs(ok and damaged or {}) do
-        local described, entry = pcall(describeBodyPart, player, panel, bodyPart)
-        if described then
-            parts[#parts + 1] = entry
-        end
-    end
-    -- Which body silhouette the app draws (the game has a male and a female one).
-    return { parts = parts, female = try(player, "isFemale") == true }
-end
-
--- Moodles --------------------------------------------------------------------
--- The game's moodle column (zombie.ui.MoodlesUI in 42.20, Java): every moodle with a level above
--- 0, its icon on a round background tinted from grey towards the player's good/bad highlight
--- colour (options, so colour-blind settings carry over) by level / 4, and on hover its name and
--- description. Names, descriptions and levels come from player:getMoodles(); the icon table is
--- Java-only (zombie.ui.MoodleTextureSet), so it's copied here from 42.20's bytecode. Listed most
--- urgent first; the game's own order is its hash map's.
-
-local MOODLE_DIR = "Moodles/128/"
-local MOODLES = {
-    { "BLEEDING", "Status_Bleeding" }, { "INJURED", "Status_InjuredMinor" }, { "PAIN", "Mood_Pained" },
-    { "PANIC", "Mood_Panicked" }, { "SICK", "Mood_Nauseous" }, { "HAS_A_COLD", "Mood_Ill" },
-    { "THIRST", "Status_Thirst" }, { "HUNGRY", "Status_Hunger" }, { "TIRED", "Mood_Sleepy" },
-    { "ENDURANCE", "Status_DifficultyBreathing" }, { "HYPOTHERMIA", "Status_TemperatureLow" },
-    { "HYPERTHERMIA", "Status_TemperatureHot" }, { "WINDCHILL", "Status_Windchill" }, { "WET", "Status_Wet" },
-    { "HEAVY_LOAD", "Status_HeavyLoad" }, { "CANT_SPRINT", "Status_MovementRestricted" },
-    { "STRESS", "Mood_Stressed" }, { "UNHAPPY", "Mood_Sad" }, { "BORED", "Mood_Bored" }, { "ANGRY", "Mood_Angry" },
-    { "DRUNK", "Mood_Drunk" }, { "UNCOMFORTABLE", "Mood_Discomfort" }, { "NOXIOUS_SMELL", "Mood_NoxiousSmell" },
-    { "FOOD_EATEN", "Status_Hunger" }, { "ZOMBIE", "Mood_Zombified" }, { "DEAD", "Mood_Dead" },
-}
-local MOODLE_TONES = { [1] = "good", [2] = "bad" }
--- MoodlesUI hides "food eaten" below Moodle.MoodleLevel.HighMoodleLevel (ordinal 3).
-local MOODLE_MIN_LEVEL = { FOOD_EATEN = 3 }
-
---- The game's background colour for a moodle: lerp from Color.gray to the highlight colour.
-local function moodleColour(tone, level)
-    local highlight = nil
-    if tone == "good" then highlight = try(getCore(), "getGoodHighlitedColor") end
-    if tone == "bad" then highlight = try(getCore(), "getBadHighlitedColor") end
-    local t = math.min(level, 4) / 4
-    local function mix(getter)
-        local to = highlight and try(highlight, getter) or 0.5
-        return round(0.5 + (to - 0.5) * t, 3)
-    end
-    return { mix("getR"), mix("getG"), mix("getB") }
-end
-
-function B42.snapshotMoodles(player)
-    local moodles = try(player, "getMoodles")
-    local list = {}
-    for _, entry in ipairs(MOODLES) do
-        local okType, moodleType = pcall(function() return MoodleType[entry[1]] end)
-        local level = okType and moodleType ~= nil and try(moodles, "getMoodleLevel", moodleType) or 0
-        if level > 0 and level >= (MOODLE_MIN_LEVEL[entry[1]] or 1) then
-            local tone = MOODLE_TONES[try(moodles, "getGoodBadNeutral", moodleType)] or "neutral"
-            list[#list + 1] = {
-                id = entry[1],
-                name = try(moodles, "getMoodleDisplayString", moodleType) or entry[1],
-                description = try(moodles, "getMoodleDescriptionString", moodleType),
-                level = level,
-                tone = tone,
-                color = moodleColour(tone, level),
-                icon = MOODLE_DIR .. entry[2],
-            }
-        end
-    end
-    return { moodles = list, background = MOODLE_DIR .. "_Moodles_BGsolid", border = MOODLE_DIR .. "_Moodles_BGoutline" }
-end
-
--- Game speed ------------------------------------------------------------------------
--- The game's own speed buttons (top right; zombie.ui.SpeedControls in 42.20): speeds 0 pause,
--- 1 play, 2 fast forward (x5), 3 faster (x20), 4 wait (x40). We press its buttons by name with
--- ButtonClicked, like the controller's back-button wheel (ISBackButtonWheel), so its icons and
--- state stay in sync. Not in multiplayer, same as the game.
-
-local SPEED_BUTTONS = { [0] = "Pause", [1] = "Play", [2] = "Fast Forward x 1", [3] = "Fast Forward x 2", [4] = "Wait" }
-
-local function speedControls()
-    return UIManager and try(UIManager, "getSpeedControls") or nil
-end
-
---- The game's pause menu (Esc: settings, quit, ...) is open. The game ignores its speed buttons
---- behind it; so do we, or the game would run on under a menu that no longer takes the controller.
---- Same check as the game's controller code (42.20 JoyPadSetup.lua).
-local function pauseMenuOpen()
-    local screen = MainScreen and MainScreen.instance
-    return screen ~= nil and screen.inGame == true and try(screen, "isReallyVisible") == true
-end
-
-function B42.snapshotTime(_player)
-    return {
-        speed = try(speedControls(), "getCurrentGameSpeed"),
-        canChange = speedControls() ~= nil and not (isClient and isClient()),
-        gameMenuOpen = pauseMenuOpen() or nil,
-    }
-end
-
-local function setSpeed(speed)
-    local controls = speedControls()
-    if controls == nil then
-        return false, "The game's speed controls aren't available"
-    end
-    if isClient and isClient() then
-        return false, "Game speed can't be changed in multiplayer"
-    end
-    if pauseMenuOpen() then
-        return false, "Close the game's menu first"
-    end
-    local button = SPEED_BUTTONS[speed]
-    if button == nil then
-        return false, "unknown speed " .. tostring(speed)
-    end
-    local current = try(controls, "getCurrentGameSpeed")
-    if current == speed then
-        return true
-    end
-    -- "Pause" while paused toggles back to play in the game, so only press it when running.
-    controls:ButtonClicked(button)
-    return true
-end
-
--- "Here" follows the player ------------------------------------------------------
--- While the app watches (its Deck is open), the world menu for where the player stands is rebuilt
--- when they step onto another tile or turn, when their action finishes (the door is open now),
--- shortly after an option from the app ran, and every few seconds as a fallback. Never while the
--- game's own context menu is open on the top screen: the game has one per player, and building
--- ours would close it. Unchanged menus keep their id (B42Menu.openWorld), so the Emitter doesn't
--- re-send them.
-
-local HERE_WATCH_MS = 10000   -- the app repeats watch_here while its Deck is open; expires otherwise
-local HERE_FALLBACK_MS = 3000 -- rebuild at least this often while watched (things change around you)
-local HERE_AFTER_SELECT_MS = 400
-
-local here = { watchUntil = 0, last = nil, square = nil, dir = nil, busy = false, builtAt = 0, forceAt = nil }
-
-local function gameMenuOpen(player)
-    local menu = getPlayerContextMenu and getPlayerContextMenu(player:getPlayerNum())
-    return menu ~= nil and try(menu, "isVisible") == true
-end
-
-function B42.snapshotHere(player)
-    local now = getTimestampMs()
-    if now >= here.watchUntil then
-        here.last = nil
-        return { watching = false }
-    end
-    local square, dir = player:getCurrentSquare(), player:getDir()
-    local busy = ISTimedActionQueue ~= nil and ISTimedActionQueue.isPlayerDoingAction(player) == true
-    local finished = here.busy and not busy
-    here.busy = busy
-    local due = here.last == nil or square ~= here.square or dir ~= here.dir or finished
-        or now - here.builtAt >= HERE_FALLBACK_MS or (here.forceAt ~= nil and now >= here.forceAt)
-        -- no menu (paused, nothing here): look again soon, e.g. right after unpausing
-        or (here.last.unavailable ~= nil and now - here.builtAt >= 1000)
-    if not due or gameMenuOpen(player) then
-        return here.last or { watching = true }
-    end
-    here.square, here.dir, here.builtAt, here.forceAt = square, dir, now, nil
-    local ok, reason, menu = B42Menu.openWorld(player)
-    local buildMs = getTimestampMs() - now
-    if ok then
-        here.last = { watching = true, menuId = menu.menuId, options = menu.options }
-    else
-        here.last = { watching = true, unavailable = reason }
-    end
-    if buildMs > 20 then
-        print("[ZomboidDS] building the world menu took " .. buildMs .. " ms")
-    end
-    return here.last
-end
-
 B42.commands = {
     -- The app's Deck is open (on = true, repeated every few seconds) or closed.
     watch_here = function(_player, args)
-        if args.on == false then
-            here.watchUntil = 0
-        else
-            here.watchUntil = getTimestampMs() + HERE_WATCH_MS
-        end
+        Here.watch(args.on ~= false)
         return true
     end,
 
-    -- Select a container around the player in the game's (hidden) loot window, as clicking its tab
-    -- would: the game then outlines it in the world (ISInventoryPage:updateContainerHighlight keeps
-    -- running while the window is hidden) and plays its open/close sounds. Same call the game's
-    -- transfer action uses (42.20 ISInventoryPage:selectButtonForContainer).
-    select_container = function(player, args)
-        local container = reachable[args.id]
-        local loot = getPlayerLoot and getPlayerLoot(player:getPlayerNum())
-        if container == nil or loot == nil or lockedIds[args.id] then
-            return false, "That container is out of reach"
-        end
-        if try(container, "isInCharacterInventory", player) == true then
-            return false, "Only containers around you are highlighted"
-        end
-        loot:selectButtonForContainer(container)
-        return true
-    end,
-
-    -- The game's speed buttons (see "Game speed").
+    -- The game's speed buttons (see B42/Time.lua).
     set_speed = function(_player, args)
-        return setSpeed(tonumber(args.speed))
-    end,
-
-    -- Move one item to a container (see "Moving items").
-    transfer = function(player, args)
-        local destination, reason = destinationFor(args.to)
-        if destination == nil then
-            return false, reason
-        end
-        local item = findItemAnywhere(player, tonumber(args.itemId))
-        if item == nil then
-            return false, "item not found"
-        end
-        if item:getContainer() == destination then
-            return false, "It's already there"
-        end
-        if not destination:isItemAllowed(item) then
-            return false, "That can't go in there"
-        end
-        return transferItems(player, { item }, destination)
-    end,
-
-    -- Move everything from one container to another, like the game's Take All / Transfer All.
-    transfer_all = function(player, args)
-        local from = reachable[args.from]
-        if from == nil or lockedIds[args.from] then
-            return false, "That container is out of reach"
-        end
-        local destination, reason = destinationFor(args.to)
-        if destination == nil then
-            return false, reason
-        end
-        local items = itemsToMoveAll(player, from, destination)
-        if #items == 0 then
-            return false, "Nothing to move"
-        end
-        return transferItems(player, items, destination)
+        return Time.setSpeed(tonumber(args.speed))
     end,
 
     -- The game's own right-click menu for an item (see B42Menu.lua): for items you carry, and for
     -- items in containers within reach, which get the loot window's menu (Grab, and options like
     -- Read or Eat that take the item first).
     item_menu = function(player, args)
-        local item = findItemAnywhere(player, tonumber(args.itemId))
+        local item = Containers.findItem(player, tonumber(args.itemId))
         if item == nil then
             return false, "item not found"
         end
@@ -780,9 +174,8 @@ B42.commands = {
     end,
 
     menu_select = function(player, args)
-        local ok, reason = B42Menu.select(player, args, function(id) return findItemAnywhere(player, id) end)
-        -- Whatever ran may change what's here (a door opens): look again shortly.
-        here.forceAt = getTimestampMs() + HERE_AFTER_SELECT_MS
+        local ok, reason = B42Menu.select(player, args, function(id) return Containers.findItem(player, id) end)
+        Here.lookAgainSoon() -- whatever ran may change what's here (a door opens)
         return ok, reason
     end,
 
@@ -812,6 +205,11 @@ B42.commands = {
     end),
 }
 
+-- Moving items between containers (see B42/Containers.lua).
+for name, command in pairs(Containers.commands) do
+    B42.commands[name] = command
+end
+
 -- UI -------------------------------------------------------------------------
 
 function B42.notify(player, text)
@@ -826,13 +224,6 @@ end
 -- keep working for us: the engine updates every window it knows about, visible or not (42.20
 -- UIManager.updateUIElements), so their container lists still follow the player.
 
---- The container the game's loot window has selected: what it would show on Y.
-local function selectedLootContainer(playerNum)
-    local page = getPlayerLoot and getPlayerLoot(playerNum)
-    local pane = page and page.inventoryPane
-    return pane and pane.inventory or nil
-end
-
 --- Calls `onShow(playerNum, { panel = "inventory", container = id })` when the player asks the game
 --- for its inventory or loot window. If it returns true, the game's window stays closed.
 function B42.redirectGameWindows(onShow)
@@ -844,7 +235,7 @@ function B42.redirectGameWindows(onShow)
         return function(self, ...)
             local ok, handled = pcall(function()
                 local container = containerFor(self.player)
-                return onShow(self.player, { panel = "inventory", container = container and containerId(container) or nil })
+                return onShow(self.player, { panel = "inventory", container = container and Containers.idOf(container) or nil })
             end)
             if ok and handled then
                 return
@@ -852,7 +243,7 @@ function B42.redirectGameWindows(onShow)
             return original(self, ...)
         end
     end
-    ISButtonPrompt.cmdShowLoot = wrap(ISButtonPrompt.cmdShowLoot, selectedLootContainer)
+    ISButtonPrompt.cmdShowLoot = wrap(ISButtonPrompt.cmdShowLoot, Containers.selectedLoot)
     ISButtonPrompt.cmdShowInventory = wrap(ISButtonPrompt.cmdShowInventory, function(playerNum)
         local player = getSpecificPlayer(playerNum)
         return player and player:getInventory() or nil

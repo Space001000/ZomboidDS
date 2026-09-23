@@ -55,8 +55,6 @@ import dev.zomboidds.companion.domain.SessionInfo
 import dev.zomboidds.companion.domain.Vehicle
 import dev.zomboidds.companion.setup.SetupReport
 
-private val Healthy = Color(0xFF7CB342)
-private val Danger = Color(0xFFE53935)
 
 @Composable
 fun CompanionScreen(
@@ -190,7 +188,7 @@ internal fun PlayerCard(player: PlayerStatus, showHealth: Boolean = true) {
                 }
                 Text(player.health?.let { "%.0f".format(it) } ?: "?", style = MaterialTheme.typography.headlineSmall)
             }
-            if (showHealth) Meter(player.health?.div(100f), if ((player.health ?: 100f) < 50f) Danger else Healthy)
+            if (showHealth) Meter(player.health?.div(100f), if ((player.health ?: 100f) < 50f) Danger else Good)
             Stat("Hunger", player.hunger)
             Stat("Thirst", player.thirst)
             Stat("Fatigue", player.fatigue)
