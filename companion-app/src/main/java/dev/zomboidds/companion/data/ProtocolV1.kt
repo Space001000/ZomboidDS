@@ -2,30 +2,37 @@ package dev.zomboidds.companion.data
 
 import dev.zomboidds.companion.domain.BodyPartStatus
 import dev.zomboidds.companion.domain.BridgeInfo
-import dev.zomboidds.companion.domain.Health
-import dev.zomboidds.companion.domain.HealthLine
-import dev.zomboidds.companion.domain.Freshness
-import dev.zomboidds.companion.domain.HealthTone
-import dev.zomboidds.companion.domain.Moodle
-import dev.zomboidds.companion.domain.MoodleTone
-import dev.zomboidds.companion.domain.Moodles
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.Container
 import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.EquipSlot
+import dev.zomboidds.companion.domain.Freshness
 import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameSpeed
-import dev.zomboidds.companion.domain.HereState
-import dev.zomboidds.companion.domain.TimeState
 import dev.zomboidds.companion.domain.GameState
+import dev.zomboidds.companion.domain.Health
+import dev.zomboidds.companion.domain.HealthLine
+import dev.zomboidds.companion.domain.HealthTone
+import dev.zomboidds.companion.domain.HereState
 import dev.zomboidds.companion.domain.Inventory
 import dev.zomboidds.companion.domain.InventoryItem
 import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenu
 import dev.zomboidds.companion.domain.MenuOption
+import dev.zomboidds.companion.domain.Moodle
+import dev.zomboidds.companion.domain.MoodleTone
+import dev.zomboidds.companion.domain.Moodles
 import dev.zomboidds.companion.domain.PlayerStatus
+import dev.zomboidds.companion.domain.RecipeCategory
+import dev.zomboidds.companion.domain.RecipeDetails
+import dev.zomboidds.companion.domain.RecipeInput
+import dev.zomboidds.companion.domain.RecipeList
+import dev.zomboidds.companion.domain.RecipeOutput
+import dev.zomboidds.companion.domain.RecipeSkill
+import dev.zomboidds.companion.domain.RecipeSummary
 import dev.zomboidds.companion.domain.SessionInfo
+import dev.zomboidds.companion.domain.TimeState
 import dev.zomboidds.companion.domain.Vehicle
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -35,8 +42,8 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.put
 
 /**
  * Protocol v1 (see protocol/PROTOCOL.md): the one place that knows the wire format.
@@ -243,6 +250,90 @@ object ProtocolV1 {
 
     private fun MenuOptionDto.toDomain(): MenuOption =
         MenuOption(id, name, enabled, tooltip, children.map { it.toDomain() }, icon)
+
+    fun craftListRequest() = Request("craft_list", buildJsonObject { })
+
+    fun craftRecipeRequest(id: String) = Request("craft_recipe", buildJsonObject { put("recipe", id) })
+
+    fun craftRequest(id: String, count: Int) = Request("craft", buildJsonObject {
+        put("recipe", id)
+        put("count", count)
+    })
+
+    @Serializable
+    private data class RecipeListDto(val recipes: List<RecipeSummaryDto> = emptyList(), val categories: List<RecipeCategoryDto> = emptyList())
+
+    @Serializable
+    private data class RecipeSummaryDto(
+        val id: String,
+        val name: String = "",
+        val icon: String? = null,
+        val category: String? = null,
+        val canCraft: Boolean = false,
+    )
+
+    @Serializable
+    private data class RecipeCategoryDto(val id: String, val name: String = "")
+
+    @Serializable
+    private data class RecipeDetailsDto(
+        val id: String,
+        val name: String = "",
+        val icon: String? = null,
+        val category: String? = null,
+        val seconds: Float? = null,
+        val canCraft: Boolean = false,
+        val max: Int = 0,
+        val inputs: List<RecipeInputDto> = emptyList(),
+        val outputs: List<RecipeOutputDto> = emptyList(),
+        val skills: List<RecipeSkillDto> = emptyList(),
+    )
+
+    @Serializable
+    private data class RecipeInputDto(
+        val name: String? = null,
+        val icon: String? = null,
+        val need: Float = 1f,
+        val have: Float = 0f,
+        val ok: Boolean = false,
+        val keep: Boolean = false,
+        val others: Int = 0,
+        val unit: String? = null,
+    )
+
+    @Serializable
+    private data class RecipeOutputDto(val name: String? = null, val icon: String? = null, val amount: Float = 1f, val unit: String? = null)
+
+    @Serializable
+    private data class RecipeSkillDto(val name: String? = null, val level: Int = 0, val have: Int = 0)
+
+    /** The `data` of a `craft_list` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun recipeList(data: JsonElement?): RecipeList {
+        requireNotNull(data) { "the game sent no recipes" }
+        val dto = json.decodeFromJsonElement<RecipeListDto>(lenient(data))
+        return RecipeList(
+            dto.recipes.map { RecipeSummary(it.id, it.name.ifEmpty { it.id }, it.icon, it.category, it.canCraft) },
+            dto.categories.map { RecipeCategory(it.id, it.name.ifEmpty { it.id }) },
+        )
+    }
+
+    /** The `data` of a `craft_recipe` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun recipeDetails(data: JsonElement?): RecipeDetails {
+        requireNotNull(data) { "the game sent no recipe" }
+        val dto = json.decodeFromJsonElement<RecipeDetailsDto>(lenient(data))
+        return RecipeDetails(
+            id = dto.id,
+            name = dto.name.ifEmpty { dto.id },
+            icon = dto.icon,
+            category = dto.category,
+            seconds = dto.seconds?.toInt(),
+            canCraft = dto.canCraft,
+            max = dto.max,
+            inputs = dto.inputs.map { RecipeInput(it.name ?: "?", it.icon, it.need, it.have, it.ok, it.keep, it.others, it.unit) },
+            outputs = dto.outputs.map { RecipeOutput(it.name ?: "?", it.icon, it.amount, it.unit) },
+            skills = dto.skills.map { RecipeSkill(it.name ?: "?", it.level, it.have) },
+        )
+    }
 
     fun setSpeedRequest(speed: GameSpeed) = Request("set_speed", buildJsonObject { put("speed", speed.ordinal) })
 

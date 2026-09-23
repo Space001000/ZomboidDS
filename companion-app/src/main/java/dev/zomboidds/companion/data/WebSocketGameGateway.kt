@@ -1,38 +1,42 @@
 package dev.zomboidds.companion.data
 
-import dev.zomboidds.companion.domain.GameSpeed
 import android.util.Log
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ConnectionStatus
+import dev.zomboidds.companion.domain.Fetched
 import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameGateway
+import dev.zomboidds.companion.domain.GameSpeed
 import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenuResult
+import dev.zomboidds.companion.domain.RecipeDetails
+import dev.zomboidds.companion.domain.RecipeList
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonElement
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
-import kotlin.coroutines.coroutineContext
 
 /**
  * Talks to the mod's bridge over its WebSocket. Keeps reconnecting: the game not running (yet)
@@ -115,6 +119,24 @@ class WebSocketGameGateway(
             }
         }
     }
+
+    override suspend fun recipes(): Fetched<RecipeList> =
+        fetched(send(ProtocolV1.craftListRequest()), "The game's recipes couldn't be read", ProtocolV1::recipeList)
+
+    override suspend fun recipe(id: String): Fetched<RecipeDetails> =
+        fetched(send(ProtocolV1.craftRecipeRequest(id)), "The game's recipe couldn't be read", ProtocolV1::recipeDetails)
+
+    override suspend fun craft(id: String, count: Int): CommandResult = send(ProtocolV1.craftRequest(id, count)).result
+
+    private fun <T> fetched(reply: ProtocolV1.ServerMessage.Reply, unreadable: String, parse: (JsonElement?) -> T): Fetched<T> =
+        when (val result = reply.result) {
+            is CommandResult.Failed -> Fetched.Failed(result.reason)
+            CommandResult.Ok -> try {
+                Fetched.Ready(parse(reply.data))
+            } catch (e: IllegalArgumentException) {
+                Fetched.Failed(unreadable)
+            }
+        }
 
     override suspend fun selectMenuOption(menuId: String, optionId: String): CommandResult =
         send(ProtocolV1.menuSelectRequest(menuId, optionId)).result

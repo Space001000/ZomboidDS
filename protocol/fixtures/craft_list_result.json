@@ -1,0 +1,13 @@
+{
+  "v": 1, "type": "command_result", "seq": 21,
+  "data": {
+    "id": "c-30", "ok": true,
+    "data": {
+      "recipes": [
+        { "id": "Base.RipClothing", "name": "Rip Clothing", "icon": "Item_Rag", "category": "Tailoring", "canCraft": true },
+        { "id": "Base.MakeCrudeStoneAxe", "name": "Crude Stone Axe", "icon": "Item_AxeStone", "category": "Assembly", "canCraft": false }
+      ],
+      "categories": [ { "id": "Tailoring", "name": "Tailoring" }, { "id": "Assembly", "name": "Assembly" } ]
+    }
+  }
+}

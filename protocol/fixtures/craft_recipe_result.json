@@ -1,0 +1,17 @@
+{
+  "v": 1, "type": "command_result", "seq": 22,
+  "data": {
+    "id": "c-31", "ok": true,
+    "data": {
+      "id": "Base.MakeCrudeStoneAxe", "name": "Crude Stone Axe", "icon": "Item_AxeStone", "category": "Assembly",
+      "seconds": 23, "canCraft": false, "max": 0,
+      "inputs": [
+        { "name": "Tree Branch", "icon": "Item_Branch", "need": 1, "have": 1, "ok": true },
+        { "name": "Sharpened Stone", "icon": "Item_RockSharpened", "need": 1, "have": 0, "ok": false },
+        { "name": "Ripped Sheets", "icon": "Item_Rag", "need": 2, "have": 2, "ok": true, "others": 5 }
+      ],
+      "outputs": [ { "name": "Stone Axe", "icon": "Item_AxeStone", "amount": 1 } ],
+      "skills": [ { "name": "Maintenance", "level": 1, "have": 0 } ]
+    }
+  }
+}

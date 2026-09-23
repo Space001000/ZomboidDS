@@ -63,6 +63,28 @@ final class MockGame {
         this.inventory = fixtureData(inventoryFixture);
     }
 
+    /** The fake crafting window: the list, and each recipe's details by id (see PROTOCOL.md "Crafting"). */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> crafting() {
+        Map<String, Object> list = (Map<String, Object>) fixtureData("craft_list_result.json").get("data");
+        Map<String, Object> byId = new LinkedHashMap<>();
+        byId.put("list", list);
+        for (Object entry : (List<Object>) list.get("recipes")) {
+            Map<String, Object> recipe = (Map<String, Object>) entry;
+            boolean can = Boolean.TRUE.equals(recipe.get("canCraft"));
+            Map<String, Object> details = new LinkedHashMap<>(recipe);
+            details.put("seconds", 4);
+            details.put("max", can ? 4 : 0);
+            details.put("inputs", List.of(Map.of("name", "T-shirt", "icon", "Item_TshirtGeneric", "need", 1, "have", can ? 4 : 0, "ok", can)));
+            details.put("outputs", List.of(Map.of("name", recipe.get("name"), "icon", String.valueOf(recipe.get("icon")), "amount", 1)));
+            details.put("skills", List.of());
+            byId.put((String) recipe.get("id"), details);
+        }
+        Map<String, Object> axe = (Map<String, Object>) fixtureData("craft_recipe_result.json").get("data");
+        byId.put((String) axe.get("id"), axe);
+        return byId;
+    }
+
     void start() {
         gameThread.execute(() -> {
             bridge.state().publish("session", fixtureData("session.json"));
@@ -205,6 +227,25 @@ final class MockGame {
                 containers.forEach(c -> c.remove("selected"));
                 target.put("selected", true);
                 containersDirty = true;
+                yield null;
+            }
+            case "craft_list" -> {
+                data[0] = crafting().get("list");
+                yield null;
+            }
+            case "craft_recipe" -> {
+                Object details = crafting().get(String.valueOf(command.args().get("recipe")));
+                if (details == null) {
+                    yield "That recipe isn't available";
+                }
+                data[0] = details;
+                yield null;
+            }
+            case "craft" -> {
+                Object details = crafting().get(String.valueOf(command.args().get("recipe")));
+                if (!(details instanceof Map<?, ?> recipe) || !Boolean.TRUE.equals(recipe.get("canCraft"))) {
+                    yield "You can't make that right now";
+                }
                 yield null;
             }
             case "set_speed" -> {

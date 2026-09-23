@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
                     container.settings.setContainerLayout(it.containers)
                 },
                 events = gateway.events,
+                crafting = gateway,
             )
         }
     }

@@ -100,7 +100,7 @@ rules apply: walls, safehouses, locks, corpses, vehicles, bags on the floor, con
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`.
+`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`.
 
 ## Client → server
 
@@ -127,6 +127,21 @@ executed on the game thread on the next tick (also while the game is paused), us
 | `transfer_all` | `from`, `to` (container ids): moves everything, with the filters of the game's Take All / Transfer All buttons |
 | `select_container` | `id`: selects a container around the player in the game's loot window, as clicking its tab would. The game then outlines it in the world and plays its open/close sound. Refused for your own bags and locked or out-of-reach containers. |
 | `set_speed` | `speed` (0–4, as in `time`): presses the game's own speed button. Refused in multiplayer, like in the game. Works while paused. |
+| `craft_list` | none. Result `data`: what the game's crafting window lists for the player now: `recipes[]` `{ id, name, icon, category, canCraft }` and `categories[]` `{ id, name }` (see Crafting) |
+| `craft_recipe` | `recipe` (an `id` from `craft_list`). Result `data`: `{ id, name, icon, category, seconds, canCraft, max, inputs[], outputs[], skills[] }` (see Crafting) |
+| `craft` | `recipe`, `count`: crafts it `count` times (at most `max`), the way the crafting window's Craft button does |
+
+### Crafting
+
+The recipes are the game crafting window's (42.20 `HandcraftLogic` with its default query
+`InHandCraft;AnySurfaceCraft`, no workbench): known recipes, `canCraft` from the same check its list
+uses, ingredients counted from the inventory, bags and containers around. `craft_recipe`:
+`inputs[]` `{ name, icon, need, have, ok, keep, others, unit }` (`name`/`icon`: the first item the
+player has for it, else the first that would do; `others`: how many other items would also do;
+`keep`: a tool, not used up; `unit: "L"` for fluids), `outputs[]` `{ name, icon, amount, unit }`,
+`skills[]` `{ name, level, have }`, `max`: how many times it can be made now. `craft` runs the
+window's own start: it fetches the ingredients, walks to a surface when the recipe needs one,
+queues the actions and puts items back; it fails with a reason when nothing can be made.
 
 ### Moving items
 

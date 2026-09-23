@@ -1,5 +1,6 @@
 package dev.zomboidds.companion.ui
 
+import dev.zomboidds.companion.domain.Crafting
 import dev.zomboidds.companion.domain.GameControls
 import dev.zomboidds.companion.domain.GameSpeed
 import dev.zomboidds.companion.domain.GameEvent
@@ -68,6 +69,7 @@ fun CompanionScreen(
     inventoryDisplay: InventoryDisplay,
     onInventoryDisplayChange: (InventoryDisplay) -> Unit,
     events: Flow<GameEvent>,
+    crafting: Crafting? = null,
 ) {
     MaterialTheme(colorScheme = darkColorScheme()) {
         Surface(Modifier.fillMaxSize()) {
@@ -75,7 +77,7 @@ fun CompanionScreen(
             Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
-                    InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events)
+                    InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     Column(
@@ -91,7 +93,7 @@ fun CompanionScreen(
     }
 }
 
-private enum class Tab(val title: String) { VEHICLE("Vehicle"), INVENTORY("Inventory"), DECK("Deck"), STATUS("Status") }
+private enum class Tab(val title: String) { VEHICLE("Vehicle"), INVENTORY("Inventory"), DECK("Deck"), STATUS("Status"), CRAFT("Craft") }
 
 @Composable
 private fun InGame(
@@ -102,10 +104,12 @@ private fun InGame(
     inventoryDisplay: InventoryDisplay,
     onInventoryDisplayChange: (InventoryDisplay) -> Unit,
     events: Flow<GameEvent>,
+    crafting: Crafting?,
 ) {
     val driving = state.vehicle as? Vehicle.Driving
-    // The Vehicle tab only exists while in a vehicle.
-    val tabs = if (driving != null) Tab.entries else Tab.entries - Tab.VEHICLE
+    // The Vehicle tab only exists while in a vehicle; Craft only with a mod that can craft.
+    val canCraft = crafting != null && "craft" in state.session?.capabilities.orEmpty()
+    val tabs = Tab.entries.filter { (it != Tab.VEHICLE || driving != null) && (it != Tab.CRAFT || canCraft) }
     var tab by rememberSaveable { mutableStateOf(Tab.INVENTORY) }
     var tabBeforeVehicle by rememberSaveable { mutableStateOf(Tab.INVENTORY) }
 
@@ -147,6 +151,7 @@ private fun InGame(
                     show = showRequest, onShowHandled = { showRequest = null })
                 Tab.DECK -> CommandDeckScreen(state.time, state.here, controls, actions, iconUrl)
                 Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
+                Tab.CRAFT -> crafting?.let { CraftScreen(it, iconUrl, changes = state.inventory to state.containers) }
             }
         }
     }

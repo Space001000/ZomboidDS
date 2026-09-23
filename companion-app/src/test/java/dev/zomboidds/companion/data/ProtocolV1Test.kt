@@ -196,6 +196,22 @@ class ProtocolV1Test {
     }
 
     @Test
+    fun `crafting replies become the recipe list and a recipe's details`() {
+        val list = (ProtocolV1.decode(fixture("craft_list_result.json")) as ProtocolV1.ServerMessage.Reply)
+            .let { ProtocolV1.recipeList(it.data) }
+        assertEquals(listOf("Rip Clothing", "Crude Stone Axe"), list.recipes.map { it.name })
+        assertEquals(listOf(true, false), list.recipes.map { it.canCraft })
+        assertEquals("Assembly", list.categories[1].name)
+        val axe = (ProtocolV1.decode(fixture("craft_recipe_result.json")) as ProtocolV1.ServerMessage.Reply)
+            .let { ProtocolV1.recipeDetails(it.data) }
+        assertEquals(listOf(true, false, true), axe.inputs.map { it.ok })
+        assertEquals(5, axe.inputs[2].others)
+        assertEquals("Stone Axe", axe.outputs.single().name)
+        assertEquals(false, axe.skills.single().ok)
+        assertEquals(23, axe.seconds)
+    }
+
+    @Test
     fun `moodles come with the game's texts, colours and images`() {
         val moodles = applyAll("moodles.json").moodles!!
         assertEquals(listOf("Bleeding", "Peckish", "Drowsy"), moodles.list.map { it.name })

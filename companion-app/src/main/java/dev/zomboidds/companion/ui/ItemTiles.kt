@@ -163,7 +163,7 @@ internal fun ItemIcon(item: InventoryItem, iconUrl: (String) -> String, size: an
 }
 
 @Composable
-private fun selectedBorder(selected: Boolean) =
+internal fun selectedBorder(selected: Boolean) =
     if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
 
 @Composable
