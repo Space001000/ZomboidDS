@@ -1,5 +1,17 @@
 package dev.zomboidds.companion.ui
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.FilterChip
+import dev.zomboidds.companion.domain.MenuOption
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import dev.zomboidds.companion.domain.HereState
@@ -48,7 +60,6 @@ fun CommandDeckScreen(
     val scope = rememberCoroutineScope()
     var failure by remember { mutableStateOf<String?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Game speed", style = MaterialTheme.typography.titleSmall)
         when {
             time == null -> Text("Waiting for the game...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             !time.canChange -> Text("The game speed can't be changed in multiplayer.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -66,17 +77,18 @@ fun CommandDeckScreen(
         }
         failure?.let { Text(it, color = Color(0xFFE57373), style = MaterialTheme.typography.bodySmall) }
         HorizontalDivider()
-        Here(here, controls, actions, Modifier.weight(1f))
+        Here(here, controls, actions, iconUrl, Modifier.weight(1f))
     }
 }
 
 /**
- * The game's world menu for where you stand (what the controller's interact button opens). While
- * this is on screen the game keeps it up to date by itself as you move and turn, and after an
- * option ran (a door you opened now says "Close door").
+ * The game's world menu for where you stand (what the controller's interact button opens), as
+ * cards: each object with its actions as one-tap chips, loose actions as chips at the end.
+ * While this is on screen the game keeps it up to date by itself as you move and turn, and after
+ * an action ran (a door you opened now says "Close Door").
  */
 @Composable
-private fun Here(here: HereState?, controls: GameControls, actions: ItemActions, modifier: Modifier) {
+private fun Here(here: HereState?, controls: GameControls, actions: ItemActions, iconUrl: (String) -> String, modifier: Modifier) {
     // Tell the game we're looking; repeated because it expires (e.g. if the app is closed).
     LaunchedEffect(Unit) {
         while (true) {
@@ -87,23 +99,97 @@ private fun Here(here: HereState?, controls: GameControls, actions: ItemActions,
     DisposableEffect(Unit) { onDispose { controls.watchHere(false) } }
 
     val scope = rememberCoroutineScope()
-    var failure by remember { mutableStateOf<String?>(null) }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Here", style = MaterialTheme.typography.titleSmall)
-        failure?.let { Text(it, color = Color(0xFFE57373), style = MaterialTheme.typography.bodySmall) }
-        Column(Modifier.verticalScroll(rememberScrollState())) {
-            val menu = here?.menu
-            when {
-                menu != null -> GameMenu(menu, onSelect = { optionId ->
-                    scope.launch {
-                        val run = actions.selectMenuOption(menu.menuId, optionId)
-                        failure = (run as? CommandResult.Failed)?.reason
-                    }
-                })
-                here?.unavailable != null -> Text(here.unavailable, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else -> Text("Looking around...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    var message by remember { mutableStateOf<String?>(null) }
+    fun run(menuId: String, option: MenuOption) {
+        message = null
+        scope.launch {
+            val result = actions.selectMenuOption(menuId, option.id)
+            if (result is CommandResult.Failed) message = result.reason
+        }
+    }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        val menu = here?.menu
+        when {
+            menu != null -> Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                val (objects, loose) = menu.options.partition { it.children.isNotEmpty() }
+                objects.forEach { obj ->
+                    ObjectCard(obj, iconUrl, onRun = { run(menu.menuId, it) }, onGreyed = { message = it })
+                }
+                if (loose.isNotEmpty()) {
+                    // Actions that don't belong to an object (Sit on ground, a light switch): their own
+                    // group with a heading, so they don't read as part of the card above.
+                    ObjectCard(
+                        MenuOption(id = "loose", name = "Other", enabled = true, children = loose),
+                        iconUrl, onRun = { run(menu.menuId, it) }, onGreyed = { message = it },
+                    )
+                }
+            }
+            here?.unavailable != null -> Text(here.unavailable, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else -> Text("Looking around...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** The icon (32 dp) plus the gap after it: where chips start. */
+private val IconColumn = 42.dp
+
+/** One object in front of you: its icon and name, its actions as chips below. */
+@Composable
+private fun ObjectCard(obj: MenuOption, iconUrl: (String) -> String, onRun: (MenuOption) -> Unit, onGreyed: (String) -> Unit) {
+    // A deeper submenu (e.g. which item to use) opens in place under the card.
+    var open by remember(obj.id) { mutableStateOf<MenuOption?>(null) }
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        // The game's icon for the object; without one, just the space, so everything lines up.
+        val icon = obj.icon
+        Box(
+            Modifier.size(32.dp).let {
+                if (icon != null) it.background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(8.dp)) else it
+            },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (icon != null) {
+                AsyncImage(model = iconUrl(icon), contentDescription = null, filterQuality = FilterQuality.None, modifier = Modifier.size(26.dp))
             }
         }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(obj.name, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Chips(obj.children, onRun = onRun, onGreyed = onGreyed, onOpen = { open = if (open == it) null else it }, openId = open?.id)
+            open?.let { sub ->
+                Chips(sub.children, onRun = onRun, onGreyed = onGreyed)
+            }
+        }
+    }
+}
+
+/** Actions as chips: tap runs it; greyed ones show the game's reason; submenus open under. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Chips(
+    options: List<MenuOption>,
+    onRun: (MenuOption) -> Unit,
+    onGreyed: (String) -> Unit,
+    onOpen: (MenuOption) -> Unit = {},
+    openId: String? = null,
+) {
+    // Chips at their visual height (32 dp) instead of the default 48 dp touch padding: wrapped rows
+    // otherwise get big gaps, and the bottom screen has little room.
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        options.forEach { option ->
+            val submenu = option.children.isNotEmpty()
+            val label = if (submenu) option.name + " ›" else option.name
+            when {
+                !option.enabled -> AssistChip(
+                    onClick = { onGreyed(option.tooltip ?: "${option.name} isn't possible right now") },
+                    label = { Text(option.name) },
+                    colors = AssistChipDefaults.assistChipColors(labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)),
+                )
+                submenu -> FilterChip(selected = option.id == openId, onClick = { onOpen(option) }, label = { Text(label) })
+                else -> AssistChip(onClick = { onRun(option) }, label = { Text(option.name) })
+            }
+        }
+    }
     }
 }
 

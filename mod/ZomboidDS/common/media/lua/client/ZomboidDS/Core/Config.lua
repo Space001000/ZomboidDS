@@ -16,6 +16,7 @@ local Config = {
         containers = 1000, -- also re-sent right away when the game refreshes its container lists
         time = 250,        -- the game speed; only sent when it changes
         health = 500,      -- injuries; only sent when they change
+        moodles = 500,     -- only sent when they change
         here = 200,        -- how often "Here" checks for a move/turn while the app watches (cheap when not)
         vehicle = 100,     -- while in a vehicle (speedometer)
         vehicleIdle = 1000,

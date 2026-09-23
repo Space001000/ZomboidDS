@@ -54,10 +54,22 @@ ISInventoryPaneContextMenu = {
     local disabled = menu:addOption("Rip into sheets", nil, function() table.insert(calls, "rip") end)
     disabled.notAvailable = true
     disabled.toolTip = { description = "<RGB:1,0,0> Requires <LINE> a knife " }
+    -- What the app has its own buttons for (Take, Move to..., Put all), and Grab one, which it hasn't.
+    local P = ISInventoryPaneContextMenu
+    menu:addOption("Grab", items, P.onGrabItems, playerNum)
+    menu:addOption("Grab one", items, P.onGrabOneItems, playerNum)
+    local moveTo = menu:addOption("Move To")
+    local moveSub = newMenu()
+    moveSub:addOption("Inventory", items, P.onMoveItemsTo, "inv", playerNum)
+    moveSub:addOption("Crate", items, P.onPutItems, playerNum)
+    menu:addSubMenu(moveTo, moveSub)
+    menu:addOption("Transfer all", "page", ISInventoryPage.transferAll)
     lastMenu = menu
     return menu
   end,
+  onGrabItems = function() end, onGrabOneItems = function() end, onMoveItemsTo = function() end, onPutItems = function() end,
 }
+ISInventoryPage = { transferAll = function() end, lootAll = function() end }
 
 local B42 = require("ZomboidDS/Adapters/B42")
 
@@ -66,7 +78,9 @@ local ok, err, data = B42.commands.item_menu(player, { itemId = 42 })
 check(ok and err == nil and data.menuId ~= nil, "item_menu returns a menu")
 check(lastMenu.hidden, "the game's menu is hidden again right away")
 local o = data.options
-check(#o == 3 and o[1].name == "Read" and o[1].enabled and o[1].id == "1", "top-level options copied")
+check(#o == 4 and o[1].name == "Read" and o[1].enabled and o[1].id == "1", "top-level options copied")
+check(o[4].name == "Grab one" and o[4].id == "5",
+  "the app's own buttons (Grab, Move To, Transfer all) are left out, by their function; Grab one stays with its own id")
 check(o[2].name == "Eat" and #o[2].children == 2 and o[2].children[2].id == "2.2", "submenus become children with path ids")
 check(o[3].enabled == false and o[3].tooltip == "Requires \n a knife", "greyed out option keeps its plain-text reason: " .. tostring(o[3].tooltip))
 

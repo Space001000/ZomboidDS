@@ -148,7 +148,7 @@ private fun InGame(
                 Tab.INVENTORY -> InventoryScreen(state.inventory, state.containers, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange,
                     show = showRequest, onShowHandled = { showRequest = null })
                 Tab.DECK -> CommandDeckScreen(state.time, state.here, controls, actions, iconUrl)
-                Tab.STATUS -> StatusScreen(state, controls, actions)
+                Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
             }
         }
     }
@@ -179,10 +179,10 @@ private fun StatusHeader(state: GameState, connection: ConnectionStatus) {
 }
 
 @Composable
-internal fun PlayerCard(player: PlayerStatus) {
+internal fun PlayerCard(player: PlayerStatus, showHealth: Boolean = true) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            if (showHealth) Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Health", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 if (player.bleeding) {
                     Text("BLEEDING", color = Danger, fontWeight = FontWeight.Bold)
@@ -190,7 +190,7 @@ internal fun PlayerCard(player: PlayerStatus) {
                 }
                 Text(player.health?.let { "%.0f".format(it) } ?: "?", style = MaterialTheme.typography.headlineSmall)
             }
-            Meter(player.health?.div(100f), if ((player.health ?: 100f) < 50f) Danger else Healthy)
+            if (showHealth) Meter(player.health?.div(100f), if ((player.health ?: 100f) < 50f) Danger else Healthy)
             Stat("Hunger", player.hunger)
             Stat("Thirst", player.thirst)
             Stat("Fatigue", player.fatigue)

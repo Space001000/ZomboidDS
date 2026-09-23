@@ -1,7 +1,9 @@
 package dev.zomboidds.companion.data
 
 import dev.zomboidds.companion.domain.HealthLine
+import dev.zomboidds.companion.domain.Freshness
 import dev.zomboidds.companion.domain.HealthTone
+import dev.zomboidds.companion.domain.MoodleTone
 import dev.zomboidds.companion.domain.HereState
 import dev.zomboidds.companion.domain.GameSpeed
 import dev.zomboidds.companion.domain.TimeState
@@ -177,12 +179,34 @@ class ProtocolV1Test {
 
     @Test
     fun `health lists the game's injury lines with their tone`() {
-        val parts = applyAll("health.json").health!!
+        val parts = applyAll("health.json").health!!.parts
         assertEquals(listOf("Left Hand", "Right Shin"), parts.map { it.name })
         assertEquals(HealthLine("Scratched (Severe)", HealthTone.BAD), parts[0].lines[0])
         assertEquals(HealthTone.GOOD, parts[1].lines[0].tone)
         val empty = ProtocolV1.apply(GameState(), """{"v":1,"type":"health","data":{"parts":[]}}""")
-        assertEquals("no injuries is an empty list, not unknown", emptyList<Any>(), empty.health)
+        assertEquals("no injuries is an empty list, not unknown", emptyList<Any>(), empty.health!!.parts)
+    }
+
+    @Test
+    fun `food carries its freshness, other items none`() {
+        val items = applyAll("inventory_full.json").inventory!!.items
+        assertEquals(Freshness.STALE, items.first { it.name == "Bread" }.freshness)
+        assertEquals(Freshness.ROTTEN, items.first { it.name == "Banana" }.freshness)
+        assertEquals(null, items.first { it.name == "Axe" }.freshness)
+    }
+
+    @Test
+    fun `moodles come with the game's texts, colours and images`() {
+        val moodles = applyAll("moodles.json").moodles!!
+        assertEquals(listOf("Bleeding", "Peckish", "Drowsy"), moodles.list.map { it.name })
+        val bleeding = moodles.list[0]
+        assertEquals("Moodles/128/Status_Bleeding", bleeding.icon)
+        assertEquals(MoodleTone.BAD, bleeding.tone)
+        assertEquals(2, bleeding.level)
+        assertEquals(listOf(0.608f, 0.392f, 0.392f), bleeding.color)
+        assertEquals("Moodles/128/_Moodles_BGsolid", moodles.background)
+        val none = ProtocolV1.apply(GameState(), """{"v":1,"type":"moodles","data":{"moodles":[]}}""")
+        assertEquals("no moodles is an empty list, not unknown", emptyList<Any>(), none.moodles!!.list)
     }
 
     @Test

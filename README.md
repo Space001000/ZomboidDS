@@ -2,12 +2,31 @@
 
 Nintendo DS-style dual-screen play for Project Zomboid on handhelds like the AYN Thor. The game
 runs on the top screen (through [Zomdroid](https://github.com/udarmolota/zomdroid)); the
-**ZomboidDS Companion** app on the bottom screen shows your inventory with the game's own icons,
-your health and stats and your vehicle, and lets you use items by tapping: quick actions (equip,
-wear, drop) plus everything the game's own item menu offers (read, eat, apply, craft, ...).
+**ZomboidDS Companion** app on the bottom screen, in the game's own art:
+
+- **Inventory**: your bags and every container around you, with the game's icons; move items with a
+  tap, and use them through the game's own item menu (read, eat, apply, craft, ...).
+- **Deck**: the game's speed buttons, and what you can do where you stand (open, sit, drink, ...).
+- **Status**: the game's moodles, your body with its injuries, and the game's treatments.
+- **Vehicle**: speed, fuel and engine while you drive.
 
 Status: in development. See [PLAN.md](PLAN.md) for the plan, device findings and what's next, and
 [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for how players set it up.
+
+## What it can access
+
+- **The game, on the same device only.** The mod's bridge listens on `127.0.0.1` (loopback), so
+  nothing else on your network can reach it; the app connects to it there and nowhere else. Release
+  builds allow unencrypted traffic to `127.0.0.1` alone
+  ([network_security_config.xml](companion-app/src/main/res/xml/network_security_config.xml)).
+- **The internet, once, when you ask.** The setup checklist can download ZombieBuddy from
+  [its own GitHub releases](https://github.com/zed-0xff/ZombieBuddy/releases) (a pinned version,
+  checked against SHA-256 hashes built into the app). Nothing else is downloaded or sent; no
+  analytics, no accounts.
+- **Permissions:** `INTERNET` (needed for both of the above, even the local connection) and seeing
+  whether Zomdroid (`com.zomdroid`) is installed. No storage permission: the mod is installed
+  through Android's folder picker, into the folder you choose, and the ZombieBuddy download is saved
+  to Downloads.
 
 ## How it fits together
 
@@ -78,8 +97,14 @@ pip install lupa && python tools/test-lua.py
   `adb reverse tcp:7786 tcp:7786` so the app on the device reaches it on `127.0.0.1`. The console
   lets you change the fake game (enter/leave a vehicle, take damage, add items). Add
   `-Pmock.args="inventory=full,gameDir=<PZ folder>"` for a 64-item inventory with the game's real
-  icons. The emulator works too: set it to the Thor's bottom screen with
-  `adb shell wm size 1080x1240` and `adb shell wm density 369`.
+  icons. The emulator works too: set it to the Thor's bottom screen (landscape) with
+  `adb shell wm size 1240x1080` and `adb shell wm density 369`. When a Thor is also connected, run
+  the mock on another port (`-Pmock.args=port=7787,...`) and `adb -s emulator-5554 reverse tcp:7786
+  tcp:7787`, so the Thor's `adb forward` on 7786 keeps working. Stopping the Gradle task can leave the
+  mock's `java.exe` running and holding the port: end it before starting a new one.
+- **Icons look stale or missing in the app:** icons are cached on disk (Coil). A debug build logs
+  every failed icon (logcat tag `RealImageLoader`); `adb shell run-as dev.zomboidds.companion rm -rf
+  cache/icons` clears the cache.
 - **Talk to the game without the app:** `adb forward tcp:7786 tcp:7786`, then
   `python tools/bridge-client.py` lists the containers around the player and moves items
   (`take`, `put`, `takeall`).

@@ -93,6 +93,9 @@ local function onGameStart()
     if adapter.snapshotHealth then
         emitter:addChannel("health", adapter.snapshotHealth, Config.intervalsMs.health)
     end
+    if adapter.snapshotMoodles then
+        emitter:addChannel("moodles", adapter.snapshotMoodles, Config.intervalsMs.moodles)
+    end
     if adapter.snapshotHere then
         emitter:addChannel("here", adapter.snapshotHere, Config.intervalsMs.here)
     end

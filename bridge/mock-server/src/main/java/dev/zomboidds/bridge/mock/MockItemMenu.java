@@ -71,18 +71,34 @@ final class MockItemMenu {
 
     private boolean doorOpen;
 
-    /** The world menu for where the player stands ("Here"): a chair, a door, a light switch. */
+    /**
+     * The world menu for where the player stands ("Here"), shaped like the game's: objects with a
+     * submenu of actions, a greyed-out action with the game's reason, and a loose action at the end.
+     */
     Map<String, Object> openWorld() {
         Map<String, Supplier<String>> actions = new LinkedHashMap<>();
         List<Object> options = new ArrayList<>();
-        options.add(option("1", "Sit on chair", true, null, null));
-        actions.put("1", () -> null);
-        options.add(option("2", doorOpen ? "Close door" : "Open door", true, null, null));
-        actions.put("2", () -> {
+        List<Object> window = new ArrayList<>();
+        for (String[] w : new String[][] {{"1.1", "Open Window"}, {"1.2", "Smash Window"}, {"1.3", "Open Curtains"}, {"1.4", "Remove Curtains"}}) {
+            window.add(option(w[0], w[1], true, null, null));
+            actions.put(w[0], () -> null);
+        }
+        options.add(withIcon(option("1", "Window", true, null, window), "fixtures_windows_01_17_Icon"));
+        List<Object> door = new ArrayList<>();
+        door.add(option("2.1", doorOpen ? "Close Door" : "Open Door", true, null, null));
+        actions.put("2.1", () -> {
             doorOpen = !doorOpen;
             return null;
         });
-        options.add(option("3", "Turn on light", false, "There's no power", null));
+        door.add(option("2.2", "Lock Door", false, "You need the key", null));
+        options.add(withIcon(option("2", "Door", true, null, door), "fixtures_sinks_01_11_Icon"));
+        List<Object> light = new ArrayList<>();
+        light.add(option("3.1", "Turn on", false, "There's no power", null));
+        light.add(option("3.2", "Remove Light Bulb", true, null, null));
+        actions.put("3.2", () -> null);
+        options.add(withIcon(option("3", "Fluorescent Wall Light", true, null, light), "appliances_cooking_01_30_Icon"));
+        options.add(option("4", "Sit on ground", true, null, null));
+        actions.put("4", () -> null);
         currentId = "m" + (++nextId);
         currentActions = actions;
         Map<String, Object> menu = new LinkedHashMap<>();
@@ -114,6 +130,11 @@ final class MockItemMenu {
         Supplier<String> action = currentActions.get(String.valueOf(optionId));
         currentId = null;
         return action == null ? "That option isn't available" : action.get();
+    }
+
+    private static Map<String, Object> withIcon(Map<String, Object> option, String icon) {
+        option.put("icon", icon);
+        return option;
     }
 
     private static Map<String, Object> option(String id, String name, boolean enabled, String tooltip, List<Object> children) {

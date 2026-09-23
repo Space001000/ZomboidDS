@@ -15,11 +15,43 @@ data class GameState(
     /** "Here" while the app watches it ([GameControls.watchHere]); null otherwise. */
     val here: HereState? = null,
     /** Injuries, as the game's health panel lists them; null until the game reported them. */
-    val health: List<BodyPartStatus>? = null,
+    val health: Health? = null,
+    /** The game's moodles (hungry, bleeding, ...); null until the game reported them. */
+    val moodles: Moodles? = null,
 )
 
+/** What the game's moodle column shows, most urgent first, and the images to draw them with. */
+data class Moodles(val list: List<Moodle>, val background: String? = null, val border: String? = null)
+
+/**
+ * A moodle as the game shows it: [name] and [description] are its own texts for the [level]
+ * (1-4); [color] is its background colour (red, green, blue; 0-1), [icon] its image.
+ */
+data class Moodle(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val level: Int,
+    val tone: MoodleTone,
+    val color: List<Float>,
+    val icon: String?,
+)
+
+enum class MoodleTone { GOOD, BAD, NEUTRAL }
+
+/** The body parts the game's health panel lists, and which body silhouette to draw. */
+data class Health(val parts: List<BodyPartStatus>, val female: Boolean = false)
+
 /** A body part the game's health panel lists, with its lines ("Scratched (Severe)", "Bandaged"). */
-data class BodyPartStatus(val id: String, val name: String, val lines: List<HealthLine>)
+data class BodyPartStatus(val id: String, val name: String, val lines: List<HealthLine>) {
+    /** The most urgent of its lines: a problem, then needs attention, then treated. */
+    val tone: HealthTone
+        get() = listOf(HealthTone.BAD, HealthTone.WARN, HealthTone.GOOD).firstOrNull { t -> lines.any { it.tone == t } }
+            ?: HealthTone.NEUTRAL
+
+    /** Something to do about it (a problem or needs attention), as opposed to treated. */
+    val needsTreatment: Boolean get() = tone == HealthTone.BAD || tone == HealthTone.WARN
+}
 
 data class HealthLine(val text: String, val tone: HealthTone)
 
@@ -75,7 +107,11 @@ data class InventoryItem(
     val equipped: EquipSlot?,
     /** What the app may offer for this item (decided by the game side). */
     val actions: List<ItemAction> = emptyList(),
+    /** Food that goes off: how fresh, as the game names it; null for everything else. */
+    val freshness: Freshness? = null,
 )
+
+enum class Freshness { FRESH, STALE, ROTTEN }
 
 enum class EquipSlot { PRIMARY, SECONDARY, BOTH, WORN }
 

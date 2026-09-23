@@ -27,7 +27,8 @@ function getButtonPrompts() return { getInteractOptionsButtonObjects = function(
 local calls, built = {}, nil
 ISContextManager = { getInstance = function() return { createWorldMenu = function(playerNum, object, objects, x, y)
   built = { objects = objects, x = x, y = y }
-  local sit = { name = "Sit on chair", target = objects[1], onSelect = function(target) table.insert(calls, "sit " .. target.name) end }
+  local sit = { name = "Sit on chair", target = objects[1], onSelect = function(target) table.insert(calls, "sit " .. target.name) end,
+    iconTexture = { getName = function() return "media/textures/Furniture_Chair_01.png" end } }
   local menu = { options = { sit }, hidden = false }
   function menu:hideAndChildren() self.hidden = true end
   built.menu = menu
@@ -38,6 +39,7 @@ local B42 = require("ZomboidDS/Adapters/B42")
 
 local ok, _, data = B42.commands.world_menu(player, {})
 check(ok and data.options[1].name == "Sit on chair", "the world menu for what's in front of the player")
+check(data.options[1].icon == "Furniture_Chair_01", "an option's icon goes along as a texture name")
 check(built.objects[1] == chair and built.x == 1000 and built.y == 2000, "built from the prompt's objects, at the player's screen position")
 check(built.menu.hidden, "hidden again right away, never shown on the top screen")
 check(B42.commands.menu_select(player, { menuId = data.menuId, optionId = "1" }) == true and calls[1] == "sit chair",

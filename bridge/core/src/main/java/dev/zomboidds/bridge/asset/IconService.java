@@ -12,7 +12,9 @@ import java.util.regex.Pattern;
 /** Validates icon requests and keeps recently served icons (and misses) in memory. */
 public final class IconService {
 
-    private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_.\\-]{1,128}");
+    /** A name ({@code Item_Hammer}) or a path of names ({@code Moodles/128/Mood_Sad}); no {@code ..}. */
+    private static final Pattern VALID_NAME = Pattern.compile("(?:[A-Za-z0-9_\\-][A-Za-z0-9_.\\-]*/)*[A-Za-z0-9_.\\-]+");
+    private static final int MAX_NAME_LENGTH = 128;
     private static final int MAX_CACHED = 512;
 
     private final IconSource source;
@@ -45,7 +47,7 @@ public final class IconService {
     }
 
     public Optional<byte[]> find(String name) {
-        if (name == null || !VALID_NAME.matcher(name).matches()) {
+        if (name == null || name.length() > MAX_NAME_LENGTH || !VALID_NAME.matcher(name).matches()) {
             return Optional.empty();
         }
         Optional<byte[]> cached = cache.get(name);

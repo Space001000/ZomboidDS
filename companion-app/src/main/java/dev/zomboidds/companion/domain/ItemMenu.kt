@@ -11,6 +11,8 @@ data class MenuOption(
     val tooltip: String? = null,
     /** Non-empty for submenus; only options without children can be selected. */
     val children: List<MenuOption> = emptyList(),
+    /** The game's icon for it (texture name for the icon endpoint), if any. */
+    val icon: String? = null,
 )
 
 /** What the app can ask the game to do with an item. */

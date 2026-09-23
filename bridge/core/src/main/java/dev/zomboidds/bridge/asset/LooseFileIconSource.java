@@ -12,7 +12,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-/** Serves {@code <name>.png} files found anywhere under the given directories. Indexed on first use. */
+/**
+ * Serves {@code <name>.png} files found anywhere under the given directories, by file name
+ * ({@code Item_Hammer}) or, when several sizes share a name (the moodles), by path under the
+ * directory ({@code Moodles/128/Mood_Sad}). Indexed on first use; requests are only looked up in
+ * the index, never turned into file paths.
+ */
 public final class LooseFileIconSource implements IconSource {
 
     private final List<Path> roots;
@@ -53,6 +58,8 @@ public final class LooseFileIconSource implements IconSource {
                             .forEach(p -> {
                                 String name = p.getFileName().toString();
                                 found.putIfAbsent(name.substring(0, name.length() - 4), p);
+                                String path = root.relativize(p).toString().replace('\\', '/');
+                                found.putIfAbsent(path.substring(0, path.length() - 4), p);
                             });
                 } catch (IOException e) {
                     Log.warn("could not index " + root + ": " + e.getMessage());

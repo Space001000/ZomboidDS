@@ -67,6 +67,7 @@ final class MockGame {
         gameThread.execute(() -> {
             bridge.state().publish("session", fixtureData("session.json"));
             bridge.state().publish("health", fixtureData("health.json"));
+            bridge.state().publish("moodles", fixtureData("moodles.json"));
         });
         gameThread.scheduleAtFixedRate(this::tick, 0, 100, TimeUnit.MILLISECONDS);
     }
@@ -180,6 +181,9 @@ final class MockGame {
                 yield null;
             }
             case "health_menu" -> {
+                if (speed == 0) {
+                    yield "The game is paused"; // like the game: no treatment menu while paused
+                }
                 data[0] = menu.openHealth();
                 yield null;
             }

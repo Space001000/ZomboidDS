@@ -1,0 +1,15 @@
+{
+  "v": 1, "type": "moodles", "seq": 17,
+  "data": {
+    "moodles": [
+      { "id": "BLEEDING", "name": "Bleeding", "description": "Bleeding.", "level": 2, "tone": "bad",
+        "color": [0.608, 0.392, 0.392], "icon": "Moodles/128/Status_Bleeding" },
+      { "id": "HUNGRY", "name": "Peckish", "description": "Could eat something.", "level": 1, "tone": "bad",
+        "color": [0.554, 0.446, 0.446], "icon": "Moodles/128/Status_Hunger" },
+      { "id": "TIRED", "name": "Drowsy", "description": "Beginning to feel tired.", "level": 1, "tone": "bad",
+        "color": [0.554, 0.446, 0.446], "icon": "Moodles/128/Mood_Sleepy" }
+    ],
+    "background": "Moodles/128/_Moodles_BGsolid",
+    "border": "Moodles/128/_Moodles_BGoutline"
+  }
+}

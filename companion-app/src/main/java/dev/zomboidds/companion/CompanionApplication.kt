@@ -6,6 +6,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.util.DebugLogger
 import okio.Path.Companion.toOkioPath
 
 class CompanionApplication : Application(), SingletonImageLoader.Factory {
@@ -32,5 +33,7 @@ class CompanionApplication : Application(), SingletonImageLoader.Factory {
                     .maxSizeBytes(20L * 1024 * 1024)
                     .build()
             }
+            // Debug builds: log why an icon fails to load (logcat tag "RealImageLoader" and friends).
+            .apply { if (BuildConfig.DEBUG) logger(DebugLogger()) }
             .build()
 }

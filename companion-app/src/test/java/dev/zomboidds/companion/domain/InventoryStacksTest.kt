@@ -29,4 +29,25 @@ class InventoryStacksTest {
         val stacks = Inventory(1f, 10f, listOf(knife, knife.copy(id = 2, condition = 0.9f))).stacks()
         assertEquals(2, stacks.size)
     }
+
+    private fun PaneEntry.label() = when (this) {
+        is PaneEntry.Stack -> stack.first.name + if (worn) " (worn)" else ""
+        is PaneEntry.Worn -> "Worn ×${stacks.size}" + if (open) " open" else ""
+    }
+
+    @Test
+    fun `worn clothes fold into one tile after what's in hand`() {
+        assertEquals(listOf("Axe", "Worn ×1", "Bandage", "Beans", "Water Bottle"), inventory.stacks().foldWorn(open = false).map { it.label() })
+        assertEquals(listOf("Axe", "Worn ×1 open", "Baseball Cap (worn)", "Bandage", "Beans", "Water Bottle"),
+            inventory.stacks().foldWorn(open = true).map { it.label() })
+        val nothingWorn = inventory.items.filter { it.equipped != EquipSlot.WORN }.stacks()
+        assertEquals("no tile without worn clothes", nothingWorn.size, nothingWorn.foldWorn(open = false).size)
+    }
+
+    @Test
+    fun `key rings are recognised by type, whoever owns them`() {
+        val ring = InventoryItem(1, "Base.KeyRing", "Hortense Scroggins's Key Ring", "Container", null, 0.1f, null, null)
+        assertEquals(true, ring.isKeyRing)
+        assertEquals(false, ring.copy(type = "Base.Key1").isKeyRing)
+    }
 }

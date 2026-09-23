@@ -21,7 +21,9 @@ One port (default `7786`), bound to `127.0.0.1` only.
 | Health check    | `GET http://127.0.0.1:7786/health`     |
 
 Icons are served with `Cache-Control: max-age=31536000, immutable`; the app caches them on disk.
-Icon names match `[A-Za-z0-9_.-]+` (e.g. `Item_Axe`).
+Icon names match `[A-Za-z0-9_.-]+` (e.g. `Item_Axe`), or are a path of such names under the game's
+`media/ui` or `media/textures` when several images share a file name (e.g. `Moodles/128/Mood_Sad`;
+no `..`). Missing icons are `404` with `Cache-Control: no-store`.
 
 ## Server → client
 
@@ -46,7 +48,8 @@ older state messages of the same type are dropped in favour of the newest.
 | `inventory`      | Lua      | `weight` { `current`, `max` }, `items[]` (see below) |
 | `vehicle`        | Lua      | `inVehicle`; when true also `name`, `speedKmh`, `engineRunning`, `fuel` (0–1, optional), `isDriver` |
 | `containers`     | Lua      | `containers[]`: your bags and everything within reach, see below |
-| `health`         | Lua      | `parts[]`: the body parts the game's health panel lists (injured, bandaged, stitched, splinted, in pain), each `{ id, name, lines[] }` with `lines` = `{ text, tone }`: the game's own lines ("Scratched (Severe)", "Bandaged", ...) as the player's First Aid level lets them see, `tone` from the game's colour: `bad`, `good` (treated) or `warn` (dirty bandage, infection, stiffness). |
+| `health`         | Lua      | `parts[]`: the body parts the game's health panel lists (injured, bandaged, stitched, splinted, in pain), each `{ id, name, lines[] }` with `lines` = `{ text, tone }`: the game's own lines ("Scratched (Severe)", "Bandaged", ...) as the player's First Aid level lets them see, `tone` from the game's colour: `bad`, `good` (treated) or `warn` (dirty bandage, infection, stiffness). `female`: which body silhouette to draw (the game's `bps_male_*` / `bps_female_*` images). |
+| `moodles`        | Lua      | `moodles[]`: what the game's moodle column shows (every moodle above level 0), most urgent first, each `{ id, name, description, level, tone, color, icon }`: `id` the game's MoodleType (`HUNGRY`, `BLEEDING`, ...), `name` and `description` the game's own texts for the level (its hover tooltip), `level` 1–4, `tone` `good`/`bad`/`neutral`, `color` `[r, g, b]` (0–1) the game's background colour for it (grey towards the player's good/bad highlight colour by level), `icon` an icon path (e.g. `Moodles/128/Status_Hunger`). `background` and `border`: the game's round moodle background (to tint with `color`) and its outline. |
 | `here`           | Lua      | "Here", while the app watches (`watch_here`): `watching`; then either `menuId` + `options` (the world menu for where the player stands, same shape as `item_menu`'s) or `unavailable` (the reason, e.g. paused). `{ "watching": false }` otherwise. |
 | `time`           | Lua      | `speed`: the game's speed button, 0 pause, 1 play, 2 fast forward (×5), 3 faster (×20), 4 wait (×40); `canChange` (false in multiplayer); `gameMenuOpen` (true while the game's pause menu is open: `set_speed` is refused then, as the game's own buttons are) |
 | `command_result` | Lua      | `id`, `ok`, `error` (optional), `data` (optional, command-specific). Event, never replayed. |
@@ -61,7 +64,10 @@ Inventory item:
 ```
 
 - `id` is the per-instance item id (`InventoryItem:getID()`), **not** the type. Two bandages have two ids.
+- `category`: as the game's inventory list shows it, translated ("Cooking", not `CookingWeapon`).
 - `condition` is 0–1, omitted for items without meaningful condition.
+- `freshness`: `fresh`, `stale` or `rotten` for food that goes off, as the game names it ("Stale
+  Bread"); omitted otherwise.
 - `equipped` is one of `primary`, `secondary`, `both`, `worn`, or omitted.
 - `actions` lists what the app may offer for this item, decided by the game-side adapter (the app
   doesn't guess from categories): `equip.primary`, `equip.secondary`, `equip.both`, `wear`,
@@ -94,7 +100,7 @@ rules apply: walls, safehouses, locks, corpses, vehicles, bags on the floor, con
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`.
+`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`.
 
 ## Client → server
 
@@ -112,7 +118,7 @@ executed on the game thread on the next tick (also while the game is paused), us
 | `wear`    | `itemId` |
 | `unequip` | `itemId` |
 | `drop`    | `itemId` |
-| `item_menu` | `itemId`. Result `data`: the game's own context menu for the item, see below |
+| `item_menu` | `itemId`. Result `data`: the game's own context menu for the item, see below; without the entries the app has as its own buttons (Grab / Grab all, Move To, Transfer all / Loot all; recognised by the game function behind them) |
 | `watch_here` | `on` (default true): the app shows "Here". Lasts 10 s, so the app repeats it every few seconds while it's shown; `on: false` stops it. |
 | `health_menu` | `part` (a body part `id` from `health`). Result `data`: the game's treatment menu for it (bandage, disinfect, remove glass, splint, ... with what the player carries), same shape as `item_menu` |
 | `world_menu` | none. Result `data`: the game's world menu for where the player stands ("Here"), same shape as `item_menu` |
@@ -150,6 +156,8 @@ includes everything it offers: read, eat, bandage, craft, ... and options added 
   latter it's the menu the game's loot window shows: Grab, plus options like Read or Eat that take
   the item first. An option only runs while the item is still within reach.
 - Options with `children` are submenus; only options without children can be selected.
+- `icon` (optional): the texture name of the option's icon in the game's menu (e.g. the object's
+  sprite), for the bridge's icon endpoint. Not every icon can be served; the app shows none then.
 - `enabled: false` options are shown greyed out, with the game's reason in `tooltip` if it gives one.
 - Only the latest menu is valid, and only for one `menu_select` within a minute. Otherwise the result
   is `ok: false` and the app should request a fresh menu.

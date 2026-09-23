@@ -10,7 +10,7 @@ local B42Menu = require("ZomboidDS/Adapters/B42Menu")
 local B42 = {
     id = "b42",
     capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop", "item_menu",
-                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health" },
+                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles" },
     dirtyEvents = {
         inventory = { "OnContainerUpdate", "OnRefreshInventoryWindowContainers", "OnClothingUpdated",
                       "OnEquipPrimary", "OnEquipSecondary" },
@@ -145,6 +145,36 @@ local function actionsFor(item, equipped)
     return actions
 end
 
+--- The category as the game's inventory list shows it ("Cooking", not "CookingWeapon").
+local function categoryName(item)
+    local category = try(item, "getDisplayCategory") or try(item, "getCategory")
+    if category == nil then
+        return nil
+    end
+    local ok, text = pcall(getText, "IGUI_ItemCat_" .. category)
+    if not ok or text == nil or text == "IGUI_ItemCat_" .. category then
+        return category -- no translation (e.g. a mod's category)
+    end
+    return text
+end
+
+--- Food's age as the game names it (Food:getName in 42.20: "Fresh" while age < offAge, "Stale"
+--- from offAge, "Rotten" from offAgeMax; 1e9 means it never goes off). Nil for other items.
+local NEVER = 1000000000
+local function freshness(item)
+    if not instanceof(item, "Food") or try(item, "isFertilized") == true then
+        return nil
+    end
+    local age, offAge, offAgeMax = try(item, "getAge"), try(item, "getOffAge"), try(item, "getOffAgeMax")
+    if age == nil or offAge == nil or offAgeMax == nil then
+        return nil
+    end
+    if offAgeMax < NEVER and age >= offAgeMax then return "rotten" end
+    if offAgeMax < NEVER and age >= offAge then return "stale" end
+    if offAge < NEVER and age < offAge then return "fresh" end
+    return nil
+end
+
 --- `inInventory`: whether the item is in the player's main inventory. Quick actions only apply
 --- there for now; items in bags and nearby containers get theirs with transfers (Phase 6).
 local function describeItem(player, item, inInventory)
@@ -153,7 +183,8 @@ local function describeItem(player, item, inInventory)
         id = item:getID(),
         type = try(item, "getFullType"),
         name = try(item, "getDisplayName"),
-        category = try(item, "getDisplayCategory") or try(item, "getCategory"),
+        category = categoryName(item),
+        freshness = freshness(item),
         icon = iconName(item),
         weight = round(try(item, "getActualWeight"), 2),
         condition = condition(item),
@@ -493,7 +524,67 @@ function B42.snapshotHealth(player)
             parts[#parts + 1] = entry
         end
     end
-    return { parts = parts }
+    -- Which body silhouette the app draws (the game has a male and a female one).
+    return { parts = parts, female = try(player, "isFemale") == true }
+end
+
+-- Moodles --------------------------------------------------------------------
+-- The game's moodle column (zombie.ui.MoodlesUI in 42.20, Java): every moodle with a level above
+-- 0, its icon on a round background tinted from grey towards the player's good/bad highlight
+-- colour (options, so colour-blind settings carry over) by level / 4, and on hover its name and
+-- description. Names, descriptions and levels come from player:getMoodles(); the icon table is
+-- Java-only (zombie.ui.MoodleTextureSet), so it's copied here from 42.20's bytecode. Listed most
+-- urgent first; the game's own order is its hash map's.
+
+local MOODLE_DIR = "Moodles/128/"
+local MOODLES = {
+    { "BLEEDING", "Status_Bleeding" }, { "INJURED", "Status_InjuredMinor" }, { "PAIN", "Mood_Pained" },
+    { "PANIC", "Mood_Panicked" }, { "SICK", "Mood_Nauseous" }, { "HAS_A_COLD", "Mood_Ill" },
+    { "THIRST", "Status_Thirst" }, { "HUNGRY", "Status_Hunger" }, { "TIRED", "Mood_Sleepy" },
+    { "ENDURANCE", "Status_DifficultyBreathing" }, { "HYPOTHERMIA", "Status_TemperatureLow" },
+    { "HYPERTHERMIA", "Status_TemperatureHot" }, { "WINDCHILL", "Status_Windchill" }, { "WET", "Status_Wet" },
+    { "HEAVY_LOAD", "Status_HeavyLoad" }, { "CANT_SPRINT", "Status_MovementRestricted" },
+    { "STRESS", "Mood_Stressed" }, { "UNHAPPY", "Mood_Sad" }, { "BORED", "Mood_Bored" }, { "ANGRY", "Mood_Angry" },
+    { "DRUNK", "Mood_Drunk" }, { "UNCOMFORTABLE", "Mood_Discomfort" }, { "NOXIOUS_SMELL", "Mood_NoxiousSmell" },
+    { "FOOD_EATEN", "Status_Hunger" }, { "ZOMBIE", "Mood_Zombified" }, { "DEAD", "Mood_Dead" },
+}
+local MOODLE_TONES = { [1] = "good", [2] = "bad" }
+-- MoodlesUI hides "food eaten" below Moodle.MoodleLevel.HighMoodleLevel (ordinal 3).
+local MOODLE_MIN_LEVEL = { FOOD_EATEN = 3 }
+
+--- The game's background colour for a moodle: lerp from Color.gray to the highlight colour.
+local function moodleColour(tone, level)
+    local highlight = nil
+    if tone == "good" then highlight = try(getCore(), "getGoodHighlitedColor") end
+    if tone == "bad" then highlight = try(getCore(), "getBadHighlitedColor") end
+    local t = math.min(level, 4) / 4
+    local function mix(getter)
+        local to = highlight and try(highlight, getter) or 0.5
+        return round(0.5 + (to - 0.5) * t, 3)
+    end
+    return { mix("getR"), mix("getG"), mix("getB") }
+end
+
+function B42.snapshotMoodles(player)
+    local moodles = try(player, "getMoodles")
+    local list = {}
+    for _, entry in ipairs(MOODLES) do
+        local okType, moodleType = pcall(function() return MoodleType[entry[1]] end)
+        local level = okType and moodleType ~= nil and try(moodles, "getMoodleLevel", moodleType) or 0
+        if level > 0 and level >= (MOODLE_MIN_LEVEL[entry[1]] or 1) then
+            local tone = MOODLE_TONES[try(moodles, "getGoodBadNeutral", moodleType)] or "neutral"
+            list[#list + 1] = {
+                id = entry[1],
+                name = try(moodles, "getMoodleDisplayString", moodleType) or entry[1],
+                description = try(moodles, "getMoodleDescriptionString", moodleType),
+                level = level,
+                tone = tone,
+                color = moodleColour(tone, level),
+                icon = MOODLE_DIR .. entry[2],
+            }
+        end
+    end
+    return { moodles = list, background = MOODLE_DIR .. "_Moodles_BGsolid", border = MOODLE_DIR .. "_Moodles_BGoutline" }
 end
 
 -- Game speed ------------------------------------------------------------------------

@@ -53,12 +53,30 @@ Zomdroid first, then open ZomboidDS on the bottom screen yourself.
 Start Project Zomboid in Zomdroid and load a game. The bottom screen switches from the checklist to
 your character:
 
-- **Inventory**: tap an item for quick actions (equip, wear, drop) and the game's own menu for it
-  (read, eat, apply, craft, ...). Switch between **Grid** and **List** at the top.
-- **Status**: health, hunger, thirst, fatigue and endurance.
+- **Inventory**: your inventory and bags, and every container around you (drawers, shelves, the
+  floor, ...). In **Split** view yours are on top and the ones around you below; **Single** shows one
+  container at a time. The open container's tab shows its name and weight; the others show the
+  game's icon (tap one to open it). Opening a container's tab outlines it in the game.
+  - Tap an item for **Take** / **Put in …** / **Move to…**, quick actions (equip, wear, drop) and
+    the game's own menu for it (read, eat, apply, craft, ...).
+  - Your worn clothes are folded into one **Worn** tile: tap it to show them, tap again to fold.
+  - A thin bar under an item means it's damaged (green, yellow, red); undamaged items have none.
+    Food has a dot: green fresh, yellow stale, red rotten.
+  - **Take all** and **Put all** move everything, so they ask first: tap once (the button turns red
+    and asks), tap again within 3 seconds to do it.
+  - The two small buttons at the top right switch the layout and between grid and list.
+- **Deck**: the game's speed buttons (pause, play, fast forward, wait), and **Here**: what you can do
+  where you stand (open a door, sit, drink, ...), updating by itself as you walk. Tap an action to do
+  it; greyed-out ones tell you why when tapped.
+- **Status**: your moodles along the top, like in the game (hungry, thirsty, bleeding, ...; tap one
+  for what it means). Below, your body with injured parts in colour, what's wrong with each (as your
+  First Aid skill lets you see it), and **Treat ›** for the game's own treatments (bandage,
+  disinfect, ...). While the game is paused, the treatments wait: tap **Unpause** and they appear.
 - **Vehicle**: appears automatically when you get into a vehicle: speed, fuel and engine.
 
-The gamepad keeps controlling the game while you use the bottom screen.
+The **Loot / Inventory button (Y)** opens the container on the bottom screen instead of the game's
+windows on the top screen (without the app, Y works as usual). The gamepad keeps controlling the game
+while you use the bottom screen.
 
 ## Troubleshooting
 
@@ -69,9 +87,13 @@ The gamepad keeps controlling the game while you use the bottom screen.
 - **An orange message in the game says ZomboidDS can't connect.** ZombieBuddy isn't active: check
   the ZombieBuddy step in the checklist, and that ZombieBuddy is switched on in Zomdroid's
   Optimization settings.
-- **"The game is paused"** when tapping an item: unpause first. The game doesn't allow item actions
-  while paused, on either screen.
+- **"The game is paused"** when tapping an item or Here: unpause first (Treat has its own
+  **Unpause** button). The game doesn't offer these menus while paused, on either screen.
+- **Speed buttons greyed out**: the game's pause menu (Esc/Start) is open. Close it first.
 - **Some options open a window on the top screen** (renaming, crafting, maps): use the gamepad
   there, then continue on the bottom screen.
+- **Flickering or garbled graphics on the bottom screen** while the game runs: this comes from
+  Zomdroid's graphics driver, which disturbs other apps' drawing too. The app itself is fine; the
+  picture recovers by itself.
 - **After updating the app**, the checklist may offer **Update** for the mod: close the game first,
   tap Update, then start the game again.

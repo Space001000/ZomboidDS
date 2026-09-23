@@ -44,6 +44,7 @@ local B42 = require("ZomboidDS/Adapters/B42")
 local health = B42.snapshotHealth(player)
 check(#health.parts == 2, "the parts the game lists; one whose drawing fails is skipped, not fatal")
 check(health.parts[1].id == "Hand_L" and health.parts[1].name == "Left Hand", "part id and the game's name")
+check(health.female == false, "which body silhouette: the player's")
 check(health.parts[1].lines[1].text == "Scratched" and health.parts[1].lines[1].tone == "bad",
   "the game's line, without its '- ', and red means a problem")
 check(health.parts[2].lines[1].tone == "good" and health.parts[2].lines[2].tone == "warn",

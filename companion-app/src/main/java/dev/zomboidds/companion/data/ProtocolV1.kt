@@ -2,8 +2,13 @@ package dev.zomboidds.companion.data
 
 import dev.zomboidds.companion.domain.BodyPartStatus
 import dev.zomboidds.companion.domain.BridgeInfo
+import dev.zomboidds.companion.domain.Health
 import dev.zomboidds.companion.domain.HealthLine
+import dev.zomboidds.companion.domain.Freshness
 import dev.zomboidds.companion.domain.HealthTone
+import dev.zomboidds.companion.domain.Moodle
+import dev.zomboidds.companion.domain.MoodleTone
+import dev.zomboidds.companion.domain.Moodles
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.Container
 import dev.zomboidds.companion.domain.ContainerKind
@@ -84,6 +89,7 @@ object ProtocolV1 {
         val condition: Float? = null,
         val equipped: String? = null,
         val actions: List<String> = emptyList(),
+        val freshness: String? = null,
     )
 
     @Serializable
@@ -97,13 +103,27 @@ object ProtocolV1 {
     )
 
     @Serializable
-    private data class HealthDto(val parts: List<BodyPartDto> = emptyList())
+    private data class HealthDto(val parts: List<BodyPartDto> = emptyList(), val female: Boolean = false)
 
     @Serializable
     private data class BodyPartDto(val id: String, val name: String = "", val lines: List<HealthLineDto> = emptyList())
 
     @Serializable
     private data class HealthLineDto(val text: String, val tone: String? = null)
+
+    @Serializable
+    private data class MoodlesDto(val moodles: List<MoodleDto> = emptyList(), val background: String? = null, val border: String? = null)
+
+    @Serializable
+    private data class MoodleDto(
+        val id: String,
+        val name: String = "",
+        val description: String? = null,
+        val level: Int = 1,
+        val tone: String? = null,
+        val color: List<Float> = emptyList(),
+        val icon: String? = null,
+    )
 
     @Serializable
     private data class HereDto(
@@ -171,6 +191,7 @@ object ProtocolV1 {
         val enabled: Boolean = false,
         val tooltip: String? = null,
         val children: List<MenuOptionDto> = emptyList(),
+        val icon: String? = null,
     )
 
     /** Throws [IllegalArgumentException] for malformed messages. */
@@ -221,7 +242,7 @@ object ProtocolV1 {
     }
 
     private fun MenuOptionDto.toDomain(): MenuOption =
-        MenuOption(id, name, enabled, tooltip, children.map { it.toDomain() })
+        MenuOption(id, name, enabled, tooltip, children.map { it.toDomain() }, icon)
 
     fun setSpeedRequest(speed: GameSpeed) = Request("set_speed", buildJsonObject { put("speed", speed.ordinal) })
 
@@ -290,7 +311,7 @@ object ProtocolV1 {
                 ))
             }
             "health" -> json.decodeFromJsonElement<HealthDto>(data).let { dto ->
-                state.copy(health = dto.parts.map { part ->
+                state.copy(health = Health(female = dto.female, parts = dto.parts.map { part ->
                     BodyPartStatus(part.id, part.name.ifEmpty { part.id }, part.lines.map { line ->
                         HealthLine(line.text, when (line.tone) {
                             "bad" -> HealthTone.BAD
@@ -299,7 +320,16 @@ object ProtocolV1 {
                             else -> HealthTone.NEUTRAL
                         })
                     })
-                })
+                }))
+            }
+            "moodles" -> json.decodeFromJsonElement<MoodlesDto>(data).let { dto ->
+                state.copy(moodles = Moodles(dto.moodles.map {
+                    Moodle(it.id, it.name.ifEmpty { it.id }, it.description, it.level, when (it.tone) {
+                        "good" -> MoodleTone.GOOD
+                        "bad" -> MoodleTone.BAD
+                        else -> MoodleTone.NEUTRAL
+                    }, it.color, it.icon)
+                }, dto.background, dto.border))
             }
             "here" -> json.decodeFromJsonElement<HereDto>(data).let { dto ->
                 state.copy(here = if (!dto.watching) null else HereState(
@@ -343,6 +373,12 @@ object ProtocolV1 {
         icon = icon,
         weight = weight,
         condition = condition,
+        freshness = when (freshness) {
+            "fresh" -> Freshness.FRESH
+            "stale" -> Freshness.STALE
+            "rotten" -> Freshness.ROTTEN
+            else -> null
+        },
         equipped = when (equipped) {
             "primary" -> EquipSlot.PRIMARY
             "secondary" -> EquipSlot.SECONDARY

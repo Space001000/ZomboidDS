@@ -1,7 +1,9 @@
 package dev.zomboidds.bridge.mock;
 
 import dev.zomboidds.bridge.asset.CompositeIconSource;
+import dev.zomboidds.bridge.asset.LooseFileIconSource;
 import dev.zomboidds.bridge.asset.PackFileIconSource;
+import dev.zomboidds.bridge.asset.TileIconSource;
 import dev.zomboidds.bridge.port.AdapterInfo;
 import dev.zomboidds.bridge.port.BridgeContext;
 import dev.zomboidds.bridge.port.GameAdapter;
@@ -41,7 +43,10 @@ final class MockGameAdapter implements GameAdapter {
         }
         // Real icons where the packs have them, placeholders for the rest.
         return new CompositeIconSource(List.of(
+                // Like the real adapter: loose images (moodles, speed buttons) first, then the packs.
+                new LooseFileIconSource(List.of(Path.of(gameDir, "media", "textures"), Path.of(gameDir, "media", "ui"))),
                 new PackFileIconSource(packs(Path.of(gameDir, "media", "texturepacks"))),
+                new TileIconSource(new PackFileIconSource(List.of(Path.of(gameDir, "media", "texturepacks", "Tiles1x.pack")), false)),
                 new PlaceholderIconSource()));
     }
 

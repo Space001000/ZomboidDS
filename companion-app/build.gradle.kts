@@ -5,7 +5,8 @@ plugins {
 }
 
 // Where the bridge is. 127.0.0.1 is right on the device itself; override with
-// -Pzomboidds.host=10.0.2.2 to reach a mock server on your PC from the emulator.
+// -Pzomboidds.host=10.0.2.2 to reach a mock server on your PC from the emulator (debug builds only:
+// release builds allow cleartext to 127.0.0.1 alone, see src/main/res/xml/network_security_config.xml).
 val bridgeHost = providers.gradleProperty("zomboidds.host").getOrElse("127.0.0.1")
 val bridgePort = providers.gradleProperty("zomboidds.port").getOrElse("7786")
 

@@ -24,3 +24,25 @@ fun List<InventoryItem>.stacks(): List<ItemStack> {
         .sortedWith(compareBy({ it.first.category ?: "" }, { it.first.name }))
     return handsFirst + grouped
 }
+
+/** What a container's grid shows: item stacks, and your worn clothes folded into one tile. */
+sealed interface PaneEntry {
+    data class Stack(val stack: ItemStack, val worn: Boolean = false) : PaneEntry
+    /** "Worn ×6": tap to show them right after it ([open]), tap again to fold them away. */
+    data class Worn(val stacks: List<ItemStack>, val open: Boolean) : PaneEntry
+}
+
+/**
+ * Worn clothes fill a whole row but are rarely what you're after: fold them into one tile after
+ * what's in your hands. When [open], they follow that tile.
+ */
+fun List<ItemStack>.foldWorn(open: Boolean): List<PaneEntry> {
+    val (worn, rest) = partition { it.first.equipped == EquipSlot.WORN }
+    if (worn.isEmpty()) return map { PaneEntry.Stack(it) }
+    val (hands, loose) = rest.partition { it.first.equipped != null }
+    val fold = listOf(PaneEntry.Worn(worn, open)) + if (open) worn.map { PaneEntry.Stack(it, worn = true) } else emptyList()
+    return hands.map { PaneEntry.Stack(it) } + fold + loose.map { PaneEntry.Stack(it) }
+}
+
+/** A key ring is named after its owner ("Hortense Scroggins's Key Ring"): too long for a tile. */
+val InventoryItem.isKeyRing: Boolean get() = type.substringAfter('.').startsWith("KeyRing")

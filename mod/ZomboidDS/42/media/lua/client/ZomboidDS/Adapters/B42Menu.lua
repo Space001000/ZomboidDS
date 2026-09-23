@@ -39,21 +39,62 @@ local function plainText(text)
     return text
 end
 
+--- The name of an option's icon (option.iconTexture, e.g. the object's sprite), for the bridge's
+--- icon endpoint; nil for none or for plain-colour icons (Texture.getWhite).
+local function iconName(texture)
+    if texture == nil then
+        return nil
+    end
+    local ok, name = pcall(function() return texture:getName() end)
+    if not ok or type(name) ~= "string" or name == "" then
+        return nil
+    end
+    name = string.gsub(name, "^.*[/\]", "")
+    name = string.gsub(name, "%.png$", "")
+    if string.lower(name) == "white" then
+        return nil
+    end
+    return name
+end
+
+--- The item menu's entries the app already has as its own buttons, by the game function behind
+--- them (not their translated names): Grab / Grab all (the app's Take), the Move To submenu (Move
+--- to...), Transfer all / Loot all (Put all / Take all). Grab one / Grab half stay: the app has none.
+local function appDuplicates()
+    local set = {}
+    local function add(fn)
+        if fn ~= nil then set[fn] = true end
+    end
+    if ISInventoryPaneContextMenu ~= nil then
+        add(ISInventoryPaneContextMenu.onGrabItems)
+        add(ISInventoryPaneContextMenu.onMoveItemsTo)
+        add(ISInventoryPaneContextMenu.onPutItems)
+    end
+    if ISInventoryPage ~= nil then
+        add(ISInventoryPage.transferAll)
+        add(ISInventoryPage.lootAll)
+    end
+    return set
+end
+
 --- Walks the menu (and its submenus) into plain tables for the app, storing each runnable option's
---- call data in `calls` under its id ("3", "3.2", ...).
-local function snapshot(menu, calls, prefix, depth)
+--- call data in `calls` under its id ("3", "3.2", ...). Options whose function is in `skip` are left
+--- out, and so is a submenu left with nothing else.
+local function snapshot(menu, calls, prefix, depth, skip)
     local list = {}
     for index, option in ipairs(menu.options) do
-        if option ~= nil and option.name ~= nil then
+        if option ~= nil and option.name ~= nil and not (skip and option.onSelect and skip[option.onSelect]) then
             local id = prefix .. index
-            local entry = { id = id, name = tostring(option.name) }
+            local entry = { id = id, name = tostring(option.name), icon = iconName(option.iconTexture) }
             local toolTip = option.toolTip
             entry.tooltip = plainText(toolTip and toolTip.description)
 
             local subMenu = option.subOption ~= nil and depth < MAX_DEPTH and menu:getSubMenu(option.subOption) or nil
+            local dropped = false
             if subMenu ~= nil then
-                entry.children = snapshot(subMenu, calls, id .. ".", depth + 1)
+                entry.children = snapshot(subMenu, calls, id .. ".", depth + 1, skip)
                 entry.enabled = #entry.children > 0
+                dropped = skip ~= nil and #entry.children == 0 and #(subMenu.options or {}) > 0
             else
                 entry.enabled = option.onSelect ~= nil and not option.notAvailable and not option.isDisabled
                 if entry.enabled then
@@ -64,7 +105,9 @@ local function snapshot(menu, calls, prefix, depth)
                     }
                 end
             end
-            list[#list + 1] = entry
+            if not dropped then
+                list[#list + 1] = entry
+            end
         end
     end
     return list
@@ -89,7 +132,7 @@ function B42Menu.open(player, item)
     end
 
     local calls = {}
-    local ok, options = pcall(snapshot, menu, calls, "", 1)
+    local ok, options = pcall(snapshot, menu, calls, "", 1, appDuplicates())
     menu:hideAndChildren() -- same tick as createMenu, so it never shows on the top screen
     if not ok then
         return false, "Could not read the game's menu: " .. tostring(options)

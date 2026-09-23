@@ -27,12 +27,23 @@ import java.util.Optional;
 public final class PackFileIconSource implements IconSource {
 
     private final List<Path> packFiles;
+    private final boolean restoreCanvas;
     private Map<String, PackIndex.Entry> index;
     private PackIndex.Page cachedPage;
     private BufferedImage cachedImage;
 
     public PackFileIconSource(List<Path> packFiles) {
+        this(packFiles, true);
+    }
+
+    /**
+     * @param restoreCanvas true: put trimmed sprites back on their original canvas (item icons, drawn
+     *     like the game does); false: just the trimmed sprite, e.g. a world object without the empty
+     *     space of its tile, so it fills a small icon.
+     */
+    public PackFileIconSource(List<Path> packFiles, boolean restoreCanvas) {
         this.packFiles = List.copyOf(packFiles);
+        this.restoreCanvas = restoreCanvas;
     }
 
     @Override
@@ -44,7 +55,7 @@ public final class PackFileIconSource implements IconSource {
         try {
             BufferedImage page = decode(entry.page());
             BufferedImage sprite = page.getSubimage(entry.x(), entry.y(), entry.width(), entry.height());
-            BufferedImage icon = untrimmed(sprite, entry);
+            BufferedImage icon = restoreCanvas ? untrimmed(sprite, entry) : visiblePart(sprite);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ImageIO.write(icon, "png", out);
             return Optional.of(out.toByteArray());
@@ -53,6 +64,31 @@ public final class PackFileIconSource implements IconSource {
             return Optional.empty();
         }
     }
+
+    /**
+     * The sprite cut to its clearly visible pixels. Pack trimming keeps faint pixels (shadows,
+     * anti-aliasing), so e.g. a sink sits at the bottom of a mostly see-through sprite and would be a
+     * speck in a small icon.
+     */
+    static BufferedImage visiblePart(BufferedImage sprite) {
+        int minX = sprite.getWidth(), minY = sprite.getHeight(), maxX = -1, maxY = -1;
+        for (int y = 0; y < sprite.getHeight(); y++) {
+            for (int x = 0; x < sprite.getWidth(); x++) {
+                if ((sprite.getRGB(x, y) >>> 24) >= VISIBLE_ALPHA) {
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                }
+            }
+        }
+        if (maxX < 0) {
+            return sprite;
+        }
+        return sprite.getSubimage(minX, minY, maxX - minX + 1, maxY - minY + 1);
+    }
+
+    private static final int VISIBLE_ALPHA = 128;
 
     /**
      * Puts the trimmed sprite back where it belongs on its original canvas, so every icon has its

@@ -119,10 +119,14 @@ class GatewayMockServerTest {
         withTimeout(5_000) { gateway.state.first { it.inventory != null } }
         gateway.watchHere(true)
         val menu = withTimeout(5_000) { gateway.state.first { it.here?.menu != null } }.here!!.menu!!
-        val door = menu.options.first { it.name == "Open door" }
+        val door = menu.options.first { it.name == "Door" }.children.first { it.name == "Open Door" }
         assertEquals(CommandResult.Ok, gateway.selectMenuOption(menu.menuId, door.id))
         // No request: the game sends what's here now by itself.
-        withTimeout(5_000) { gateway.state.first { state -> state.here?.menu?.options?.any { it.name == "Close door" } == true } }
+        withTimeout(5_000) {
+            gateway.state.first { state ->
+                state.here?.menu?.options?.firstOrNull { it.name == "Door" }?.children?.any { it.name == "Close Door" } == true
+            }
+        }
         gateway.watchHere(false)
         withTimeout(5_000) { gateway.state.first { it.here == null } }
         Unit
@@ -130,7 +134,7 @@ class GatewayMockServerTest {
 
     @Test
     fun `a body part has the game's treatment menu`() = runBlocking {
-        val part = withTimeout(5_000) { gateway.state.first { !it.health.isNullOrEmpty() } }.health!!.first()
+        val part = withTimeout(5_000) { gateway.state.first { !it.health?.parts.isNullOrEmpty() } }.health!!.parts.first()
         val menu = (gateway.bodyPartMenu(part.id) as ItemMenuResult.Ready).menu
         assertTrue(menu.options.any { it.name == "Apply Bandage" && it.enabled })
         assertTrue(menu.options.any { !it.enabled && it.tooltip != null })
