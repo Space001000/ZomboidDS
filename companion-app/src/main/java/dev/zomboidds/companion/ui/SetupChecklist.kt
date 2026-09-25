@@ -1,5 +1,10 @@
 package dev.zomboidds.companion.ui
 
+import androidx.compose.material3.TextButton
+import java.io.File
+import dev.zomboidds.companion.setup.AppUpdateState
+import dev.zomboidds.companion.setup.AppRelease
+import dev.zomboidds.companion.BuildConfig
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +34,10 @@ interface SetupActions {
     fun openZomdroid()
     fun installMod()
     fun enableForNewGames()
+    fun checkForUpdate()
+    fun downloadUpdate(release: AppRelease)
+    fun installUpdate(file: File)
+    fun openUrl(url: String)
 }
 
 private enum class Check { OK, TODO, BLOCKED }
@@ -38,12 +47,14 @@ private enum class Check { OK, TODO, BLOCKED }
  * the app can do it itself. Later steps stay greyed out until the earlier ones are done.
  */
 @Composable
-fun SetupChecklist(report: SetupReport, gameStep: String, actions: SetupActions) {
+fun SetupChecklist(report: SetupReport, update: AppUpdateState, gameStep: String, actions: SetupActions) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("Setup", style = MaterialTheme.typography.titleMedium)
             report.busy?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             report.error?.let { Text(it, color = ErrorText) }
+
+            AppUpdateStep(update, actions)
 
             Step(
                 if (report.zomdroidInstalled) Check.OK else Check.TODO,
@@ -128,8 +139,34 @@ fun SetupChecklist(report: SetupReport, gameStep: String, actions: SetupActions)
     }
 }
 
+/** This app itself: up to date, or a newer release on GitHub to download and install. */
 @Composable
-private fun Step(check: Check, title: String, detail: String, action: String? = null, onAction: () -> Unit = {}) {
+private fun AppUpdateStep(update: AppUpdateState, actions: SetupActions) {
+    val version = BuildConfig.VERSION_NAME
+    val title = "ZomboidDS app"
+    when (update) {
+        AppUpdateState.Disabled -> Step(Check.OK, title, "Version $version (development build: no update checks).")
+        AppUpdateState.Checking -> Step(Check.OK, title, "Version $version. Checking for updates...")
+        is AppUpdateState.UpToDate -> Step(Check.OK, title, "Version $version, up to date.",
+            action = "Check", onAction = actions::checkForUpdate, quiet = true)
+        is AppUpdateState.Available -> {
+            val size = update.release.apkSize?.let { " (%.1f MB)".format(it / 1e6) } ?: ""
+            Step(Check.TODO, title, "Version ${update.release.version} is available$size. You have $version.",
+                action = "Download", onAction = { actions.downloadUpdate(update.release) })
+        }
+        is AppUpdateState.Downloading -> Step(Check.TODO, title,
+            "Downloading version ${update.release.version}... ${update.percent?.let { "$it%" } ?: ""}")
+        is AppUpdateState.Downloaded -> Step(Check.TODO, title,
+            "Version ${update.release.version} is ready. Tap Install. The first time, Android asks you to allow " +
+                "installing apps from ZomboidDS: allow it, come back and tap Install again.",
+            action = "Install", onAction = { actions.installUpdate(update.file) })
+        is AppUpdateState.Failed -> Step(Check.TODO, title, update.reason, action = "Retry",
+            onAction = { update.release?.let(actions::downloadUpdate) ?: actions.checkForUpdate() })
+    }
+}
+
+@Composable
+private fun Step(check: Check, title: String, detail: String, action: String? = null, onAction: () -> Unit = {}, quiet: Boolean = false) {
     val dim = if (check == Check.BLOCKED) 0.45f else 1f
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -144,7 +181,11 @@ private fun Step(check: Check, title: String, detail: String, action: String? = 
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = dim))
         }
         if (action != null) {
-            Button(onClick = onAction, Modifier.padding(start = 12.dp)) { Text(action) }
+            if (quiet) {
+                TextButton(onClick = onAction, Modifier.padding(start = 12.dp)) { Text(action) }
+            } else {
+                Button(onClick = onAction, Modifier.padding(start = 12.dp)) { Text(action) }
+            }
         }
     }
 }
@@ -157,6 +198,7 @@ private fun HalfwayPreview() {
             zomdroidInstalled = true, hasAccess = true, instances = listOf("Project Zomboid"), instance = "Project Zomboid",
             zombieBuddy = ZombieBuddyStatus.OK, installedModVersion = null, bundledModVersion = "0.1.0", enabledForNewGames = false,
         ),
+        update = AppUpdateState.UpToDate("1.0.0"),
         gameStep = "Start the game.",
         actions = object : SetupActions {
             override fun grantAccess() {}
@@ -165,6 +207,10 @@ private fun HalfwayPreview() {
             override fun openZomdroid() {}
             override fun installMod() {}
             override fun enableForNewGames() {}
+            override fun checkForUpdate() {}
+            override fun downloadUpdate(release: AppRelease) {}
+            override fun installUpdate(file: File) {}
+            override fun openUrl(url: String) {}
         },
     )
 }

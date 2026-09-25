@@ -84,6 +84,9 @@ val modZip by tasks.registering(Zip::class) {
     destinationDirectory.set(layout.buildDirectory.dir("distributions"))
     into("ZomboidDS") {
         from(rootProject.file("mod/ZomboidDS"))
+        // The jar includes Gson and NanoHTTPD: their licences go with it.
+        from(rootProject.file("LICENSE"), rootProject.file("THIRD_PARTY_NOTICES.md"))
+        into("licenses") { from(rootProject.file("licenses")) }
     }
     into("ZomboidDS/42/media/java/client") {
         from(tasks.shadowJar)

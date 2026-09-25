@@ -1,5 +1,8 @@
 package dev.zomboidds.companion
 
+import java.io.File
+import dev.zomboidds.companion.setup.AppRelease
+import android.net.Uri
 import android.app.ActivityOptions
 import android.content.Intent
 import android.os.Bundle
@@ -39,6 +42,12 @@ class MainActivity : ComponentActivity() {
         override fun openZomdroid() = openZomdroidOnMainScreen()
         override fun installMod() = setup.installMod()
         override fun enableForNewGames() = setup.enableForNewGames()
+        override fun checkForUpdate() = container.updater.checkIfDue(force = true)
+        override fun downloadUpdate(release: AppRelease) = container.updater.download(release)
+        override fun installUpdate(file: File) = container.updater.install(file)
+        override fun openUrl(url: String) {
+            runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,10 +65,11 @@ class MainActivity : ComponentActivity() {
             val state by gateway.state.collectAsStateWithLifecycle()
             val connection by gateway.connection.collectAsStateWithLifecycle()
             val report by setup.report.collectAsStateWithLifecycle()
+            val update by container.updater.state.collectAsStateWithLifecycle()
             val inventoryLayout by container.settings.inventoryLayout.collectAsStateWithLifecycle()
             val containerLayout by container.settings.containerLayout.collectAsStateWithLifecycle()
             CompanionScreen(
-                state, connection, report, setupActions,
+                state, connection, report, update, setupActions,
                 iconUrl = gateway::iconUrl,
                 actions = gateway,
                 controls = gateway,
@@ -77,6 +87,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         setup.refresh()
+        container.updater.checkIfDue() // at most once a day
     }
 
     /**

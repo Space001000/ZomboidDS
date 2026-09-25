@@ -192,9 +192,9 @@ class WebSocketGameGateway(
                     is ProtocolV1.ServerMessage.Reply -> message.id?.let { pending.remove(it) }?.complete(message)
                     is ProtocolV1.ServerMessage.Event -> _events.tryEmit(message.event)
                 }
-            } catch (e: IllegalArgumentException) {
+            } catch (e: Exception) {
                 // One bad message (e.g. from a newer or broken mod) must not kill the connection.
-                Log.w(TAG, "ignoring message: ${e.message}")
+                Log.w(TAG, "ignoring message: $e", e)
             }
         }
 
@@ -204,6 +204,7 @@ class WebSocketGameGateway(
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+            Log.i(TAG, "connection lost: $t")
             closed.complete(t.message ?: t.javaClass.simpleName)
         }
     }

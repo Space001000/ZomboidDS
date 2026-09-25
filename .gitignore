@@ -8,3 +8,7 @@ captures/
 .externalNativeBuild/
 .cxx/
 .DS_Store
+# Release signing (see companion-app/build.gradle.kts)
+keystore.properties
+*.jks
+*.keystore

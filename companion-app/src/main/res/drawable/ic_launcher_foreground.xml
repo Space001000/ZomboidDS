@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The ZomboidDS logo (docs/logo.svg) as the adaptive icon's foreground: two cardboard "screens". -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="640"
+    android:viewportHeight="640">
+    <group android:translateX="64" android:translateY="64">
+        <path android:fillColor="#8f6b4d"
+            android:pathData="M128,96 h256 a16,16 0 0 1 16,16 v112 a16,16 0 0 1 -16,16 h-256 a16,16 0 0 1 -16,-16 v-112 a16,16 0 0 1 16,-16 z" />
+        <path android:fillColor="#bd9e82"
+            android:pathData="M236,96 h40 v144 h-40 z" />
+        <path android:fillColor="#FFFFFF" android:fillAlpha="0.15"
+            android:pathData="M116,96 h280 a4,4 0 0 1 4,4 v0 a4,4 0 0 1 -4,4 h-280 a4,4 0 0 1 -4,-4 v-0 a4,4 0 0 1 4,-4 z" />
+        <path android:fillColor="#080808"
+            android:pathData="M120,248 h272 a8,8 0 0 1 8,8 v0 a8,8 0 0 1 -8,8 h-272 a8,8 0 0 1 -8,-8 v-0 a8,8 0 0 1 8,-8 z" />
+        <path android:fillColor="#8f6b4d"
+            android:pathData="M128,272 h256 a16,16 0 0 1 16,16 v112 a16,16 0 0 1 -16,16 h-256 a16,16 0 0 1 -16,-16 v-112 a16,16 0 0 1 16,-16 z" />
+        <path android:fillColor="#bd9e82"
+            android:pathData="M236,272 h40 v144 h-40 z" />
+        <path android:fillColor="#FFFFFF" android:fillAlpha="0.1"
+            android:pathData="M116,272 h280 a4,4 0 0 1 4,4 v0 a4,4 0 0 1 -4,4 h-280 a4,4 0 0 1 -4,-4 v-0 a4,4 0 0 1 4,-4 z" />
+        <path android:fillColor="#000000" android:fillAlpha="0.25"
+            android:pathData="M144,304 h24 a8,8 0 0 1 8,8 v24 a8,8 0 0 1 -8,8 h-24 a8,8 0 0 1 -8,-8 v-24 a8,8 0 0 1 8,-8 z" />
+        <path android:fillColor="#000000" android:fillAlpha="0.25"
+            android:pathData="M192,304 h24 a8,8 0 0 1 8,8 v24 a8,8 0 0 1 -8,8 h-24 a8,8 0 0 1 -8,-8 v-24 a8,8 0 0 1 8,-8 z" />
+        <path android:fillColor="#000000" android:fillAlpha="0.25"
+            android:pathData="M144,352 h24 a8,8 0 0 1 8,8 v24 a8,8 0 0 1 -8,8 h-24 a8,8 0 0 1 -8,-8 v-24 a8,8 0 0 1 8,-8 z" />
+        <path android:fillColor="#000000" android:fillAlpha="0.25"
+            android:pathData="M192,352 h24 a8,8 0 0 1 8,8 v24 a8,8 0 0 1 -8,8 h-24 a8,8 0 0 1 -8,-8 v-24 a8,8 0 0 1 8,-8 z" />
+        <path android:fillColor="#8a0303"
+            android:pathData="M322,180 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0 z" />
+        <path android:fillColor="#8a0303"
+            android:pathData="M308,196 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 z" />
+        <path android:fillColor="#8a0303"
+            android:pathData="M342,216 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0 z" />
+        <path android:fillColor="#8a0303"
+            android:pathData="M322,235 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 z" />
+        <path android:fillColor="#8a0303"
+            android:pathData="M314,285 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0 z" />
+        <path android:fillColor="#8a0303"
+            android:pathData="M334,305 a18,18 0 1,0 36,0 a18,18 0 1,0 -36,0 z" />
+        <path android:fillColor="#8a0303"
+            android:pathData="M360,280 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 z" />
+        <path android:fillColor="#8a0303"
+            android:pathData="M334,335 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 z" />
+        <path android:fillColor="#8a0303"
+            android:pathData="M332,355 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0 z" />
+    </group>
+</vector>

@@ -1,5 +1,6 @@
 package dev.zomboidds.companion
 
+import dev.zomboidds.companion.setup.AppUpdater
 import android.content.Context
 import dev.zomboidds.companion.data.WebSocketGameGateway
 import dev.zomboidds.companion.domain.GameGateway
@@ -24,6 +25,8 @@ class AppContainer(context: Context) {
         httpClient, "http://${BuildConfig.BRIDGE_HOST}:${BuildConfig.BRIDGE_PORT}")
 
     val setup = SetupController(context.applicationContext, appScope, httpClient)
+
+    val updater = AppUpdater(context.applicationContext, appScope, httpClient)
 
     val settings = AppSettings(context.applicationContext)
 }

@@ -49,5 +49,5 @@ private fun bodyColor(tone: HealthTone?) = when (tone) {
     HealthTone.BAD -> Color(0xFFD23737)
     HealthTone.WARN -> Color(0xFFE8873A)
     HealthTone.GOOD -> Color(0xFF5ABE5A)
-    else -> Color(0xFF4E4B55)
+    else -> Color(0xFF4F4943) // unhurt: warm grey, like the panels
 }

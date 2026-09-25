@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -14,15 +16,28 @@ val bridgePort = providers.gradleProperty("zomboidds.port").getOrElse("7786")
 val bundledModVersion = rootProject.file("mod/ZomboidDS/42/mod.info").readLines()
     .first { it.startsWith("modversion=") }.substringAfter('=').trim()
 
+// Release signing: a keystore kept outside the repository, described by keystore.properties in the
+// project root (storeFile, storePassword, keyAlias, keyPassword; not committed). Without it,
+// release builds stay unsigned.
+val keystoreProperties: Properties? = rootProject.file("keystore.properties").takeIf { it.exists() }?.let { file ->
+    Properties().apply { file.inputStream().use { load(it) } }
+}
+
 val modZip by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true
 }
 
-/** Copies the mod zip built by :bridge:adapter-b42 into a generated assets folder. */
+/**
+ * Copies the mod zip built by :bridge:adapter-b42 into a generated assets folder, with the licence
+ * texts the app shows under "Open-source licences" (assets/legal/).
+ */
 abstract class BundleModTask : DefaultTask() {
     @get:InputFiles
     abstract val modZip: ConfigurableFileCollection
+
+    @get:InputFiles
+    abstract val legalFiles: ConfigurableFileCollection
 
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
@@ -33,11 +48,17 @@ abstract class BundleModTask : DefaultTask() {
         out.deleteRecursively()
         out.mkdirs()
         modZip.singleFile.copyTo(File(out, "ZomboidDS.zip"))
+        legalFiles.forEach { it.copyTo(File(out, "legal/${it.name}")) }
     }
 }
 
 val bundleMod by tasks.registering(BundleModTask::class) {
     modZip.from(configurations.named("modZip"))
+    legalFiles.from(
+        rootProject.file("LICENSE"),
+        rootProject.file("THIRD_PARTY_NOTICES.md"),
+        rootProject.file("licenses/Apache-2.0.txt"),
+    )
 }
 
 android {
@@ -49,7 +70,7 @@ android {
         minSdk = 30 // same as Zomdroid
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
 
         buildConfigField("String", "BRIDGE_HOST", "\"$bridgeHost\"")
         buildConfigField("int", "BRIDGE_PORT", bridgePort)
@@ -60,6 +81,26 @@ android {
             "ZOMBIE_BUDDY_MOD_FILES_SHA256" to "zombieBuddy.modFilesSha256",
         )) {
             buildConfigField("String", field, "\"${providers.gradleProperty(property).get()}\"")
+        }
+    }
+
+    signingConfigs {
+        keystoreProperties?.let { props ->
+            create("release") {
+                storeFile = file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
 

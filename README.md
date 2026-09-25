@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.svg" width="128" alt="ZomboidDS logo"></p>
+
 # ZomboidDS
 
 Nintendo DS-style dual-screen play for Project Zomboid on handhelds like the AYN Thor. The game
@@ -8,10 +10,23 @@ runs on the top screen (through [Zomdroid](https://github.com/udarmolota/zomdroi
   tap, and use them through the game's own item menu (read, eat, apply, craft, ...).
 - **Deck**: the game's speed buttons, and what you can do where you stand (open, sit, drink, ...).
 - **Status**: the game's moodles, your body with its injuries, and the game's treatments.
+- **Craft**: the recipes you can make with what's in reach, what each needs, and crafting them.
 - **Vehicle**: speed, fuel and engine while you drive.
 
-Status: in development. See [PLAN.md](PLAN.md) for the plan, device findings and what's next, and
-[docs/USER_GUIDE.md](docs/USER_GUIDE.md) for how players set it up.
+## Download
+
+Get `ZomboidDS-<version>.apk` from the [latest release](https://github.com/Space001000/ZomboidDS/releases/latest)
+and follow the [user guide](docs/USER_GUIDE.md): the app's setup checklist installs the mod for you,
+and later tells you when there's a new version.
+
+You need your own copy of **Project Zomboid (Build 42)**, running in
+[udarmolota's Zomdroid](https://github.com/udarmolota/zomdroid). ZomboidDS is an unofficial mod,
+not affiliated with or endorsed by The Indie Stone.
+
+## Support
+
+ZomboidDS is free and stays free: donations never unlock anything. If it makes your runs better and
+you'd like to say thanks: [ko-fi.com/space000](https://ko-fi.com/space000).
 
 ## What it can access
 
@@ -19,14 +34,25 @@ Status: in development. See [PLAN.md](PLAN.md) for the plan, device findings and
   nothing else on your network can reach it; the app connects to it there and nowhere else. Release
   builds allow unencrypted traffic to `127.0.0.1` alone
   ([network_security_config.xml](companion-app/src/main/res/xml/network_security_config.xml)).
-- **The internet, once, when you ask.** The setup checklist can download ZombieBuddy from
-  [its own GitHub releases](https://github.com/zed-0xff/ZombieBuddy/releases) (a pinned version,
-  checked against SHA-256 hashes built into the app). Nothing else is downloaded or sent; no
-  analytics, no accounts.
-- **Permissions:** `INTERNET` (needed for both of the above, even the local connection) and seeing
-  whether Zomdroid (`com.zomdroid`) is installed. No storage permission: the mod is installed
-  through Android's folder picker, into the folder you choose, and the ZombieBuddy download is saved
-  to Downloads.
+- **GitHub, for downloads.** The setup checklist asks this repository's releases whether there's a
+  newer version of the app (at most once a day, while the checklist is on screen) and downloads it
+  when you tap Download. It can also download ZombieBuddy from
+  [its own GitHub releases](https://github.com/zed-0xff/ZombieBuddy/releases) when you ask (a pinned
+  version, checked against SHA-256 hashes built into the app). Nothing else is downloaded or sent;
+  no analytics, no accounts.
+- **Permissions:** `INTERNET` (needed for all of the above, even the local connection); installing
+  apps (`REQUEST_INSTALL_PACKAGES`), only used to hand a downloaded update to Android's installer,
+  which asks you first and only accepts an update signed with the same key; and seeing whether
+  Zomdroid (`com.zomdroid`) is installed. No storage permission: the mod is installed through
+  Android's folder picker, into the folder you choose, and the ZombieBuddy download is saved to
+  Downloads.
+
+## How it was made
+
+ZomboidDS was written with [Claude Code](https://claude.com/claude-code), Anthropic's AI coding
+agent, directed and reviewed by me (Space000, a software developer), and tested on a real AYN Thor
+throughout. How the game works was checked against its own files rather than guessed; the design
+and those findings are in [docs/DESIGN.md](docs/DESIGN.md).
 
 ## How it fits together
 
@@ -78,6 +104,11 @@ This also builds the mod zip (`bridge/adapter-b42/build/distributions/ZomboidDS.
 it into the APK. ZombieBuddy isn't bundled: the app downloads the version pinned in
 `gradle.properties` from ZombieBuddy's GitHub when the user asks, and checks its hashes.
 
+Release builds (`./gradlew :companion-app:assembleRelease`) are shrunk with R8 and signed with the
+key described by a `keystore.properties` in the project root (`storeFile`, `storePassword`,
+`keyAlias`, `keyPassword`; never committed). Without it they build unsigned. Updates only install
+over an app signed with the same key, so releases must always use the same one.
+
 ## Tests
 
 ```bash
@@ -123,3 +154,10 @@ pip install lupa && python tools/test-lua.py
 
 Not affiliated with The Indie Stone. ZomboidDS ships no game files; icons are read from the
 player's own installation on their device.
+
+## Licence
+
+ZomboidDS is free software under the [GNU General Public License v3.0](LICENSE): you may use, study,
+share and change it, and versions you distribute must stay under the same licence. The open-source
+software it includes, and their licences, are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+(also in the app: About → Open-source licences).

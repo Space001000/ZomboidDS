@@ -91,8 +91,8 @@ fun StatusScreen(state: GameState, controls: GameControls, actions: ItemActions,
                 // The game's body silhouette, hurt parts tinted, health in its corner.
                 Box(
                     Modifier.width(160.dp).fillMaxHeight()
-                        .background(Color(0xFF1B1920), RoundedCornerShape(10.dp))
-                        .border(1.dp, Color(0xFF2A2730), RoundedCornerShape(10.dp)),
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(10.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
                 ) {
                     BodySilhouette(parts.orEmpty(), state.health?.female == true, iconUrl,
                         Modifier.fillMaxSize().padding(top = 34.dp, bottom = 10.dp, start = 10.dp, end = 10.dp))
@@ -205,7 +205,7 @@ private fun Section(title: String) {
 private fun InjuryRow(part: BodyPartStatus, dimmed: Boolean = false, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().height(IntrinsicSize.Min)
-            .background(Color(0xFF1C1A21), RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp))
             .clickable(onClick = onClick)
             .alpha(if (dimmed) 0.75f else 1f),
         verticalAlignment = Alignment.CenterVertically,

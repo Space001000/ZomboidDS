@@ -84,7 +84,14 @@ object DevExport {
     fun removeZombieBuddy(context: Context) = run(context) { storage ->
         val instance = storage.instances().firstOrNull() ?: error("no Zomdroid game instance found")
         storage.child(instance.id, "game")?.let { game -> storage.child(game.id, "ZombieBuddy.jar")?.let { storage.delete(it.id) } }
-        storage.modsDir(instance)?.let { mods -> storage.child(mods.id, "ZombieBuddy")?.let { storage.delete(it.id) } }
+        storage.modsDir(instance)?.let { mods ->
+            storage.child(mods.id, "ZombieBuddy")?.let { storage.delete(it.id) }
+            // And from the mod list new games start with, for a truly fresh setup run.
+            storage.child(mods.id, "default.txt")?.let { file ->
+                val kept = storage.readText(file.id).lines().filterNot { it.trim() == "mod = ZombieBuddy," }
+                storage.writeText(file.id, kept.joinToString("\n"))
+            }
+        }
         Log.i(TAG, "remove ZombieBuddy done")
     }
 

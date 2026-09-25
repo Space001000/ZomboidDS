@@ -1,5 +1,6 @@
 package dev.zomboidds.companion.ui
 
+import dev.zomboidds.companion.setup.AppUpdateState
 import dev.zomboidds.companion.domain.Crafting
 import dev.zomboidds.companion.domain.GameControls
 import dev.zomboidds.companion.domain.GameSpeed
@@ -29,7 +30,6 @@ import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,6 +62,7 @@ fun CompanionScreen(
     state: GameState,
     connection: ConnectionStatus,
     setup: SetupReport,
+    update: AppUpdateState,
     setupActions: SetupActions,
     iconUrl: (String) -> String,
     actions: ItemActions,
@@ -71,7 +72,7 @@ fun CompanionScreen(
     events: Flow<GameEvent>,
     crafting: Crafting? = null,
 ) {
-    MaterialTheme(colorScheme = darkColorScheme()) {
+    ZomboidTheme {
         Surface(Modifier.fillMaxSize()) {
             // Keep clear of system bars on ordinary phones (the Thor's bottom screen has none).
             Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
@@ -80,13 +81,16 @@ fun CompanionScreen(
                     InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
+                    var licences by remember { mutableStateOf(false) }
                     Column(
                         Modifier.padding(24.dp).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         StatusHeader(state, connection)
-                        SetupChecklist(setup, gameStep(connection), setupActions)
+                        SetupChecklist(setup, update, gameStep(connection), setupActions)
+                        AboutCard(openUrl = setupActions::openUrl, onLicences = { licences = true })
                     }
+                    if (licences) LicencesPanel(onClose = { licences = false })
                 }
             }
         }
@@ -232,6 +236,7 @@ private fun InGamePreview() {
         ),
         connection = ConnectionStatus.Connected,
         setup = SetupReport(zomdroidInstalled = true, hasAccess = true, bundledModVersion = "0.1.0"),
+        update = AppUpdateState.UpToDate("1.0.0"),
         setupActions = object : SetupActions {
             override fun grantAccess() {}
             override fun selectInstance(name: String) {}
@@ -239,6 +244,10 @@ private fun InGamePreview() {
             override fun openZomdroid() {}
             override fun installMod() {}
             override fun enableForNewGames() {}
+            override fun checkForUpdate() {}
+            override fun downloadUpdate(release: dev.zomboidds.companion.setup.AppRelease) {}
+            override fun installUpdate(file: java.io.File) {}
+            override fun openUrl(url: String) {}
         },
         iconUrl = { it },
         actions = object : ItemActions {
