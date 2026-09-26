@@ -5,12 +5,13 @@
     "data": {
       "menuId": "m7",
       "options": [
-        {"id": "1", "name": "Read", "enabled": true},
-        {"id": "2", "name": "Eat", "enabled": true, "children": [
+        {"id": "1", "name": "Read", "enabled": true, "pill": "action"},
+        {"id": "2", "name": "Eat", "enabled": true, "pill": "action", "children": [
           {"id": "2.1", "name": "All", "enabled": true},
           {"id": "2.2", "name": "Half", "enabled": true}
         ]},
-        {"id": "3", "name": "Rip into sheets", "enabled": false, "tooltip": "Requires a knife"}
+        {"id": "3", "name": "Rip into sheets", "enabled": false, "tooltip": "Requires a knife"},
+        {"id": "4", "name": "Drop", "enabled": true, "pill": "drop"}
       ]
     }
   }

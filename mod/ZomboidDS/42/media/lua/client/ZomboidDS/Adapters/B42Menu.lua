@@ -74,15 +74,75 @@ local function appDuplicates()
     return set
 end
 
+--- The item menu's entries the app shows as pills above the rest, by the game function behind them
+--- (never by name, so translations and other mods' labels don't matter): the item's main uses. A
+--- submenu is a pill when everything in it is (Eat > All / Half / Quarter, Apply Bandage > a body
+--- part, Attach > a slot). Equipping and attaching are pills for weapons only: the game offers them
+--- for nearly anything you can hold. Drop is "drop" (the app draws it quieter); the rest "action".
+local function pillFunctions(item)
+    local set = {}
+    local function add(fn, kind)
+        if fn ~= nil then set[fn] = kind or "action" end
+    end
+    local P = ISInventoryPaneContextMenu
+    if P ~= nil then
+        if instanceof(item, "HandWeapon") then
+            add(P.OnPrimaryWeapon)
+            add(P.OnSecondWeapon)
+            add(P.OnTwoHandsEquip)
+            if ISHotbar ~= nil then add(ISHotbar.attachItem) end
+        end
+        for _, name in ipairs({
+            "onEatItems", "onDrinkFluid", "onDrinkForThirst", -- eat (and smoke), drink
+            "onWearItems", "onClothingItemExtra", "onUnEquip", -- wear (clothes, bags), take off
+            "onLiteratureItems", "onPillsItems", "onApplyBandage", -- read, take pills, apply
+            "onRackGun", "onInsertMagazine", "onEjectMagazine", -- firearms
+            "onLoadBulletsIntoFirearm", "onUnloadBulletsFromFirearm",
+            "onLoadBulletsInMagazine", "onUnloadBulletsFromMagazine",
+            "onActivateItem", "onSetAlarm", "onStopAlarm", "onCheckMap", -- turn on/off, alarm, map
+        }) do
+            add(P[name])
+        end
+        add(P.onDropItems, "drop")
+    end
+    if ISRadioAndTvMenu ~= nil then add(ISRadioAndTvMenu.openRadioPanel) end -- device options
+    return set
+end
+
+--- The pill kind of an option: its own function's, or for a submenu the one all its options share.
+local function pillOf(option, menu, pills, depth)
+    if option.onSelect ~= nil then
+        return pills[option.onSelect]
+    end
+    local subMenu = option.subOption ~= nil and depth < MAX_DEPTH and menu:getSubMenu(option.subOption) or nil
+    if subMenu == nil then
+        return nil
+    end
+    local kind
+    for _, child in ipairs(subMenu.options or {}) do
+        if child ~= nil and child.name ~= nil then
+            local childKind = pillOf(child, subMenu, pills, depth + 1)
+            if childKind == nil or (kind ~= nil and childKind ~= kind) then
+                return nil
+            end
+            kind = childKind
+        end
+    end
+    return kind
+end
+
 --- Walks the menu (and its submenus) into plain tables for the app, storing each runnable option's
 --- call data in `calls` under its id ("3", "3.2", ...). Options whose function is in `skip` are left
---- out, and so is a submenu left with nothing else.
-local function snapshot(menu, calls, prefix, depth, skip)
+--- out, and so is a submenu left with nothing else. Top-level options in `pills` get `pill` = kind.
+local function snapshot(menu, calls, prefix, depth, skip, pills)
     local list = {}
     for index, option in ipairs(menu.options) do
         if option ~= nil and option.name ~= nil and not (skip and option.onSelect and skip[option.onSelect]) then
             local id = prefix .. index
             local entry = { id = id, name = tostring(option.name), icon = iconName(option.iconTexture) }
+            if pills ~= nil then
+                entry.pill = pillOf(option, menu, pills, depth)
+            end
             local toolTip = option.toolTip
             entry.tooltip = plainText(toolTip and toolTip.description)
 
@@ -163,7 +223,7 @@ function B42Menu.open(player, item)
     end
 
     local calls = {}
-    local ok, options = pcall(snapshot, menu, calls, "", 1, appDuplicates())
+    local ok, options = pcall(snapshot, menu, calls, "", 1, appDuplicates(), pillFunctions(item))
     menu:hideAndChildren() -- same tick as createMenu, so it never shows on the top screen
     if not ok then
         return false, "Could not read the game's menu: " .. tostring(options)

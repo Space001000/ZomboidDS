@@ -26,6 +26,7 @@ import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenu
 import dev.zomboidds.companion.domain.MenuOption
+import dev.zomboidds.companion.domain.MenuPill
 import dev.zomboidds.companion.domain.Moodle
 import dev.zomboidds.companion.domain.MoodleTone
 import dev.zomboidds.companion.domain.Moodles
@@ -234,6 +235,7 @@ object ProtocolV1 {
         val tooltip: String? = null,
         val children: List<MenuOptionDto> = emptyList(),
         val icon: String? = null,
+        val pill: String? = null,
     )
 
     /** Throws [IllegalArgumentException] for malformed messages. */
@@ -284,7 +286,14 @@ object ProtocolV1 {
     }
 
     private fun MenuOptionDto.toDomain(): MenuOption =
-        MenuOption(id, name, enabled, tooltip, children.map { it.toDomain() }, icon)
+        MenuOption(
+            id, name, enabled, tooltip, children.map { it.toDomain() }, icon,
+            pill = when (pill) {
+                null -> null
+                "drop" -> MenuPill.DROP
+                else -> MenuPill.ACTION
+            },
+        )
 
     fun craftListRequest() = Request("craft_list", buildJsonObject { })
 

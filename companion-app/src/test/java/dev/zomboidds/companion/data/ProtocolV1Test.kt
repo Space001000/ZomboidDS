@@ -1,6 +1,7 @@
 package dev.zomboidds.companion.data
 
 import dev.zomboidds.companion.domain.HealthLine
+import dev.zomboidds.companion.domain.MenuPill
 import dev.zomboidds.companion.domain.Freshness
 import dev.zomboidds.companion.domain.HealthTone
 import dev.zomboidds.companion.domain.MoodleTone
@@ -129,7 +130,11 @@ class ProtocolV1Test {
         assertEquals(CommandResult.Ok, reply.result)
         val menu = ProtocolV1.itemMenu(reply.data)
         assertEquals("m7", menu.menuId)
-        assertEquals(listOf("Read", "Eat", "Rip into sheets"), menu.options.map { it.name })
+        assertEquals(listOf("Read", "Eat", "Rip into sheets", "Drop"), menu.options.map { it.name })
+        assertEquals(
+            listOf(MenuPill.ACTION, MenuPill.ACTION, null, MenuPill.DROP),
+            menu.options.map { it.pill },
+        )
         assertEquals(listOf("2.1", "2.2"), menu.options[1].children.map { it.id })
         assertFalse(menu.options[2].enabled)
         assertEquals("Requires a knife", menu.options[2].tooltip)

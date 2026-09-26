@@ -38,9 +38,9 @@ import dev.zomboidds.companion.domain.MenuOption
 
 /** The game's right-click menu: submenus open in place, greyed options show the game's reason. */
 @Composable
-private fun GameMenu(menu: ItemMenu, onSelect: (optionId: String) -> Unit) {
+internal fun GameMenu(menu: ItemMenu, onSelect: (optionId: String) -> Unit, top: List<MenuOption> = menu.options) {
     var path by remember(menu.menuId) { mutableStateOf(listOf<MenuOption>()) }
-    val options = path.lastOrNull()?.children ?: menu.options
+    val options = path.lastOrNull()?.children ?: top
     Column {
         if (path.isNotEmpty()) {
             TextButton(onClick = { path = path.dropLast(1) }) { Text("‹ " + path.joinToString(" › ") { it.name }) }
@@ -73,7 +73,8 @@ private fun GameMenu(menu: ItemMenu, onSelect: (optionId: String) -> Unit) {
  * The game's menu for something (an item, a body part), fetched when shown: a spinner while it
  * loads, the game's reason with Retry when there's none, then the menu. While [enabled] is false
  * nothing is fetched and [whileDisabled] shows instead (e.g. "Unpause to treat"); it loads by itself
- * once enabled.
+ * once enabled. [content] draws the menu (the whole menu as a list by default); [whileLoading]
+ * goes above the spinner or the reason.
  */
 @Composable
 internal fun LoadingGameMenu(
@@ -82,6 +83,8 @@ internal fun LoadingGameMenu(
     onSelect: (menuId: String, optionId: String) -> Unit,
     enabled: Boolean = true,
     whileDisabled: @Composable () -> Unit = {},
+    whileLoading: @Composable () -> Unit = {},
+    content: @Composable (menu: ItemMenu, onSelect: (optionId: String) -> Unit) -> Unit = { menu, select -> GameMenu(menu, select) },
 ) {
     var reload by remember { mutableIntStateOf(0) }
     val menu by produceState<ItemMenuResult?>(null, key, reload, enabled) {
@@ -90,15 +93,21 @@ internal fun LoadingGameMenu(
     }
     when (val result = menu) {
         null if !enabled -> whileDisabled()
-        null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-            Text("Loading the game's menu...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        null -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            whileLoading()
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                Text("Loading the game's menu...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
-        is ItemMenuResult.Failed -> Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(result.reason, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = { reload++ }) { Text("Retry") }
+        is ItemMenuResult.Failed -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            whileLoading()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(result.reason, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = { reload++ }) { Text("Retry") }
+            }
         }
-        is ItemMenuResult.Ready -> GameMenu(result.menu, onSelect = { optionId -> onSelect(result.menu.menuId, optionId) })
+        is ItemMenuResult.Ready -> content(result.menu) { optionId -> onSelect(result.menu.menuId, optionId) }
     }
 }
 

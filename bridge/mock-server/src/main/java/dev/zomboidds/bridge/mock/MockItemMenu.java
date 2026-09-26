@@ -9,7 +9,8 @@ import java.util.function.Supplier;
 /**
  * A stand-in for the game's item context menu (see PROTOCOL.md, "The game's item menu"): enough
  * variety to develop and test the app's menu UI: plain options, a submenu, a greyed-out option
- * with a reason. Only the latest menu is valid, and only once, like in the B42 adapter.
+ * with a reason, and the pills per kind of item (equip and attach for weapons, eat, wear, read,
+ * apply, drop). Only the latest menu is valid, and only once, like in the B42 adapter.
  */
 final class MockItemMenu {
 
@@ -24,6 +25,11 @@ final class MockItemMenu {
         String category = String.valueOf(item.get("category"));
         int n = 0;
 
+        if (item.get("equipped") != null) {
+            String id = String.valueOf(++n);
+            options.add(pill(option(id, "Unequip", true, null, null), "action"));
+            actions.put(id, () -> null);
+        }
         switch (category) {
             case "Food", "Water" -> {
                 List<Object> portions = new ArrayList<>();
@@ -36,26 +42,54 @@ final class MockItemMenu {
                         return null;
                     });
                 }
-                options.add(option(String.valueOf(++n), category.equals("Water") ? "Drink" : "Eat", true, null, portions));
+                options.add(pill(option(String.valueOf(++n), category.equals("Water") ? "Drink" : "Eat", true, null, portions), "action"));
             }
             case "Literature" -> {
                 String id = String.valueOf(++n);
-                options.add(option(id, "Read", true, null, null));
+                options.add(pill(option(id, "Read", true, null, null), "action"));
                 actions.put(id, () -> null);
             }
             case "FirstAid" -> {
+                List<Object> parts = new ArrayList<>();
+                int i = 0;
+                for (String part : List.of("Head", "Left Hand", "Right Forearm")) {
+                    String id = (n + 1) + "." + (++i);
+                    parts.add(option(id, part, true, null, null));
+                    actions.put(id, () -> {
+                        remove.run();
+                        return null;
+                    });
+                }
+                options.add(pill(option(String.valueOf(++n), "Apply Bandage", true, null, parts), "action"));
+            }
+            case "Clothing" -> {
                 String id = String.valueOf(++n);
-                options.add(option(id, "Apply", true, null, null));
-                actions.put(id, () -> {
-                    remove.run();
-                    return null;
-                });
+                options.add(pill(option(id, "Wear", true, null, null), "action"));
+                actions.put(id, () -> null);
+            }
+            case "Weapon" -> {
+                for (String equip : List.of("Equip Primary", "Equip Secondary", "Equip Two Hands")) {
+                    String id = String.valueOf(++n);
+                    options.add(pill(option(id, equip, true, null, null), "action"));
+                    actions.put(id, () -> null);
+                }
+                List<Object> slots = new ArrayList<>();
+                int i = 0;
+                for (String slot : List.of("Belt Right", "Back")) {
+                    String id = (n + 1) + "." + (++i);
+                    slots.add(option(id, slot, true, null, null));
+                    actions.put(id, () -> null);
+                }
+                options.add(pill(option(String.valueOf(++n), "Attach", true, null, slots), "action"));
             }
             default -> { }
         }
+        String favorite = String.valueOf(++n);
+        options.add(option(favorite, "Add to Favorites", true, null, null));
+        actions.put(favorite, () -> null);
         options.add(option(String.valueOf(++n), "Rename", false, "Only in the real game", null));
         String drop = String.valueOf(++n);
-        options.add(option(drop, "Drop", true, null, null));
+        options.add(pill(option(drop, "Drop", true, null, null), "drop"));
         actions.put(drop, () -> {
             remove.run();
             return null;
@@ -130,6 +164,11 @@ final class MockItemMenu {
         Supplier<String> action = currentActions.get(String.valueOf(optionId));
         currentId = null;
         return action == null ? "That option isn't available" : action.get();
+    }
+
+    private static Map<String, Object> pill(Map<String, Object> option, String kind) {
+        option.put("pill", kind);
+        return option;
     }
 
     private static Map<String, Object> withIcon(Map<String, Object> option, String icon) {

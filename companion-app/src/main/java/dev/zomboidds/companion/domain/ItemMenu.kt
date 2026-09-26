@@ -13,7 +13,12 @@ data class MenuOption(
     val children: List<MenuOption> = emptyList(),
     /** The game's icon for it (texture name for the icon endpoint), if any. */
     val icon: String? = null,
+    /** One of the item's main uses, shown as a button above the rest; null for the rest. */
+    val pill: MenuPill? = null,
 )
+
+/** How a pill is drawn: a main use, or Drop (quieter). */
+enum class MenuPill { ACTION, DROP }
 
 /** What the app can ask the game to do with an item. */
 interface ItemActions {

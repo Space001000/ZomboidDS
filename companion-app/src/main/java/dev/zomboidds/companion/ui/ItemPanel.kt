@@ -32,6 +32,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,7 +44,10 @@ import androidx.compose.ui.unit.dp
 import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.InventoryItem
 import dev.zomboidds.companion.domain.ItemAction
+import dev.zomboidds.companion.domain.ItemMenu
 import dev.zomboidds.companion.domain.ItemMenuResult
+import dev.zomboidds.companion.domain.MenuOption
+import dev.zomboidds.companion.domain.MenuPill
 import dev.zomboidds.companion.domain.ItemStack
 
 /** Where a tapped item can be moved: your own containers, then the ones around you. */
@@ -161,8 +168,11 @@ private fun TargetButton(target: ContainerView, iconUrl: (String) -> String, out
     }
 }
 
-/** The quick actions, then the game's own menu for the item. */
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * What you can do with the item: the game's menu for it (fetched when the panel opens), its main
+ * uses as pills on top and the rest below in the game's order. Until it's there, or when the game
+ * has none (paused), the app's own buttons.
+ */
 @Composable
 private fun ColumnScope.Actions(
     item: InventoryItem,
@@ -170,6 +180,33 @@ private fun ColumnScope.Actions(
     onAction: (ItemAction) -> Unit,
     onMenuOption: (menuId: String, optionId: String) -> Unit,
 ) {
+    if (loadMenu == null) {
+        AppActions(item, onAction)
+        return
+    }
+    LoadingGameMenu(
+        key = item.id, load = loadMenu, onSelect = onMenuOption,
+        whileLoading = { AppActions(item, onAction) },
+    ) { menu, select ->
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            val (pills, rest) = menu.options.partition { it.pill != null }
+            // The game leaves Drop out while a controller is in use (the Thor): then the app's.
+            val appDrop = ItemAction.DROP.takeIf { it in item.actions && pills.none { p -> p.pill == MenuPill.DROP } }
+            Pills(menu, pills, select) {
+                if (appDrop != null) OutlinedButton(onClick = { onAction(appDrop) }) { Text(label(appDrop, item)) }
+            }
+            if (rest.isNotEmpty()) {
+                if (pills.isNotEmpty() || appDrop != null) HorizontalDivider()
+                GameMenu(menu, select, top = rest)
+            }
+        }
+    }
+}
+
+/** The app's own buttons (equip, wear, drop, ...), for when the game's menu isn't there. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AppActions(item: InventoryItem, onAction: (ItemAction) -> Unit) {
     if (item.actions.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item.actions.forEach { action ->
             if (action == ItemAction.DROP) {
@@ -179,10 +216,63 @@ private fun ColumnScope.Actions(
             }
         }
     }
-    if (loadMenu != null) {
-        if (item.actions.isNotEmpty()) HorizontalDivider()
-        // The game's own menu for this item, fetched when the panel opens (one round trip).
-        LoadingGameMenu(key = item.id, load = loadMenu, onSelect = onMenuOption)
+}
+
+/**
+ * The item's main uses from the game's menu, with the game's names, Drop last ([last] after it).
+ * A pill with a submenu (Eat, Apply Bandage, Attach) unfolds the game's choices below the pills.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Pills(menu: ItemMenu, pills: List<MenuOption>, onSelect: (optionId: String) -> Unit, last: @Composable () -> Unit) {
+    var path by remember(menu.menuId) { mutableStateOf(listOf<MenuOption>()) }
+    val (drops, uses) = pills.partition { it.pill == MenuPill.DROP }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        uses.forEach { pill ->
+            val open = path.firstOrNull()?.id == pill.id
+            Pill(pill, open, outlined = false) {
+                when {
+                    open -> path = emptyList()
+                    pill.children.isNotEmpty() -> path = listOf(pill)
+                    else -> onSelect(pill.id)
+                }
+            }
+        }
+        drops.forEach { pill -> Pill(pill, open = false, outlined = true) { onSelect(pill.id) } }
+        last()
+    }
+    val choices = path.lastOrNull()?.children ?: return
+    Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+        Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (path.size > 1) {
+                TextButton(onClick = { path = path.dropLast(1) }) { Text("‹ " + path.joinToString(" › ") { it.name }) }
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                choices.forEach { choice ->
+                    Pill(choice, open = false, outlined = true) {
+                        if (choice.children.isNotEmpty()) path = path + choice else onSelect(choice.id)
+                    }
+                }
+            }
+            // A greyed choice can't be tapped: show the game's reason.
+            choices.firstOrNull { !it.enabled && it.tooltip != null }?.let {
+                Text(it.tooltip!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Pill(option: MenuOption, open: Boolean, outlined: Boolean, onClick: () -> Unit) {
+    val text = when {
+        option.children.isEmpty() -> option.name
+        open -> option.name + " ▾"
+        else -> option.name + " ›"
+    }
+    if (outlined) {
+        OutlinedButton(onClick = onClick, enabled = option.enabled) { Text(text) }
+    } else {
+        Button(onClick = onClick, enabled = option.enabled) { Text(text) }
     }
 }
 

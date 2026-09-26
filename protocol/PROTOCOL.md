@@ -194,11 +194,12 @@ includes everything it offers: read, eat, bandage, craft, ... and options added 
 
 ```json
 { "menuId": "m7", "options": [
-  { "id": "1", "name": "Read", "enabled": true },
-  { "id": "2", "name": "Eat", "enabled": true, "children": [
+  { "id": "1", "name": "Read", "enabled": true, "pill": "action" },
+  { "id": "2", "name": "Eat", "enabled": true, "pill": "action", "children": [
     { "id": "2.1", "name": "All", "enabled": true },
     { "id": "2.2", "name": "Half", "enabled": true } ] },
-  { "id": "3", "name": "Rip into sheets", "enabled": false, "tooltip": "Requires a knife" } ] }
+  { "id": "3", "name": "Rip into sheets", "enabled": false, "tooltip": "Requires a knife" },
+  { "id": "4", "name": "Drop", "enabled": true, "pill": "drop" } ] }
 ```
 
 - Works for items you carry and for items in containers within reach (not locked ones). For the
@@ -208,6 +209,12 @@ includes everything it offers: read, eat, bandage, craft, ... and options added 
 - `icon` (optional): the texture name of the option's icon in the game's menu (e.g. the object's
   sprite), for the bridge's icon endpoint. Not every icon can be served; the app shows none then.
 - `enabled: false` options are shown greyed out, with the game's reason in `tooltip` if it gives one.
+- `pill` (optional, top-level options only): the item's main uses, which the app shows as buttons
+  above the rest, recognised by the game function behind them (never by name): equip and attach
+  (weapons only), eat, drink, wear, take off, read, take pills, apply a bandage, firearm loading and
+  racking, turn on/off, alarm, check map, device options (`"action"`), and drop (`"drop"`). A
+  submenu is a pill when all its options are (Eat > All / Half / Quarter). Unknown values count as
+  `"action"`.
 - Only the latest menu is valid, and only for one `menu_select` within a minute. Otherwise the result
   is `ok: false` and the app should request a fresh menu.
 - No menu while the game is paused (`ok: false`, "The game is paused"), same as in the game.
