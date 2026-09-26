@@ -8,9 +8,9 @@
       { "id": "search_mode", "name": "Toggle Search Mode", "icon": "Search_Icon_Off", "available": true, "on": true },
       { "id": "flashlight", "name": "Equip/Turn On/Off Light Source", "icon": "Item_Flashlight", "available": true, "on": false },
       { "id": "map", "name": "Toggle Map", "icon": "Item_Map", "available": true },
-      { "id": "sit", "name": "Sit On Ground", "icon": "Item_Chair", "available": true },
+      { "id": "sit", "name": "Sit On Ground", "icon": "furniture_seating_indoor_01_0_Icon", "available": true },
       { "id": "drop_bag", "name": "Drop Worn Bag", "icon": "Item_Backpack", "available": false },
-      { "id": "shout", "name": "Shout", "icon": "Item_Megaphone", "available": true }
+      { "id": "shout", "name": "Shout", "icon": "Item_Whistle", "available": true }
     ]
   }
 }

@@ -1,7 +1,7 @@
 --- Build 42 adapter: this file and the modules next to it (B42Menu.lua, B42/) are the only Lua that
 --- calls the game API. Implements the contract documented in ZomboidDS/Core/Adapters.lua.
 ---
---- Each area has its own module in B42/ (items, containers, health, moodles, time, Here, crafting); this file
+--- Each area has its own module in B42/ (items, containers, health, moodles, time, Here, crafting, deck); this file
 --- puts them together, with the player, vehicle and item commands. Engine calls go through Util.try
 --- (see there). Every call was checked against 42.20's Lua sources and projectzomboid.jar.
 local Adapters = require("ZomboidDS/Core/Adapters")
@@ -13,13 +13,14 @@ local Health = require("ZomboidDS/Adapters/B42/Health")
 local Moodles = require("ZomboidDS/Adapters/B42/Moodles")
 local Time = require("ZomboidDS/Adapters/B42/Time")
 local Here = require("ZomboidDS/Adapters/B42/Here")
+local Deck = require("ZomboidDS/Adapters/B42/Deck")
 local Crafting = require("ZomboidDS/Adapters/B42/Crafting")
 local try, round = Util.try, Util.round
 
 local B42 = {
     id = "b42",
     capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop", "item_menu",
-                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft" },
+                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "deck" },
     dirtyEvents = {
         inventory = { "OnContainerUpdate", "OnRefreshInventoryWindowContainers", "OnClothingUpdated",
                       "OnEquipPrimary", "OnEquipSecondary" },
@@ -40,6 +41,7 @@ B42.snapshotHealth = Health.snapshot
 B42.snapshotMoodles = Moodles.snapshot
 B42.snapshotTime = Time.snapshot
 B42.snapshotHere = Here.snapshot
+B42.snapshotDeck = Deck.snapshot
 
 -- Player ---------------------------------------------------------------------
 
@@ -151,6 +153,11 @@ B42.commands = {
     -- The game's speed buttons (see B42/Time.lua).
     set_speed = function(_player, args)
         return Time.setSpeed(tonumber(args.speed))
+    end,
+
+    -- The Command deck: zoom, search mode, flashlight, ... as their key bindings (see B42/Deck.lua).
+    deck_run = function(player, args)
+        return Deck.run(player, tostring(args.id))
     end,
 
     -- The game's own right-click menu for an item (see B42Menu.lua): for items you carry, and for

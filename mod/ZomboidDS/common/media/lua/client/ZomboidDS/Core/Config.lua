@@ -17,6 +17,7 @@ local Config = {
         time = 250,        -- the game speed; only sent when it changes
         health = 500,      -- injuries; only sent when they change
         moodles = 500,     -- only sent when they change
+        deck = 500,        -- the Command deck: clock and commands; only sent when they change
         here = 200,        -- how often "Here" checks for a move/turn while the app watches (cheap when not)
         vehicle = 100,     -- while in a vehicle (speedometer)
         vehicleIdle = 1000,
