@@ -9,6 +9,9 @@ import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.Freshness
 import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameSpeed
+import dev.zomboidds.companion.domain.DeckCommand
+import dev.zomboidds.companion.domain.DeckClock
+import dev.zomboidds.companion.domain.DeckState
 import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.Health
 import dev.zomboidds.companion.domain.HealthLine
@@ -138,6 +141,21 @@ object ProtocolV1 {
         val menuId: String? = null,
         val options: List<MenuOptionDto> = emptyList(),
         val unavailable: String? = null,
+    )
+
+    @Serializable
+    private data class DeckDto(val clock: DeckClockDto? = null, val commands: List<DeckCommandDto> = emptyList())
+
+    @Serializable
+    private data class DeckClockDto(val time: String? = null, val date: String? = null, val alarm: String? = null)
+
+    @Serializable
+    private data class DeckCommandDto(
+        val id: String? = null,
+        val name: String? = null,
+        val icon: String? = null,
+        val available: Boolean = true,
+        val on: Boolean? = null,
     )
 
     @Serializable
@@ -337,6 +355,8 @@ object ProtocolV1 {
 
     fun setSpeedRequest(speed: GameSpeed) = Request("set_speed", buildJsonObject { put("speed", speed.ordinal) })
 
+    fun deckRunRequest(id: String) = Request("deck_run", buildJsonObject { put("id", id) })
+
     fun transferRequest(itemId: Long, toContainer: String) = Request("transfer", buildJsonObject {
         put("itemId", JsonPrimitive(itemId))
         put("to", toContainer)
@@ -431,6 +451,16 @@ object ProtocolV1 {
             "time" -> json.decodeFromJsonElement<TimeDto>(data).let {
                 // The wire numbers are the game's own (0 pause ... 4 wait), in GameSpeed's order.
                 state.copy(time = TimeState(it.speed?.let { speed -> GameSpeed.entries.getOrNull(speed) }, it.canChange, it.gameMenuOpen))
+            }
+            "deck" -> json.decodeFromJsonElement<DeckDto>(data).let { dto ->
+                state.copy(deck = DeckState(
+                    clock = dto.clock?.time?.let { DeckClock(it, dto.clock.date, dto.clock.alarm) },
+                    // Without an id the app couldn't remember it on the Deck; without a name it can't show it.
+                    commands = dto.commands.mapNotNull { c ->
+                        if (c.id.isNullOrBlank() || c.name.isNullOrBlank()) null
+                        else DeckCommand(c.id, c.name, c.icon, c.available, c.on)
+                    },
+                ))
             }
             "containers" -> json.decodeFromJsonElement<ContainersDto>(data).let { dto ->
                 state.copy(containers = dto.containers.map { it.toDomain() })

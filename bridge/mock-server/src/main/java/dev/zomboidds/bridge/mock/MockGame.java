@@ -57,6 +57,9 @@ final class MockGame {
     private boolean timeDirty = true;
     private boolean watchingHere;
     private boolean hereDirty;
+    /** The Command deck (deck.json); modes flip when run. */
+    private final Map<String, Object> deck = fixtureData("deck.json");
+    private boolean deckDirty = true;
 
     MockGame(BridgeContext bridge, String inventoryFixture) {
         this.bridge = bridge;
@@ -149,6 +152,10 @@ final class MockGame {
                 }
                 bridge.state().publish("here", here);
                 hereDirty = false;
+            }
+            if (deckDirty) {
+                bridge.state().publish("deck", deepCopy(deck));
+                deckDirty = false;
             }
             if (timeDirty) {
                 bridge.state().publish("time", Map.of("speed", speed, "canChange", true));
@@ -257,6 +264,7 @@ final class MockGame {
                 timeDirty = true;
                 yield null;
             }
+            case "deck_run" -> runDeckCommand(String.valueOf(command.args().get("id")));
             case "transfer_all" -> transferAll(command);
             default -> "unknown command '" + command.name() + "'";
         };
@@ -269,6 +277,26 @@ final class MockGame {
         }
         bridge.state().publish("command_result", result);
         Log.info("command " + command.name() + " " + command.args() + " -> " + (error == null ? "ok" : error));
+    }
+
+    /** Like the game's key bindings: modes switch on and off, the rest just "happens" (logged). */
+    @SuppressWarnings("unchecked")
+    private String runDeckCommand(String id) {
+        for (Object entry : (List<Object>) deck.get("commands")) {
+            Map<String, Object> deckCommand = (Map<String, Object>) entry;
+            if (!id.equals(deckCommand.get("id"))) {
+                continue;
+            }
+            if (!Boolean.TRUE.equals(deckCommand.get("available"))) {
+                return "Can't do that right now";
+            }
+            if (deckCommand.get("on") instanceof Boolean on) {
+                deckCommand.put("on", !on);
+                deckDirty = true;
+            }
+            return null;
+        }
+        return "unknown deck command '" + id + "'";
     }
 
     private String equip(Command command) {

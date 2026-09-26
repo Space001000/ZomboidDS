@@ -18,6 +18,8 @@ data class GameState(
     val health: Health? = null,
     /** The game's moodles (hungry, bleeding, ...); null until the game reported them. */
     val moodles: Moodles? = null,
+    /** The Command deck's clock and commands; null until the game reported them (or an older mod). */
+    val deck: DeckState? = null,
 )
 
 /** What the game's moodle column shows, most urgent first, and the images to draw them with. */
@@ -69,6 +71,18 @@ enum class GameSpeed(val multiplier: Int) { PAUSED(0), PLAY(1), FAST(5), FASTER(
  * game's pause menu (Esc) is open, and speed changes wait until it's closed, as in the game.
  */
 data class TimeState(val speed: GameSpeed?, val canChange: Boolean, val gameMenuOpen: Boolean = false)
+
+/** The Command deck: the game's clock (only with a watch, as in the game) and the commands it can run. */
+data class DeckState(val clock: DeckClock?, val commands: List<DeckCommand>)
+
+/** As the game's own clock shows it: [time] in the player's 12/24-hour setting; [date] and [alarm] if shown. */
+data class DeckClock(val time: String, val date: String?, val alarm: String?)
+
+/**
+ * A command the game can run, like its key binding does. [id] is stable (the player's Deck is
+ * remembered by it); [name] is the game's own; [on] is set for modes (search mode, flashlight).
+ */
+data class DeckCommand(val id: String, val name: String, val icon: String?, val available: Boolean, val on: Boolean? = null)
 
 /** The mod's Java side, from `hello`. */
 data class BridgeInfo(val protocol: Int, val version: String, val adapter: String)

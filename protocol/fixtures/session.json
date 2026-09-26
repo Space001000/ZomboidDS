@@ -5,6 +5,6 @@
     "gameVersion": "42.12",
     "adapter": "b42",
     "capabilities": ["player", "inventory", "vehicle", "cmd.equip", "cmd.unequip", "cmd.drop", "cmd.wear", "item_menu",
-      "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft"]
+      "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "deck"]
   }
 }

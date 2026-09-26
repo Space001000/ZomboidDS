@@ -27,6 +27,9 @@ interface GameControls {
     /** Presses the game's own speed button. Never throws. */
     suspend fun setSpeed(speed: GameSpeed): CommandResult
 
+    /** Runs a Command deck command ([DeckCommand.id]), like its key binding in the game. Never throws. */
+    suspend fun runDeckCommand(id: String): CommandResult
+
     /**
      * Whether the app shows "Here": while on, the game keeps [GameState.here] up to date as the
      * player moves (the game's world menu, what the controller's interact button opens). Call with

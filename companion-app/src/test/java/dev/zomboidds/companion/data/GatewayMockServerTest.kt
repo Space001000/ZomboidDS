@@ -133,6 +133,18 @@ class GatewayMockServerTest {
     }
 
     @Test
+    fun `Command deck commands run, and modes switch`() = runBlocking {
+        val deck = withTimeout(5_000) { gateway.state.first { it.deck != null } }.deck!!
+        assertEquals(true, deck.commands.single { it.id == "search_mode" }.on)
+
+        assertEquals(CommandResult.Ok, gateway.runDeckCommand("search_mode"))
+        withTimeout(5_000) { gateway.state.first { it.deck!!.commands.single { c -> c.id == "search_mode" }.on == false } }
+        assertEquals(CommandResult.Ok, gateway.runDeckCommand("zoom_in"))
+        assertTrue("not available now", gateway.runDeckCommand("drop_bag") is CommandResult.Failed)
+        assertTrue("unknown", gateway.runDeckCommand("fly") is CommandResult.Failed)
+    }
+
+    @Test
     fun `a body part has the game's treatment menu`() = runBlocking {
         val part = withTimeout(5_000) { gateway.state.first { !it.health?.parts.isNullOrEmpty() } }.health!!.parts.first()
         val menu = (gateway.bodyPartMenu(part.id) as ItemMenuResult.Ready).menu

@@ -7,6 +7,8 @@ import dev.zomboidds.companion.domain.MoodleTone
 import dev.zomboidds.companion.domain.HereState
 import dev.zomboidds.companion.domain.GameSpeed
 import dev.zomboidds.companion.domain.TimeState
+import dev.zomboidds.companion.domain.DeckClock
+import dev.zomboidds.companion.domain.DeckCommand
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.GameEvent
@@ -164,6 +166,20 @@ class ProtocolV1Test {
         val state = ProtocolV1.apply(GameState(),
             """{"v":1,"type":"containers","data":{"containers":[{"id":"c9","kind":"trunk","name":"Trunk"}]}}""")
         assertEquals(ContainerKind.NEARBY, state.containers!!.single().kind)
+    }
+
+    @Test
+    fun `deck carries the game's clock and commands`() {
+        val deck = applyAll("deck.json").deck!!
+        assertEquals(DeckClock("14:25", "July 9", "07:00"), deck.clock)
+        assertEquals(8, deck.commands.size)
+        assertEquals(DeckCommand("search_mode", "Toggle Search Mode", "Search_Icon_Off", available = true, on = true), deck.commands[2])
+        assertEquals(null, deck.commands[0].on)
+        assertEquals(false, deck.commands.first { it.id == "drop_bag" }.available)
+
+        val noWatch = ProtocolV1.apply(GameState(), """{"v":1,"type":"deck","data":{"commands":[{"id":"map","name":"Map"},{"name":"no id"}]}}""")
+        assertEquals("no watch, no clock", null, noWatch.deck!!.clock)
+        assertEquals("commands without an id are dropped", listOf("map"), noWatch.deck!!.commands.map { it.id })
     }
 
     @Test

@@ -143,6 +143,8 @@ class WebSocketGameGateway(
 
     override suspend fun setSpeed(speed: GameSpeed): CommandResult = send(ProtocolV1.setSpeedRequest(speed)).result
 
+    override suspend fun runDeckCommand(id: String): CommandResult = send(ProtocolV1.deckRunRequest(id)).result
+
     override suspend fun transfer(itemId: Long, toContainer: String): CommandResult =
         send(ProtocolV1.transferRequest(itemId, toContainer)).result
 

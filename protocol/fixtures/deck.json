@@ -1,0 +1,16 @@
+{
+  "v": 1, "type": "deck", "seq": 16,
+  "data": {
+    "clock": { "time": "14:25", "date": "July 9", "alarm": "07:00" },
+    "commands": [
+      { "id": "zoom_in", "name": "Zoom In", "icon": "ZoomIn", "available": true },
+      { "id": "zoom_out", "name": "Zoom Out", "icon": "ZoomOut", "available": true },
+      { "id": "search_mode", "name": "Toggle Search Mode", "icon": "Search_Icon_Off", "available": true, "on": true },
+      { "id": "flashlight", "name": "Equip/Turn On/Off Light Source", "icon": "Item_Flashlight", "available": true, "on": false },
+      { "id": "map", "name": "Toggle Map", "icon": "Item_Map", "available": true },
+      { "id": "sit", "name": "Sit On Ground", "icon": "Item_Chair", "available": true },
+      { "id": "drop_bag", "name": "Drop Worn Bag", "icon": "Item_Backpack", "available": false },
+      { "id": "shout", "name": "Shout", "icon": "Item_Megaphone", "available": true }
+    ]
+  }
+}

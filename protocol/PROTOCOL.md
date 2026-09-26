@@ -52,6 +52,7 @@ older state messages of the same type are dropped in favour of the newest.
 | `moodles`        | Lua      | `moodles[]`: what the game's moodle column shows (every moodle above level 0), most urgent first, each `{ id, name, description, level, tone, color, icon }`: `id` the game's MoodleType (`HUNGRY`, `BLEEDING`, ...), `name` and `description` the game's own texts for the level (its hover tooltip), `level` 1–4, `tone` `good`/`bad`/`neutral`, `color` `[r, g, b]` (0–1) the game's background colour for it (grey towards the player's good/bad highlight colour by level), `icon` an icon path (e.g. `Moodles/128/Status_Hunger`). `background` and `border`: the game's round moodle background (to tint with `color`) and its outline. |
 | `here`           | Lua      | "Here", while the app watches (`watch_here`): `watching`; then either `menuId` + `options` (the world menu for where the player stands, same shape as `item_menu`'s) or `unavailable` (the reason, e.g. paused). `{ "watching": false }` otherwise. |
 | `time`           | Lua      | `speed`: the game's speed button, 0 pause, 1 play, 2 fast forward (×5), 3 faster (×20), 4 wait (×40); `canChange` (false in multiplayer); `gameMenuOpen` (true while the game's pause menu is open: `set_speed` is refused then, as the game's own buttons are) |
+| `deck`           | Lua      | The Command deck: `clock` and `commands[]`, see below. |
 | `command_result` | Lua      | `id`, `ok`, `error` (optional), `data` (optional, command-specific). Event, never replayed. |
 | `show`           | Lua      | `panel` (`inventory`), `container` (optional container id). The player asked the game for that panel, e.g. pressed the controller's Loot/Inventory button: the app shows it. Event, never replayed. |
 
@@ -96,11 +97,31 @@ rules apply: walls, safehouses, locks, corpses, vehicles, bags on the floor, con
 - `selected: true` marks the container the game's loot window has selected: the one it outlines in the world.
 - `icon` is a texture name for the icon endpoint, like item icons.
 
+### Command deck
+
+`deck.clock` is what the game's own clock shows, and only then: it appears when the player carries
+a watch or clock, the date only with some of them. `time` (e.g. `"14:25"` or `"2:25 PM"`, in the
+player's 12/24-hour setting), `date` (e.g. `"July 9"`, optional), `alarm` (the alarm time of the
+player's watch or clock when it's set, optional). No `clock` without a watch.
+
+`deck.commands[]` lists the commands this game side can run, in no particular order; the player
+chooses which ones the Deck shows. Each is `{ id, name, icon, available, on }`:
+
+- `id`: stable, the app remembers the player's choice by it. v1: `zoom_in`, `zoom_out`,
+  `search_mode`, `map`, `sit`, `flashlight`, `drop_bag`, `shout`. Unknown ids are ignored by the app.
+- `name`: the game's own (translated) name for it, as in its key bindings.
+- `icon`: a texture name for the icon endpoint.
+- `available`: false while it can't run now (no light source to switch, no bag on your back,
+  paused where the game refuses it).
+- `on`: for modes (search mode, a lit flashlight): whether it's on now. Omitted for one-off commands.
+
+`deck_run` runs one (see below). `drop_bag` drops the bag the player wears: the app asks first.
+
 ### Capabilities
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`.
+`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`, `deck`.
 
 ## Client → server
 
@@ -127,6 +148,7 @@ executed on the game thread on the next tick (also while the game is paused), us
 | `transfer_all` | `from`, `to` (container ids): moves everything, with the filters of the game's Take All / Transfer All buttons |
 | `select_container` | `id`: selects a container around the player in the game's loot window, as clicking its tab would. The game then outlines it in the world and plays its open/close sound. Refused for your own bags and locked or out-of-reach containers. |
 | `set_speed` | `speed` (0–4, as in `time`): presses the game's own speed button. Refused in multiplayer, like in the game. Works while paused. |
+| `deck_run` | `id` (from `deck.commands`): runs that command as its key binding does in the game. Refused while `available` is false. |
 | `craft_list` | none. Result `data`: what the game's crafting window lists for the player now: `recipes[]` `{ id, name, icon, category, canCraft }` and `categories[]` `{ id, name }` (see Crafting) |
 | `craft_recipe` | `recipe` (an `id` from `craft_list`). Result `data`: `{ id, name, icon, category, seconds, canCraft, max, inputs[], outputs[], skills[] }` (see Crafting) |
 | `craft` | `recipe`, `count`: crafts it `count` times (at most `max`), the way the crafting window's Craft button does |
