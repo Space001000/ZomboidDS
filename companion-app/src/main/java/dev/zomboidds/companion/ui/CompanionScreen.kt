@@ -105,7 +105,7 @@ fun CompanionScreen(
  * At most five, so each stays big enough to hit (the bottom screen is small). While driving, Here
  * is titled Vehicle: the dashboard, with Here's actions (the car's among them) below it.
  */
-private enum class Tab(val title: String) { INVENTORY("Inventory"), HERE("Here"), STATUS("Status"), CRAFT("Craft"), DECK("Deck") }
+private enum class Tab(val title: String) { INVENTORY("Inventory"), HERE("Here"), DECK("Deck"), STATUS("Status"), CRAFT("Craft") }
 
 @Composable
 private fun InGame(

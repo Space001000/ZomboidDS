@@ -47,8 +47,8 @@ class AppSettings(context: Context) {
     }
 
     companion object {
-        /** A new install's Deck (the user's pick, 2026-09-26). */
-        val DEFAULT_DECK_COMMANDS = listOf("zoom_in", "zoom_out", "search_mode", "flashlight")
+        /** A new install's Deck (the user's pick, 2026-09-26; Weapons added first). */
+        val DEFAULT_DECK_COMMANDS = listOf("weapons", "zoom_in", "zoom_out", "search_mode", "flashlight")
 
         private const val KEY_INVENTORY_LAYOUT = "inventoryLayout"
         private const val KEY_CONTAINER_LAYOUT = "containerLayout"
