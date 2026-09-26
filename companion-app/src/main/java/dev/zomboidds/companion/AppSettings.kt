@@ -35,8 +35,23 @@ class AppSettings(context: Context) {
         _containerLayout.value = layout
     }
 
-    private companion object {
-        const val KEY_INVENTORY_LAYOUT = "inventoryLayout"
-        const val KEY_CONTAINER_LAYOUT = "containerLayout"
+    private val _deckCommands = MutableStateFlow(
+        prefs.getString(KEY_DECK_COMMANDS, null)?.split(',')?.filter { it.isNotBlank() } ?: DEFAULT_DECK_COMMANDS)
+
+    /** The Command deck's buttons, in order: ids of the game's deck commands. */
+    val deckCommands: StateFlow<List<String>> = _deckCommands.asStateFlow()
+
+    fun setDeckCommands(ids: List<String>) {
+        prefs.edit().putString(KEY_DECK_COMMANDS, ids.joinToString(",")).apply()
+        _deckCommands.value = ids
+    }
+
+    companion object {
+        /** A new install's Deck (the user's pick, 2026-09-26). */
+        val DEFAULT_DECK_COMMANDS = listOf("zoom_in", "zoom_out", "search_mode", "flashlight")
+
+        private const val KEY_INVENTORY_LAYOUT = "inventoryLayout"
+        private const val KEY_CONTAINER_LAYOUT = "containerLayout"
+        private const val KEY_DECK_COMMANDS = "deckCommands"
     }
 }

@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
             val update by container.updater.state.collectAsStateWithLifecycle()
             val inventoryLayout by container.settings.inventoryLayout.collectAsStateWithLifecycle()
             val containerLayout by container.settings.containerLayout.collectAsStateWithLifecycle()
+            val deckCommands by container.settings.deckCommands.collectAsStateWithLifecycle()
             CompanionScreen(
                 state, connection, report, update, setupActions,
                 iconUrl = gateway::iconUrl,
@@ -80,6 +81,8 @@ class MainActivity : ComponentActivity() {
                 },
                 events = gateway.events,
                 crafting = gateway,
+                deckCommands = deckCommands,
+                onDeckCommandsChange = container.settings::setDeckCommands,
             )
         }
     }

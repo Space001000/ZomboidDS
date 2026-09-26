@@ -71,6 +71,9 @@ fun CompanionScreen(
     onInventoryDisplayChange: (InventoryDisplay) -> Unit,
     events: Flow<GameEvent>,
     crafting: Crafting? = null,
+    /** The Command deck's buttons (deck command ids, in order), and how to change them. */
+    deckCommands: List<String> = emptyList(),
+    onDeckCommandsChange: (List<String>) -> Unit = {},
 ) {
     ZomboidTheme {
         Surface(Modifier.fillMaxSize()) {
@@ -78,7 +81,8 @@ fun CompanionScreen(
             Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
-                    InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting)
+                    InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting,
+                        deckCommands, onDeckCommandsChange)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     var licences by remember { mutableStateOf(false) }
@@ -113,8 +117,11 @@ private fun InGame(
     onInventoryDisplayChange: (InventoryDisplay) -> Unit,
     events: Flow<GameEvent>,
     crafting: Crafting?,
+    deckCommands: List<String>,
+    onDeckCommandsChange: (List<String>) -> Unit,
 ) {
     val driving = state.vehicle as? Vehicle.Driving
+    var editingDeck by rememberSaveable { mutableStateOf(false) }
     // Craft only with a mod that can craft.
     val canCraft = crafting != null && "craft" in state.session?.capabilities.orEmpty()
     val tabs = Tab.entries.filter { it != Tab.CRAFT || canCraft }
@@ -165,7 +172,12 @@ private fun InGame(
                 }
                 Tab.INVENTORY -> InventoryScreen(state.inventory, state.containers, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange,
                     show = showRequest, onShowHandled = { showRequest = null })
-                Tab.DECK -> CommandDeckScreen(state.time, controls, iconUrl)
+                Tab.DECK -> if (editingDeck && state.deck != null) {
+                    DeckEditor(state.deck.commands, deckCommands, iconUrl, onChange = onDeckCommandsChange,
+                        onDone = { editingDeck = false })
+                } else {
+                    CommandDeckScreen(state.time, state.deck, deckCommands, controls, iconUrl, onEdit = { editingDeck = true })
+                }
                 Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
                 Tab.CRAFT -> crafting?.let { CraftScreen(it, iconUrl, changes = state.inventory to state.containers) }
             }
