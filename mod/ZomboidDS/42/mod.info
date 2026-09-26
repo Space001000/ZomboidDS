@@ -1,7 +1,7 @@
 name=Zomboid DS
 id=ZomboidDS
 description=Dual-screen companion for handhelds like the AYN Thor: shows your inventory, health and vehicle on the second screen via the ZomboidDS Companion app. Requires ZombieBuddy.
-modversion=0.20.0
+modversion=0.20.1
 versionMin=42.0
 
 require=\ZombieBuddy

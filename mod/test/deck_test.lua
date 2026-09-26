@@ -39,7 +39,14 @@ function screenZoomOut() called("zoomOut") end
 local search = { isSearchMode = false }
 function search:toggleSearchMode() self.isSearchMode = not self.isSearchMode; called("toggleSearch") end
 function search:bringToTop() end
-ISSearchManager = { getManager = function() return search end }
+-- Like the game's: players[character] only once made; getManager(character) (a dot call) makes it.
+local made = 0
+ISSearchManager = { players = {} }
+function ISSearchManager.getManager(character)
+  assert(character ~= ISSearchManager, "getManager called with a colon: the manager table became the character")
+  if not ISSearchManager.players[character] then made = made + 1; ISSearchManager.players[character] = search end
+  return ISSearchManager.players[character]
+end
 
 local lightKey
 ItemBindingHandler = { toggleLight = function(key) lightKey = key; called("toggleLight") end }
@@ -76,6 +83,7 @@ local Deck = require("ZomboidDS/Adapters/B42/Deck")
 
 -- The snapshot ----------------------------------------------------------------------------------
 local snap = Deck.snapshot(player)
+check(made == 0, "a snapshot never makes a search manager (the game's getManager does)")
 check(snap.clock.time == "14:05" and snap.clock.date == "July 9" and snap.clock.alarm == "07:00",
   "the clock as the game shows it: time, date, and the watch's alarm")
 clock24 = false
@@ -100,7 +108,8 @@ end
 
 -- Running ---------------------------------------------------------------------------------------
 check(Deck.run(player, "zoom_in") == true and calls[#calls] == "zoomIn", "zoom in: the game's own zoom")
-check(Deck.run(player, "search_mode") == true and search.isSearchMode == true, "search mode switches on")
+check(Deck.run(player, "search_mode") == true and search.isSearchMode == true and made == 1,
+  "search mode switches on (the manager is made on first use, as the key does)")
 check(Deck.snapshot(player).commands[3].on == true, "... and the next snapshot says so")
 check(Deck.run(player, "flashlight") == true and lightKey == 33, "flashlight: the light key's own toggle, with its key")
 check(Deck.run(player, "map") == true and calls[#calls] == "map0", "map: the game's toggle for this player")

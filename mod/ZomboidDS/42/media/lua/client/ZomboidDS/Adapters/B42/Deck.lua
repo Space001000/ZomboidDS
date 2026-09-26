@@ -48,8 +48,10 @@ local function hasAnyLight(player)
     return found ~= nil
 end
 
-local function searchManager(player)
-    return ISSearchManager and try(ISSearchManager, "getManager", player) or nil
+--- The player's search manager if the game has made one; never creates it (getManager does, and a
+--- snapshot runs twice a second). Its functions are called with a dot, not a colon.
+local function existingSearchManager(player)
+    return ISSearchManager and ISSearchManager.players and ISSearchManager.players[player] or nil
 end
 
 local function mapVisible()
@@ -79,13 +81,14 @@ local COMMANDS = {
     {
         id = "search_mode", key = "Toggle Search Mode", icon = "Search_Icon_Off",
         -- ISSearchManager.handleKeyPressed: not while paused
-        available = function(player) return not isGamePaused() and searchManager(player) ~= nil end,
+        available = function() return not isGamePaused() and ISSearchManager ~= nil end,
         on = function(player)
-            local manager = searchManager(player)
+            local manager = existingSearchManager(player)
             return manager ~= nil and manager.isSearchMode == true
         end,
         run = function(player)
-            local manager = searchManager(player)
+            -- As the key does: the manager is made on first use.
+            local manager = ISSearchManager.getManager(player)
             manager:toggleSearchMode()
             manager:bringToTop()
         end,
