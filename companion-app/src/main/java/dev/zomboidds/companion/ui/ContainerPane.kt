@@ -112,10 +112,13 @@ internal fun ContainerPane(
                         }
                     }) { entry ->
                         when (entry) {
-                            is PaneEntry.Stack -> if (layout == InventoryLayout.GRID) {
-                                GridTile(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) })
-                            } else {
-                                ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) })
+                            // Hold and drag onto a container tab to move it (worn clothes stay put).
+                            is PaneEntry.Stack -> Box(if (entry.worn) Modifier else Modifier.draggableItem(entry.stack, shown.id)) {
+                                if (layout == InventoryLayout.GRID) {
+                                    GridTile(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) })
+                                } else {
+                                    ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) })
+                                }
                             }
                             is PaneEntry.Worn -> WornTile(entry, iconUrl, list = layout == InventoryLayout.LIST, onClick = { wornOpen = !wornOpen })
                         }
@@ -156,6 +159,7 @@ private fun AllButton(label: String, containerId: String, onClick: () -> Unit) {
 @Composable
 private fun ContainerTabs(tabs: List<ContainerView>, shown: ContainerView, onOpen: (String) -> Unit, iconUrl: (String) -> String) {
     val scroll = rememberScrollState()
+    val drag = LocalItemDrag.current
     Row(
         Modifier.fillMaxWidth()
             // More tabs than fit: the row fades out at the edge.
@@ -177,10 +181,13 @@ private fun ContainerTabs(tabs: List<ContainerView>, shown: ContainerView, onOpe
             // Only the open tab has its name; the others are the game's icon (and number, "Shelves 2").
             val compact = !open && view.container.icon != null
             val number = view.label.removePrefix(view.container.name).trim().takeIf { view.label != view.container.name }
+            // While an item is dragged, the tabs it can go to light up.
+            val canDrop = drag != null && drag.active && drag.from != view.id && !view.container.locked
             Surface(
                 onClick = { onOpen(view.id) },
                 shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.semantics { contentDescription = view.label },
+                modifier = Modifier.semantics { contentDescription = view.label }.dropTarget(view.id),
+                border = if (canDrop) BorderStroke(2.dp, if (drag?.target() == view.id) Good else Good.copy(alpha = 0.55f)) else null,
                 color = if (open) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
                 contentColor = if (open) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
             ) {

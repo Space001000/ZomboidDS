@@ -1,5 +1,13 @@
 package dev.zomboidds.companion.ui
 
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -168,6 +176,15 @@ fun InventoryScreen(
 
     fun moveAll(from: ContainerView, to: ContainerView) = run(from.label) { actions.transferAll(from.id, to.id) }
 
+    // Dragging an item onto a container tab moves the whole stack there.
+    val currentViews by rememberUpdatedState(views)
+    val drag = remember {
+        ItemDrag { dragged, to ->
+            currentViews.firstOrNull { it.id == to && !it.container.locked }?.let { target -> moveStack(dragged, target) }
+        }
+    }
+    var origin by remember { mutableStateOf(Offset.Zero) }
+
     // Opening a container around you selects it in the game too, which outlines it in the world.
     fun highlight(id: String) {
         val view = views.firstOrNull { it.id == id } ?: return
@@ -180,7 +197,8 @@ fun InventoryScreen(
     fun takeAll(view: ContainerView) =
         ("Take all" to { moveAll(view, mineShown) }).takeIf { canMove && !view.container.locked && view.container.kind != ContainerKind.INVENTORY }
 
-    Box(Modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalItemDrag provides drag) {
+    Box(Modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             // The display toggles sit at the end of the first tab row, so they cost no screen height.
             val switch = @Composable { DisplaySwitch(display, onDisplayChange, showContainerLayout = canMove) }
@@ -257,5 +275,19 @@ fun InventoryScreen(
                 onClose = { selectedId = null },
             )
         }
+        // The dragged item, under the finger.
+        drag.stack?.let { dragged ->
+            val at = drag.position - origin
+            Box(Modifier.offset { IntOffset((at.x - FloatHalfSize.toPx()).roundToInt(), (at.y - FloatHalfSize.toPx()).roundToInt()) }
+                .graphicsLayer { rotationZ = -4f; shadowElevation = 12f }) {
+                Box(Modifier.size(FloatHalfSize * 2)) {
+                    GridTile(dragged, iconUrl, selected = true, worn = false, onClick = {})
+                }
+            }
+        }
+    }
     }
 }
+
+/** The floating item while dragging: a grid tile's size, centred on the finger. */
+private val FloatHalfSize = 32.dp
