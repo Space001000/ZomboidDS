@@ -21,20 +21,23 @@ import androidx.compose.ui.unit.sp
 import dev.zomboidds.companion.domain.Vehicle
 
 
-/** Dashboard for the vehicle the player is in. */
+/**
+ * Dashboard for the vehicle the player is in. [compact]: smaller, leaving room for Here below it
+ * (the dashboard rework is still to come).
+ */
 @Composable
-fun VehicleScreen(vehicle: Vehicle.Driving) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+fun VehicleScreen(vehicle: Vehicle.Driving, compact: Boolean = false) {
+    Column(verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(vehicle.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
             Text(if (vehicle.isDriver) "Driver" else "Passenger", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Card(Modifier.fillMaxWidth()) {
             Column(
-                Modifier.fillMaxWidth().padding(24.dp),
+                Modifier.fillMaxWidth().padding(if (compact) 10.dp else 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("%.0f".format(vehicle.speedKmh), fontSize = 96.sp, fontWeight = FontWeight.Bold)
+                Text("%.0f".format(vehicle.speedKmh), fontSize = if (compact) 48.sp else 96.sp, fontWeight = FontWeight.Bold)
                 Text("km/h", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

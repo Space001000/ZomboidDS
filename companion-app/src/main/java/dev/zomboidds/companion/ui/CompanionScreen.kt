@@ -97,7 +97,11 @@ fun CompanionScreen(
     }
 }
 
-private enum class Tab(val title: String) { VEHICLE("Vehicle"), INVENTORY("Inventory"), DECK("Deck"), STATUS("Status"), CRAFT("Craft") }
+/**
+ * At most five, so each stays big enough to hit (the bottom screen is small). While driving, Here
+ * is titled Vehicle: the dashboard, with Here's actions (the car's among them) below it.
+ */
+private enum class Tab(val title: String) { INVENTORY("Inventory"), HERE("Here"), STATUS("Status"), CRAFT("Craft"), DECK("Deck") }
 
 @Composable
 private fun InGame(
@@ -111,19 +115,19 @@ private fun InGame(
     crafting: Crafting?,
 ) {
     val driving = state.vehicle as? Vehicle.Driving
-    // The Vehicle tab only exists while in a vehicle; Craft only with a mod that can craft.
+    // Craft only with a mod that can craft.
     val canCraft = crafting != null && "craft" in state.session?.capabilities.orEmpty()
-    val tabs = Tab.entries.filter { (it != Tab.VEHICLE || driving != null) && (it != Tab.CRAFT || canCraft) }
+    val tabs = Tab.entries.filter { it != Tab.CRAFT || canCraft }
     var tab by rememberSaveable { mutableStateOf(Tab.INVENTORY) }
     var tabBeforeVehicle by rememberSaveable { mutableStateOf(Tab.INVENTORY) }
 
-    // Getting in switches to the dashboard; getting out returns to where the player was.
+    // Getting in switches to the dashboard (Here, titled Vehicle); getting out returns to where the player was.
     val inVehicle = driving != null
     LaunchedEffect(inVehicle) {
-        if (inVehicle && tab != Tab.VEHICLE) {
+        if (inVehicle && tab != Tab.HERE) {
             tabBeforeVehicle = tab
-            tab = Tab.VEHICLE
-        } else if (!inVehicle && tab == Tab.VEHICLE) {
+            tab = Tab.HERE
+        } else if (!inVehicle && tab == Tab.HERE) {
             tab = tabBeforeVehicle
         }
     }
@@ -145,15 +149,23 @@ private fun InGame(
     Column(Modifier.fillMaxSize()) {
         PrimaryTabRow(selectedTabIndex = tabs.indexOf(shown)) {
             tabs.forEach {
-                Tab(selected = shown == it, onClick = { tab = it }, text = { Text(it.title) })
+                val title = if (it == Tab.HERE && driving != null) "Vehicle" else it.title
+                Tab(selected = shown == it, onClick = { tab = it }, text = { Text(title) })
             }
         }
         Box(Modifier.fillMaxSize().padding(10.dp)) {
             when (shown) {
-                Tab.VEHICLE -> driving?.let { VehicleScreen(it) }
+                Tab.HERE -> if (driving != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        VehicleScreen(driving, compact = true)
+                        HereScreen(state.here, controls, actions, iconUrl, Modifier.weight(1f))
+                    }
+                } else {
+                    HereScreen(state.here, controls, actions, iconUrl)
+                }
                 Tab.INVENTORY -> InventoryScreen(state.inventory, state.containers, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange,
                     show = showRequest, onShowHandled = { showRequest = null })
-                Tab.DECK -> CommandDeckScreen(state.time, state.here, controls, actions, iconUrl)
+                Tab.DECK -> CommandDeckScreen(state.time, controls, iconUrl)
                 Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
                 Tab.CRAFT -> crafting?.let { CraftScreen(it, iconUrl, changes = state.inventory to state.containers) }
             }
