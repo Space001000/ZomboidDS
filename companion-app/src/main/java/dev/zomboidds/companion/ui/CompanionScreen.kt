@@ -163,10 +163,7 @@ private fun InGame(
         Box(Modifier.fillMaxSize().padding(10.dp)) {
             when (shown) {
                 Tab.HERE -> if (driving != null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        VehicleScreen(driving, compact = true)
-                        HereScreen(state.here, controls, actions, iconUrl, Modifier.weight(1f))
-                    }
+                    VehicleTab(driving, state.here, controls, actions, iconUrl)
                 } else {
                     HereScreen(state.here, controls, actions, iconUrl)
                 }

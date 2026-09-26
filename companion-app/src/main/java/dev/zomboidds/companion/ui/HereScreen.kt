@@ -61,13 +61,7 @@ fun HereScreen(
     modifier: Modifier = Modifier,
 ) {
     // Tell the game we're looking; repeated because it expires (e.g. if the app is closed).
-    LaunchedEffect(Unit) {
-        while (true) {
-            controls.watchHere(true)
-            delay(4_000)
-        }
-    }
-    DisposableEffect(Unit) { onDispose { controls.watchHere(false) } }
+    WatchHere(controls)
 
     val scope = rememberCoroutineScope()
     var message by remember { mutableStateOf<String?>(null) }
@@ -180,4 +174,19 @@ private fun Chips(
         }
     }
     }
+}
+
+/**
+ * While on screen, the game keeps "Here" up to date (the world menu, or the vehicle's menu in a
+ * car). Repeated because it expires (e.g. if the app is closed).
+ */
+@Composable
+internal fun WatchHere(controls: GameControls) {
+    LaunchedEffect(Unit) {
+        while (true) {
+            controls.watchHere(true)
+            delay(4_000)
+        }
+    }
+    DisposableEffect(Unit) { onDispose { controls.watchHere(false) } }
 }
