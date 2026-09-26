@@ -8,10 +8,12 @@ runs on the top screen (through [Zomdroid](https://github.com/udarmolota/zomdroi
 
 - **Inventory**: your bags and every container around you, with the game's icons; move items with a
   tap, and use them through the game's own item menu (read, eat, apply, craft, ...).
-- **Deck**: the game's speed buttons, and what you can do where you stand (open, sit, drink, ...).
+- **Here**: what you can do where you stand (open, sit, drink, ...); in a car, the car's own menu.
+- **Deck**: the game's speed buttons, the time, and your own commands: zoom, search mode, flashlight,
+  map, your hotbar weapons, your watch's alarm, ...
 - **Status**: the game's moodles, your body with its injuries, and the game's treatments.
 - **Craft**: the recipes you can make with what's in reach, what each needs, and crafting them.
-- **Vehicle**: speed, fuel and engine while you drive.
+- **Vehicle**: while you drive, speed, engine and fuel with the car's controls.
 
 ## Download
 

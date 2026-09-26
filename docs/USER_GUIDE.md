@@ -69,11 +69,14 @@ your character:
   - A thin bar under an item means it's damaged (green, yellow, red); undamaged items have none.
     Food has a dot: green fresh, yellow stale, red rotten.
   - **Take all** and **Put all** move everything, so they ask first: tap once (the button turns red
-    and asks), tap again within 3 seconds to do it.
+    and asks), tap again within 3 seconds to do it. Take all puts things in the bag you have open in
+    your half (your main inventory if none), like the game's Loot all.
   - The two small buttons at the top right switch the layout and between grid and list.
-- **Deck**: the game's speed buttons (pause, play, fast forward, wait), and **Here**: what you can do
-  where you stand (open a door, sit, drink, ...), updating by itself as you walk. Tap an action to do
-  it; greyed-out ones tell you why when tapped.
+- **Here**: what you can do where you stand (open a door, sit, drink, ...), as cards per object,
+  updating by itself as you walk. Tap an action to do it; greyed-out ones tell you why when tapped.
+  **In a vehicle** this tab becomes **Vehicle**: speed, engine and fuel, and the car's own menu (the
+  one the controller's radial menu shows) as big buttons: start the engine, headlights, heater,
+  horn, windows, doors, sleep, switch seat, get out, ...
 - **Status**: your moodles along the top, like in the game (hungry, thirsty, bleeding, ...; tap one
   for what it means). Below, your body with injured parts in colour, what's wrong with each (as your
   First Aid skill lets you see it), and **Treat ›** for the game's own treatments (bandage,
@@ -82,7 +85,11 @@ your character:
   (your bags and the containers around you); categories along the top. Tap one to see what it needs
   (✓ have, ✗ missing), what it makes and how long it takes, then **Craft** (− / + for several). Your
   character fetches the ingredients and does it, like with the game's crafting window.
-- **Vehicle**: appears automatically when you get into a vehicle: speed, fuel and engine.
+- **Deck**, your command deck: the game's speed buttons (pause, play, fast forward, wait), the time
+  and your alarm (with a watch, as in the game), and the commands you choose. **Add or edit** lists
+  them all: zoom in and out, search mode, flashlight, map, sit, drop bag (asks first), shout,
+  **Weapons** (your hotbar: tap an item on your belt or back to draw it) and **Alarm** (set your
+  watch). Switch them on and drag them into your order; a green dot shows a mode that's on.
 
 The **Loot / Inventory button (Y)** opens the container on the bottom screen instead of the game's
 windows on the top screen (without the app, Y works as usual). The gamepad keeps controlling the game

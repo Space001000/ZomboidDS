@@ -53,7 +53,7 @@ windows can't be moved to the other display: each panel is rebuilt in the app fr
 │   │          ZombieBuddy download, app updates                               │
 │   ├─ domain: GameState, commands, menus, crafting (ports, no Android)        │
 │   ├─ data:   WebSocketGameGateway (OkHttp), ProtocolV1                       │
-│   └─ ui:     Inventory, Deck, Status, Craft, Vehicle                         │
+│   └─ ui:     Inventory, Here (Vehicle), Status, Craft, Deck                  │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -82,7 +82,9 @@ Everything below was checked against the game's Lua sources and `projectzomboid.
 | Item menu | `ISInventoryPaneContextMenu.createMenu`, built hidden and closed in the same tick; its options are copied and a choice runs `option.onSelect(target, params…)` exactly like a click. Entries the app has as buttons are left out by the function behind them. |
 | The Y button | The controller prompt's `cmdShowLoot` / `cmdShowInventory` are wrapped: with the app connected, the container opens on the bottom screen instead of the game's window. |
 | Game speed | The speed buttons' own `ButtonClicked` (like the controller's wheel); refused while the pause menu is open, as the game does. |
-| "Here" (Deck) | The interact prompt's objects (`getInteractOptionsButtonObjects`) and the world menu the controller's interact button opens; rebuilt when the player moves, turns or an action finishes. |
+| "Here" | The interact prompt's objects (`getInteractOptionsButtonObjects`) and the world menu the controller's interact button opens; rebuilt when the player moves, turns or an action finishes. |
+| Vehicle | In a vehicle there's no world menu: the game's vehicle radial menu (`ISVehicleMenu.showRadialMenu`) is built into a recorder instead of the real radial menu, with its sound and controller focus switched off for that moment; its slices become the Vehicle tab's buttons. |
+| Command deck | Each command calls what its key binding calls (zoom: `Core.doZoomScroll`; search mode: the search manager; flashlight: `ItemBindingHandler.toggleLight`; map: `ISWorldMap.ToggleWorldMap`; ...), named with the game's key binding texts. Weapons is the game's hotbar (`ISHotbar:activateSlot`); Alarm sets the watch as the game's alarm dialog does. The clock line follows the game's own clock (only with a watch). |
 | Injuries | `ISHealthPanel.getDamagedParts` and the health list's own `doDrawItem`, run with a stand-in that records its text and colours: the lines depend on the player's First Aid level, like in the game. Treatments are the game's body-part menu. |
 | Body silhouette | The health panel's `bps_male_*` / `bps_female_*` layers (UI2.pack), tinted per body part. |
 | Moodles | `player:getMoodles()` for levels, names and descriptions; the moodle column's rules (level > 0, "food eaten" from level 3, background grey → good/bad highlight colour by level/4). The type → icon table is Java-only (`zombie.ui.MoodleTextureSet`), so the adapter holds a copy. |
@@ -127,13 +129,12 @@ installer (same signing key only).
 - Game menus the game builds only while you hover them can arrive empty (seen once: "Natural Water
   Source" in "Here").
 - Build 42 only for now; one Zomdroid instance at a time (the one picked in the checklist).
-- The vehicle dashboard is basic.
+- The vehicle dashboard is simple (speed, engine, fuel), with the car's menu below it.
 
 ## What's next
 
-- The vehicle dashboard, reworked.
-- Dropping a bag / held items from a deliberate place (not next to other buttons).
-- Search mode (investigate area), inventory organisation, character info (skills, protection).
+- A fuller vehicle dashboard.
+- Inventory organisation, character info (skills, protection), a map view.
 - Several Zomdroid instances at once, and B41 through its own adapter.
 - Upstream ideas: a Zomdroid intent to launch an instance on a chosen display; a ZombieBuddy release
   asset with the full mod for non-Steam installs.
