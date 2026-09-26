@@ -58,6 +58,8 @@ fun CommandDeckScreen(
 ) {
     val scope = rememberCoroutineScope()
     var failure by remember { mutableStateOf<String?>(null) }
+    // Weapons and Alarm open a panel (the hotbar, the alarm time) instead of running at once.
+    var panel by remember { mutableStateOf<String?>(null) }
     fun run(action: suspend () -> CommandResult) {
         failure = null
         scope.launch {
@@ -65,6 +67,7 @@ fun CommandDeckScreen(
             if (result is CommandResult.Failed) failure = result.reason
         }
     }
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         when {
             time == null -> Text("Waiting for the game...", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -80,9 +83,46 @@ fun CommandDeckScreen(
         if (deck != null) {
             // The player's buttons, as far as this game offers them (an older mod may lack some).
             val commands = chosen.mapNotNull { id -> deck.commands.firstOrNull { it.id == id } }
-            CommandGrid(commands, iconUrl, onRun = { command -> run { controls.runDeckCommand(command.id) } }, onEdit = onEdit)
+            CommandGrid(commands, deck, iconUrl, onRun = { command ->
+                when (command.id) {
+                    in PANELS -> panel = command.id
+                    else -> run { controls.runDeckCommand(command.id) }
+                }
+            }, onEdit = onEdit)
         }
     }
+    when (panel) {
+        "weapons" -> DeckSheet(onClose = { panel = null }) {
+            WeaponsPanel(deck?.hotbar.orEmpty(), iconUrl) { slot ->
+                panel = null
+                run { controls.drawHotbarSlot(slot) }
+            }
+        }
+        "alarm" -> deck?.alarmClock?.let { clock ->
+            DeckSheet(onClose = { panel = null }) {
+                AlarmPanel(clock, deck.clock?.time) { hour, minute, on ->
+                    panel = null
+                    run { controls.setAlarm(hour, minute, on) }
+                }
+            }
+        }
+    }
+    }
+}
+
+/** Commands that open a panel on the Deck instead of running at once. */
+private val PANELS = setOf("weapons", "alarm")
+
+/** What a button says under its name: what's in hand, when the alarm rings, or why it's greyed. */
+private fun subtitle(command: DeckCommand, deck: DeckState): String? = when (command.id) {
+    "weapons" -> if (!command.available) "Nothing on your hotbar"
+        else deck.hotbar.firstOrNull { it.inHand && it.item != null }?.item?.let { "${it.name} in hand" } ?: "Nothing in hand"
+    "alarm" -> when {
+        !command.available -> "Needs a watch"
+        deck.alarmClock?.on == true -> "%02d:%02d".format(deck.alarmClock.hour, deck.alarmClock.minute)
+        else -> "Off"
+    }
+    else -> null
 }
 
 /** What the game's clock shows (only with a watch): date and time, and the alarm if it's set. */
@@ -102,7 +142,7 @@ private val DeckTileHeight = 92.dp
 private val DeckTileMinWidth = 110.dp
 
 @Composable
-private fun CommandGrid(commands: List<DeckCommand>, iconUrl: (String) -> String, onRun: (DeckCommand) -> Unit, onEdit: () -> Unit) {
+private fun CommandGrid(commands: List<DeckCommand>, deck: DeckState, iconUrl: (String) -> String, onRun: (DeckCommand) -> Unit, onEdit: () -> Unit) {
     BoxWithConstraints {
         val columns = ((maxWidth + 8.dp) / (DeckTileMinWidth + 8.dp)).toInt().coerceIn(2, 6)
         val tiles: List<DeckCommand?> = commands + null // null: the "Add or edit" tile
@@ -111,7 +151,8 @@ private fun CommandGrid(commands: List<DeckCommand>, iconUrl: (String) -> String
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { command ->
                         val modifier = Modifier.weight(1f).height(DeckTileHeight)
-                        if (command == null) EditTile(onEdit, modifier) else CommandTile(command, iconUrl, onRun, modifier)
+                        if (command == null) EditTile(onEdit, modifier)
+                        else CommandTile(command, subtitle(command, deck), iconUrl, onRun, modifier)
                     }
                     repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                 }
@@ -125,7 +166,7 @@ private fun CommandGrid(commands: List<DeckCommand>, iconUrl: (String) -> String
  * tap you can't take back, so it asks first: the first tap arms it, a second one within 3 s drops.
  */
 @Composable
-private fun CommandTile(command: DeckCommand, iconUrl: (String) -> String, onRun: (DeckCommand) -> Unit, modifier: Modifier) {
+private fun CommandTile(command: DeckCommand, subtitle: String?, iconUrl: (String) -> String, onRun: (DeckCommand) -> Unit, modifier: Modifier) {
     val asksFirst = command.id in ASKS_FIRST
     var armed by remember(command.id) { mutableStateOf(false) }
     LaunchedEffect(armed) {
@@ -160,13 +201,18 @@ private fun CommandTile(command: DeckCommand, iconUrl: (String) -> String, onRun
                 Text(
                     if (armed) "Tap again to ${label(command).lowercase()}" else label(command),
                     style = MaterialTheme.typography.labelLarge,
-                    textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center, maxLines = if (subtitle != null) 1 else 2, overflow = TextOverflow.Ellipsis,
                     color = when {
                         armed -> MaterialTheme.colorScheme.error
                         command.available -> MaterialTheme.colorScheme.onSurface
                         else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     },
                 )
+                subtitle?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (command.available) 1f else 0.6f))
+                }
             }
             if (command.on == true) {
                 Surface(shape = CircleShape, color = Good,
@@ -208,6 +254,8 @@ internal fun label(command: DeckCommand) = when (command.id) {
     "sit" -> "Sit"
     "drop_bag" -> "Drop bag"
     "shout" -> "Shout"
+    "weapons" -> "Weapons"
+    "alarm" -> "Alarm"
     else -> command.name
 }
 

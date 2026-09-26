@@ -30,6 +30,12 @@ interface GameControls {
     /** Runs a Command deck command ([DeckCommand.id]), like its key binding in the game. Never throws. */
     suspend fun runDeckCommand(id: String): CommandResult
 
+    /** Draws a hotbar slot's item ([HotbarSlot.slot]), like the hotbar's key; the one in hand is put away. */
+    suspend fun drawHotbarSlot(slot: Int): CommandResult
+
+    /** Sets the alarm of the player's watch or clock, as the game's alarm dialog does. */
+    suspend fun setAlarm(hour: Int, minute: Int, on: Boolean): CommandResult
+
     /**
      * Whether the app shows "Here": while on, the game keeps [GameState.here] up to date as the
      * player moves (the game's world menu, what the controller's interact button opens). Call with

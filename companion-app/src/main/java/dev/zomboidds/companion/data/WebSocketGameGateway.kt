@@ -145,6 +145,11 @@ class WebSocketGameGateway(
 
     override suspend fun runDeckCommand(id: String): CommandResult = send(ProtocolV1.deckRunRequest(id)).result
 
+    override suspend fun drawHotbarSlot(slot: Int): CommandResult = send(ProtocolV1.hotbarRequest(slot)).result
+
+    override suspend fun setAlarm(hour: Int, minute: Int, on: Boolean): CommandResult =
+        send(ProtocolV1.alarmRequest(hour, minute, on)).result
+
     override suspend fun transfer(itemId: Long, toContainer: String): CommandResult =
         send(ProtocolV1.transferRequest(itemId, toContainer)).result
 

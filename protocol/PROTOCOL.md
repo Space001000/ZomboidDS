@@ -108,7 +108,8 @@ player's watch or clock when it's set, optional). No `clock` without a watch.
 chooses which ones the Deck shows. Each is `{ id, name, icon, available, on }`:
 
 - `id`: stable, the app remembers the player's choice by it. v1: `zoom_in`, `zoom_out`,
-  `search_mode`, `map`, `sit`, `flashlight`, `drop_bag`, `shout`. Unknown ids are ignored by the app.
+  `search_mode`, `map`, `sit`, `flashlight`, `drop_bag`, `weapons`, `alarm`, `shout`. Unknown ids
+  are ignored by the app.
 - `name`: the game's own (translated) name for it, as in its key bindings.
 - `icon`: a texture name for the icon endpoint.
 - `available`: false while it can't run now (no light source to switch, no bag on your back,
@@ -116,6 +117,17 @@ chooses which ones the Deck shows. Each is `{ id, name, icon, available, on }`:
 - `on`: for modes (search mode, a lit flashlight): whether it's on now. Omitted for one-off commands.
 
 `deck_run` runs one (see below). `drop_bag` drops the bag the player wears: the app asks first.
+
+Two commands take arguments and come with their own state in `deck`:
+
+- `weapons`: `deck.hotbar[]` is the game's hotbar, slot by slot in its order: `{ slot, name,
+  item: { name, icon }, inHand }` (`item` omitted for an empty slot; `name` as the game names the
+  slot: Back, Belt Left, ...). `deck_run { id: "weapons", slot }` draws that slot's item like the
+  hotbar's key (what was in hand goes back to its slot; the item already in hand is put away).
+  Refused while an action is queued or mid-swing, like the hotbar keys.
+- `alarm`: `deck.alarmClock` is the watch or clock the game's alarm uses (worn first, then
+  carried): `{ name, hour, minute, on }`; omitted without one. `deck_run { id: "alarm", hour,
+  minute, on }` sets it as the game's alarm dialog does.
 
 ### Capabilities
 
@@ -148,7 +160,7 @@ executed on the game thread on the next tick (also while the game is paused), us
 | `transfer_all` | `from`, `to` (container ids): moves everything, with the filters of the game's Take All / Transfer All buttons |
 | `select_container` | `id`: selects a container around the player in the game's loot window, as clicking its tab would. The game then outlines it in the world and plays its open/close sound. Refused for your own bags and locked or out-of-reach containers. |
 | `set_speed` | `speed` (0–4, as in `time`): presses the game's own speed button. Refused in multiplayer, like in the game. Works while paused. |
-| `deck_run` | `id` (from `deck.commands`): runs that command as its key binding does in the game. Refused while `available` is false. |
+| `deck_run` | `id` (from `deck.commands`): runs that command as its key binding does in the game. Refused while `available` is false. `weapons` also takes `slot`; `alarm` takes `hour`, `minute`, `on` (see Command deck). |
 | `craft_list` | none. Result `data`: what the game's crafting window lists for the player now: `recipes[]` `{ id, name, icon, category, canCraft }` and `categories[]` `{ id, name }` (see Crafting) |
 | `craft_recipe` | `recipe` (an `id` from `craft_list`). Result `data`: `{ id, name, icon, category, seconds, canCraft, max, inputs[], outputs[], skills[] }` (see Crafting) |
 | `craft` | `recipe`, `count`: crafts it `count` times (at most `max`), the way the crafting window's Craft button does |

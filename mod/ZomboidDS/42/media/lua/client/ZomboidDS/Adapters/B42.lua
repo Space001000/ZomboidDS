@@ -157,7 +157,7 @@ B42.commands = {
 
     -- The Command deck: zoom, search mode, flashlight, ... as their key bindings (see B42/Deck.lua).
     deck_run = function(player, args)
-        return Deck.run(player, tostring(args.id))
+        return Deck.run(player, tostring(args.id), args)
     end,
 
     -- The game's own right-click menu for an item (see B42Menu.lua): for items you carry, and for

@@ -66,6 +66,69 @@ local function wornBag(player)
     return nil
 end
 
+--- The game's hotbar for this player (ISHotbar: availableSlot[i], attachedItems[i]), or nil.
+local function hotbar(player)
+    return getPlayerHotbar and getPlayerHotbar(playerNum(player)) or nil
+end
+
+--- The hotbar's slots in its order: { slot, name, item = { name, icon }, inHand }. Slot names as the
+--- game shows them (IGUI_HotbarAttachment_<type>, else the slot's own name).
+local function hotbarSlots(player)
+    local bar = hotbar(player)
+    if bar == nil or bar.availableSlot == nil then
+        return nil
+    end
+    local primary, secondary = try(player, "getPrimaryHandItem"), try(player, "getSecondaryHandItem")
+    local slots = {}
+    for index, slot in ipairs(bar.availableSlot) do
+        local name = getTextOrNull and getTextOrNull("IGUI_HotbarAttachment_" .. tostring(slot.slotType)) or nil
+        local entry = { slot = index, name = name or tostring(slot.name) }
+        local item = bar.attachedItems and bar.attachedItems[index]
+        if item ~= nil then
+            entry.item = { name = try(item, "getDisplayName"),
+                           icon = Util.textureFileName(try(try(item, "getTex"), "getName")) }
+            entry.inHand = item == primary or item == secondary
+        end
+        slots[#slots + 1] = entry
+    end
+    return slots
+end
+
+local function hasHotbarItem(player)
+    for _, slot in ipairs(hotbarSlots(player) or {}) do
+        if slot.item ~= nil then return true end
+    end
+    return false
+end
+
+--- The watch or clock the game's alarm uses: worn first, then carried (as zombie.ui.Clock looks).
+local function alarmClock(player)
+    local candidates = {}
+    local worn = try(player, "getWornItems")
+    for i = 0, (try(worn, "size") or 0) - 1 do
+        table.insert(candidates, worn:getItemByIndex(i))
+    end
+    local items = try(try(player, "getInventory"), "getItems")
+    for i = 0, (try(items, "size") or 0) - 1 do
+        table.insert(candidates, items:get(i))
+    end
+    for _, item in ipairs(candidates) do
+        if instanceof(item, "AlarmClock") or instanceof(item, "AlarmClockClothing") then
+            return item
+        end
+    end
+    return nil
+end
+
+--- Nothing queued and not mid-swing: when the game lets its hotbar keys act (ISHotbar:isAllowedToActivateSlot).
+local function freeHands(player)
+    if isGamePaused() or try(player, "isAttacking") == true then
+        return false
+    end
+    local queue = ISTimedActionQueue and ISTimedActionQueue.queues and ISTimedActionQueue.queues[player]
+    return queue == nil or queue.queue == nil or #queue.queue == 0
+end
+
 --- The commands, in the order the app offers them when adding. `key`: the game's key binding
 --- (its name is the command's name). `available` and `on` get the player; `run` does it.
 local COMMANDS = {
@@ -143,6 +206,38 @@ local COMMANDS = {
         run = function(player) ISInventoryPaneContextMenu.dropItem(wornBag(player), playerNum(player)) end,
     },
     {
+        -- The app shows the hotbar and sends the slot to draw; drawing the one in hand puts it away.
+        id = "weapons", name = "Weapons", icon = "Item_Axe",
+        available = function(player) return hasHotbarItem(player) end,
+        run = function(player, args)
+            local slot = tonumber(args and args.slot)
+            local bar = hotbar(player)
+            if slot == nil or bar == nil or bar.attachedItems == nil or bar.attachedItems[slot] == nil then
+                error("nothing in that hotbar slot", 0)
+            end
+            if not freeHands(player) then
+                error("busy", 0)
+            end
+            bar:activateSlot(slot)
+        end,
+    },
+    {
+        -- As the game's alarm dialog (ISAlarmClockDialog OK): on/off, hour, minute, then sync.
+        id = "alarm", name = "Alarm", icon = "ClockAlarmLargeSet",
+        available = function(player) return alarmClock(player) ~= nil end,
+        run = function(player, args)
+            local clock = alarmClock(player)
+            local hour, minute = tonumber(args and args.hour), tonumber(args and args.minute)
+            if hour == nil or minute == nil or hour < 0 or hour > 23 or minute < 0 or minute > 59 then
+                error("not a time", 0)
+            end
+            clock:setAlarmSet(args.on ~= false)
+            clock:setHour(math.floor(hour))
+            clock:setMinute(math.floor(minute))
+            if clock.syncAlarmClock then clock:syncAlarmClock() end
+        end,
+    },
+    {
         id = "shout", key = "Shout", icon = "Item_Whistle",
         -- ISEmoteRadialMenu.onKeyReleased: a short press shouts, not from a vehicle
         available = function(player) return not isGamePaused() and try(player, "getVehicle") == nil end,
@@ -174,23 +269,13 @@ local function formatTime(hour, minute)
     return string.format("%02d:%02d", hour, minute)
 end
 
---- The alarm of the player's watch or clock, as the game's clock finds it (worn first).
+--- The alarm time of the player's watch or clock when it's set, as the game's clock finds it.
 local function alarm(player)
-    local candidates = {}
-    local worn = try(player, "getWornItems")
-    for i = 0, (try(worn, "size") or 0) - 1 do
-        table.insert(candidates, worn:getItemByIndex(i))
-    end
-    local items = try(try(player, "getInventory"), "getItems")
-    for i = 0, (try(items, "size") or 0) - 1 do
-        table.insert(candidates, items:get(i))
-    end
-    for _, item in ipairs(candidates) do
-        if (instanceof(item, "AlarmClock") or instanceof(item, "AlarmClockClothing")) and try(item, "isAlarmSet") == true then
-            local hour, minute = try(item, "getHour"), try(item, "getMinute")
-            if hour and minute then
-                return formatTime(hour, minute)
-            end
+    local watch = alarmClock(player)
+    if watch ~= nil and try(watch, "isAlarmSet") == true then
+        local hour, minute = try(watch, "getHour"), try(watch, "getMinute")
+        if hour and minute then
+            return formatTime(hour, minute)
         end
     end
     return nil
@@ -215,7 +300,7 @@ function Deck.snapshot(player)
     for _, command in ipairs(COMMANDS) do
         local entry = {
             id = command.id,
-            name = getText("UI_optionscreen_binding_" .. command.key),
+            name = command.key and getText("UI_optionscreen_binding_" .. command.key) or command.name,
             icon = command.icon,
             available = command.available == nil or check(command.available, player) == true,
         }
@@ -224,11 +309,17 @@ function Deck.snapshot(player)
         end
         table.insert(commands, entry)
     end
-    return { clock = clock(player), commands = commands }
+    local result = { clock = clock(player), commands = commands, hotbar = hotbarSlots(player) }
+    local watch = alarmClock(player)
+    if watch ~= nil then
+        result.alarmClock = { name = try(watch, "getDisplayName"), hour = try(watch, "getHour"),
+                              minute = try(watch, "getMinute"), on = try(watch, "isAlarmSet") == true }
+    end
+    return result
 end
 
---- Runs a command by id. Returns true, or false and why not.
-function Deck.run(player, id)
+--- Runs a command by id (with its args, e.g. the hotbar slot or the alarm time). Returns true, or false and why not.
+function Deck.run(player, id, args)
     local command = BY_ID[id]
     if command == nil then
         return false, "unknown deck command '" .. tostring(id) .. "'"
@@ -236,8 +327,14 @@ function Deck.run(player, id)
     if command.available ~= nil and check(command.available, player) ~= true then
         return false, "Can't do that right now"
     end
-    local ok, err = pcall(command.run, player)
+    local ok, err = pcall(command.run, player, args)
     if not ok then
+        local text = tostring(err)
+        if text:find("busy", 1, true) then
+            return false, "Not while you're busy (finish or cancel what you're doing)"
+        elseif text:find("hotbar slot", 1, true) or text:find("not a time", 1, true) then
+            return false, "That changed in the game; try again"
+        end
         return false, "That didn't work in this game version (" .. tostring(err) .. ")"
     end
     return true

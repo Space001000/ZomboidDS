@@ -9,6 +9,9 @@ import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.Freshness
 import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameSpeed
+import dev.zomboidds.companion.domain.AlarmClock
+import dev.zomboidds.companion.domain.HotbarItem
+import dev.zomboidds.companion.domain.HotbarSlot
 import dev.zomboidds.companion.domain.DeckCommand
 import dev.zomboidds.companion.domain.DeckClock
 import dev.zomboidds.companion.domain.DeckState
@@ -144,7 +147,21 @@ object ProtocolV1 {
     )
 
     @Serializable
-    private data class DeckDto(val clock: DeckClockDto? = null, val commands: List<DeckCommandDto> = emptyList())
+    private data class DeckDto(
+        val clock: DeckClockDto? = null,
+        val commands: List<DeckCommandDto> = emptyList(),
+        val hotbar: List<HotbarSlotDto> = emptyList(),
+        val alarmClock: AlarmClockDto? = null,
+    )
+
+    @Serializable
+    private data class HotbarSlotDto(val slot: Int? = null, val name: String? = null, val item: HotbarItemDto? = null, val inHand: Boolean = false)
+
+    @Serializable
+    private data class HotbarItemDto(val name: String? = null, val icon: String? = null)
+
+    @Serializable
+    private data class AlarmClockDto(val name: String? = null, val hour: Int? = null, val minute: Int? = null, val on: Boolean = false)
 
     @Serializable
     private data class DeckClockDto(val time: String? = null, val date: String? = null, val alarm: String? = null)
@@ -357,6 +374,12 @@ object ProtocolV1 {
 
     fun deckRunRequest(id: String) = Request("deck_run", buildJsonObject { put("id", id) })
 
+    fun hotbarRequest(slot: Int) = Request("deck_run", buildJsonObject { put("id", "weapons"); put("slot", slot) })
+
+    fun alarmRequest(hour: Int, minute: Int, on: Boolean) = Request("deck_run", buildJsonObject {
+        put("id", "alarm"); put("hour", hour); put("minute", minute); put("on", on)
+    })
+
     fun transferRequest(itemId: Long, toContainer: String) = Request("transfer", buildJsonObject {
         put("itemId", JsonPrimitive(itemId))
         put("to", toContainer)
@@ -459,6 +482,15 @@ object ProtocolV1 {
                     commands = dto.commands.mapNotNull { c ->
                         if (c.id.isNullOrBlank() || c.name.isNullOrBlank()) null
                         else DeckCommand(c.id, c.name, c.icon, c.available, c.on)
+                    },
+                    hotbar = dto.hotbar.mapNotNull { s ->
+                        s.slot?.let { slot ->
+                            HotbarSlot(slot, s.name ?: "Slot $slot",
+                                s.item?.let { HotbarItem(it.name ?: "?", it.icon) }, s.inHand)
+                        }
+                    },
+                    alarmClock = dto.alarmClock?.let { a ->
+                        if (a.hour == null || a.minute == null) null else AlarmClock(a.name ?: "Watch", a.hour, a.minute, a.on)
                     },
                 ))
             }

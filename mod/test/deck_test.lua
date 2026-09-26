@@ -134,3 +134,48 @@ check(ok == false and why:find("unknown") ~= nil, "unknown commands are refused"
 ISWorldMap.ToggleWorldMap = function() error("renamed in a later build") end
 ok, why = Deck.run(player, "map")
 check(ok == false and why:find("didn't work") ~= nil, "a game function that fails is reported, not thrown")
+
+-- Weapons: the game's hotbar ----------------------------------------------------------------
+ISWorldMap.ToggleWorldMap = function(n) called("map" .. n) end
+local axe = { getDisplayName = function() return "Axe" end, getTex = function() return { getName = function() return "media/textures/Item_Axe.png" end } end }
+local crowbar = { getDisplayName = function() return "Crowbar" end, getTex = function() return { getName = function() return "Item_Crowbar" end } end }
+local activated = {}
+local bar = {
+  availableSlot = { { slotType = "Back", name = "Back" }, { slotType = "SmallBeltLeft", name = "Belt Left" }, { slotType = "SmallBeltRight", name = "Belt Right" } },
+  attachedItems = { [1] = axe, [2] = crowbar },
+}
+function bar:activateSlot(i) table.insert(activated, i) end
+function getPlayerHotbar(n) return n == 0 and bar or nil end
+function getTextOrNull(key) return key == "IGUI_HotbarAttachment_Back" and "Back" or nil end
+player.getPrimaryHandItem = function() return axe end
+local queue = {}
+ISTimedActionQueue = { queues = { [player] = { queue = queue } } }
+
+local deck = Deck.snapshot(player)
+check(#deck.hotbar == 3 and deck.hotbar[1].name == "Back" and deck.hotbar[2].name == "Belt Left",
+  "the hotbar's slots in its order, named as the game names them")
+check(deck.hotbar[1].item.name == "Axe" and deck.hotbar[1].item.icon == "Item_Axe" and deck.hotbar[1].inHand == true,
+  "a slot's item, and whether it's in hand")
+check(deck.hotbar[3].item == nil, "an empty slot")
+check(Deck.run(player, "weapons", { slot = 2 }) == true and activated[1] == 2, "drawing a slot: the hotbar's own activateSlot")
+table.insert(queue, "walking")
+ok, why = Deck.run(player, "weapons", { slot = 1 })
+check(ok == false and why:find("busy") and #activated == 1, "not while an action is queued, like the hotbar keys")
+table.remove(queue)
+ok, why = Deck.run(player, "weapons", { slot = 3 })
+check(ok == false and #activated == 1, "an empty slot does nothing")
+bar.attachedItems = {}
+check(Deck.run(player, "weapons", { slot = 1 }) == false, "nothing on the hotbar: nothing to draw")
+
+-- Alarm: the watch's alarm, as the game's alarm dialog sets it ------------------------------
+local synced = false
+watch.setAlarmSet = function(self, on) self.set = on end
+watch.setHour = function(self, h) self.h = h end
+watch.setMinute = function(self, m) self.m = m end
+watch.syncAlarmClock = function() synced = true end
+local alarmInfo = Deck.snapshot(player).alarmClock
+check(alarmInfo ~= nil and alarmInfo.hour == 7 and alarmInfo.minute == 0 and alarmInfo.on == true, "the watch's alarm: time and on/off")
+check(Deck.run(player, "alarm", { hour = 6, minute = 30, on = true }) == true and watch.h == 6 and watch.m == 30
+  and watch.set == true and synced, "setting it: on, hour, minute, then synced like the game's dialog")
+check(Deck.run(player, "alarm", { hour = 25, minute = 0 }) == false, "not a time: refused")
+check(Deck.run(player, "alarm", { hour = 6, minute = 30, on = false }) == true and watch.set == false, "switching it off")

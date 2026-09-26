@@ -10,7 +10,16 @@
       { "id": "map", "name": "Toggle Map", "icon": "Item_Map", "available": true },
       { "id": "sit", "name": "Sit On Ground", "icon": "furniture_seating_indoor_01_0_Icon", "available": true },
       { "id": "drop_bag", "name": "Drop Worn Bag", "icon": "Item_Backpack", "available": false },
+      { "id": "weapons", "name": "Weapons", "icon": "Item_Axe", "available": true },
+      { "id": "alarm", "name": "Alarm", "icon": "ClockAlarmLargeSet", "available": true },
       { "id": "shout", "name": "Shout", "icon": "Item_Whistle", "available": true }
-    ]
+    ],
+    "hotbar": [
+      { "slot": 1, "name": "Back", "item": { "name": "Axe", "icon": "Item_Axe" }, "inHand": true },
+      { "slot": 2, "name": "Belt Left", "item": { "name": "Crowbar", "icon": "Item_Crowbar" }, "inHand": false },
+      { "slot": 3, "name": "Belt Right", "item": { "name": "Hammer", "icon": "Item_Hammer" }, "inHand": false },
+      { "slot": 4, "name": "Back", "inHand": false }
+    ],
+    "alarmClock": { "name": "Digital Watch", "hour": 7, "minute": 0, "on": true }
   }
 }

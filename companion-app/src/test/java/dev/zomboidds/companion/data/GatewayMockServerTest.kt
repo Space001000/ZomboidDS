@@ -133,7 +133,7 @@ class GatewayMockServerTest {
     }
 
     @Test
-    fun `Command deck commands run, and modes switch`() = runBlocking {
+    fun `Command deck commands run, and modes switch`() = runBlocking<Unit> {
         val deck = withTimeout(5_000) { gateway.state.first { it.deck != null } }.deck!!
         assertEquals(true, deck.commands.single { it.id == "search_mode" }.on)
 
@@ -142,6 +142,12 @@ class GatewayMockServerTest {
         assertEquals(CommandResult.Ok, gateway.runDeckCommand("zoom_in"))
         assertTrue("not available now", gateway.runDeckCommand("drop_bag") is CommandResult.Failed)
         assertTrue("unknown", gateway.runDeckCommand("fly") is CommandResult.Failed)
+
+        assertEquals(CommandResult.Ok, gateway.drawHotbarSlot(2))
+        withTimeout(5_000) { gateway.state.first { it.deck!!.hotbar.single { s -> s.inHand }.slot == 2 } }
+        assertTrue("an empty slot", gateway.drawHotbarSlot(4) is CommandResult.Failed)
+        assertEquals(CommandResult.Ok, gateway.setAlarm(6, 30, on = true))
+        withTimeout(5_000) { gateway.state.first { it.deck!!.alarmClock!!.hour == 6 && it.deck!!.alarmClock!!.minute == 30 } }
     }
 
     @Test

@@ -154,5 +154,7 @@ private fun hint(command: DeckCommand) = when (command.id) {
     "search_mode" -> "Stays on until you tap it again"
     "drop_bag" -> "Asks first"
     "sit" -> "Tap again to stand up"
+    "weapons" -> "Your hotbar: draw or put away"
+    "alarm" -> "Your watch's alarm"
     else -> null
 }

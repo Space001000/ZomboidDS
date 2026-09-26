@@ -282,6 +282,8 @@ private fun InGamePreview() {
         controls = object : GameControls {
             override suspend fun setSpeed(speed: GameSpeed) = CommandResult.Ok
             override suspend fun runDeckCommand(id: String) = CommandResult.Ok
+            override suspend fun drawHotbarSlot(slot: Int) = CommandResult.Ok
+            override suspend fun setAlarm(hour: Int, minute: Int, on: Boolean) = CommandResult.Ok
             override fun watchHere(on: Boolean) {}
             override suspend fun bodyPartMenu(partId: String) = ItemMenuResult.Failed("preview")
         },

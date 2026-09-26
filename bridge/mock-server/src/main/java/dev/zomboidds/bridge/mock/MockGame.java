@@ -264,7 +264,7 @@ final class MockGame {
                 timeDirty = true;
                 yield null;
             }
-            case "deck_run" -> runDeckCommand(String.valueOf(command.args().get("id")));
+            case "deck_run" -> runDeckCommand(String.valueOf(command.args().get("id")), command.args());
             case "transfer_all" -> transferAll(command);
             default -> "unknown command '" + command.name() + "'";
         };
@@ -281,7 +281,38 @@ final class MockGame {
 
     /** Like the game's key bindings: modes switch on and off, the rest just "happens" (logged). */
     @SuppressWarnings("unchecked")
-    private String runDeckCommand(String id) {
+    private String runDeckCommand(String id, Map<String, Object> args) {
+        if (id.equals("weapons")) {
+            int slot = args.get("slot") instanceof Number n ? n.intValue() : -1;
+            Map<String, Object> target = null;
+            for (Object entry : (List<Object>) deck.get("hotbar")) {
+                Map<String, Object> s = (Map<String, Object>) entry;
+                if (s.get("slot") instanceof Number n && n.intValue() == slot) target = s;
+            }
+            if (target == null || target.get("item") == null) {
+                return "That changed in the game; try again";
+            }
+            boolean wasInHand = Boolean.TRUE.equals(target.get("inHand"));
+            for (Object entry : (List<Object>) deck.get("hotbar")) {
+                ((Map<String, Object>) entry).put("inHand", false);
+            }
+            target.put("inHand", !wasInHand); // drawing the one in hand puts it away
+            deckDirty = true;
+            return null;
+        }
+        if (id.equals("alarm")) {
+            Object hour = args.get("hour"), minute = args.get("minute");
+            if (!(hour instanceof Number h) || !(minute instanceof Number mi) || h.intValue() > 23 || mi.intValue() > 59) {
+                return "That changed in the game; try again";
+            }
+            Map<String, Object> alarm = (Map<String, Object>) deck.get("alarmClock");
+            alarm.put("hour", h.intValue());
+            alarm.put("minute", mi.intValue());
+            alarm.put("on", !Boolean.FALSE.equals(args.get("on")));
+            ((Map<String, Object>) deck.get("clock")).put("alarm", String.format("%02d:%02d", h.intValue(), mi.intValue()));
+            deckDirty = true;
+            return null;
+        }
         for (Object entry : (List<Object>) deck.get("commands")) {
             Map<String, Object> deckCommand = (Map<String, Object>) entry;
             if (!id.equals(deckCommand.get("id"))) {

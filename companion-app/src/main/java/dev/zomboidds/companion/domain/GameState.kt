@@ -72,8 +72,24 @@ enum class GameSpeed(val multiplier: Int) { PAUSED(0), PLAY(1), FAST(5), FASTER(
  */
 data class TimeState(val speed: GameSpeed?, val canChange: Boolean, val gameMenuOpen: Boolean = false)
 
-/** The Command deck: the game's clock (only with a watch, as in the game) and the commands it can run. */
-data class DeckState(val clock: DeckClock?, val commands: List<DeckCommand>)
+/**
+ * The Command deck: the game's clock (only with a watch, as in the game), the commands it can run,
+ * the player's hotbar (for Weapons) and the watch whose alarm the Alarm command sets.
+ */
+data class DeckState(
+    val clock: DeckClock?,
+    val commands: List<DeckCommand>,
+    val hotbar: List<HotbarSlot> = emptyList(),
+    val alarmClock: AlarmClock? = null,
+)
+
+/** A slot of the game's hotbar (Back, Belt Left, ...), in its order; [item] null when empty. */
+data class HotbarSlot(val slot: Int, val name: String, val item: HotbarItem?, val inHand: Boolean)
+
+data class HotbarItem(val name: String, val icon: String?)
+
+/** The watch or clock the game's alarm uses, and its alarm. */
+data class AlarmClock(val name: String, val hour: Int, val minute: Int, val on: Boolean)
 
 /** As the game's own clock shows it: [time] in the player's 12/24-hour setting; [date] and [alarm] if shown. */
 data class DeckClock(val time: String, val date: String?, val alarm: String?)
