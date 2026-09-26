@@ -36,9 +36,13 @@ internal class ItemDrag(private val onDrop: (stack: ItemStack, toContainer: Stri
     /** Where each visible container tab is (clipped to what's on screen), by container id. */
     val tabs = mutableStateMapOf<String, Rect>()
 
+    /** Where each open container's items are shown, by container id: dropping there works too. */
+    val panes = mutableStateMapOf<String, Rect>()
+
     val active: Boolean get() = stack != null
 
-    fun target(): String? = tabs.entries.firstOrNull { it.value.contains(position) }?.key
+    fun target(): String? = (tabs.entries.firstOrNull { it.value.contains(position) }
+        ?: panes.entries.firstOrNull { it.value.contains(position) })?.key
 
     internal fun start(stack: ItemStack, from: String, at: Offset) {
         this.stack = stack
@@ -111,8 +115,15 @@ internal fun Modifier.draggableItem(stack: ItemStack, from: String): Modifier = 
 
 /** Registers a container tab as a drop target while it's on screen. */
 @Composable
-internal fun Modifier.dropTarget(containerId: String): Modifier {
+internal fun Modifier.dropTarget(containerId: String): Modifier = dropArea(containerId) { tabs }
+
+/** Registers the area showing an open container's items as a drop target for that container. */
+@Composable
+internal fun Modifier.paneDropTarget(containerId: String): Modifier = dropArea(containerId) { panes }
+
+@Composable
+private fun Modifier.dropArea(containerId: String, areas: ItemDrag.() -> MutableMap<String, Rect>): Modifier {
     val drag = LocalItemDrag.current ?: return this
-    DisposableEffect(containerId) { onDispose { drag.tabs.remove(containerId) } }
-    return this.onGloballyPositioned { drag.tabs[containerId] = it.boundsInRoot() }
+    DisposableEffect(containerId) { onDispose { drag.areas().remove(containerId) } }
+    return this.onGloballyPositioned { drag.areas()[containerId] = it.boundsInRoot() }
 }

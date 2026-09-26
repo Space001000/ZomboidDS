@@ -1,6 +1,7 @@
 package dev.zomboidds.companion.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -90,37 +91,45 @@ internal fun ContainerPane(
                 it()
             }
         }
-        when {
-            shown.container.locked -> Hint("Locked")
-            shown.stacks.isEmpty() -> Hint("Empty")
-            else -> BoxWithConstraints(Modifier.fillMaxSize()) {
-                // Whole rows only: the grid is cut to the rows that fit.
-                val itemHeight = if (layout == InventoryLayout.GRID) TileHeight else RowHeight
-                val rows = ((maxHeight + Gap) / (itemHeight + Gap)).toInt().coerceAtLeast(1)
-                val entries = remember(shown.stacks, wornOpen) { shown.stacks.foldWorn(wornOpen) }
-                LazyVerticalGrid(
-                    // Compact grid: ~7 columns on the Thor's bottom screen. List: 2 columns of rows.
-                    columns = GridCells.Adaptive(minSize = if (layout == InventoryLayout.GRID) 64.dp else 200.dp),
-                    horizontalArrangement = Arrangement.spacedBy(Gap),
-                    verticalArrangement = Arrangement.spacedBy(Gap),
-                    modifier = Modifier.fillMaxWidth().height((itemHeight + Gap) * rows - Gap),
-                ) {
-                    items(entries, key = { entry ->
-                        when (entry) {
-                            is PaneEntry.Stack -> entry.stack.first.id
-                            is PaneEntry.Worn -> "worn"
-                        }
-                    }) { entry ->
-                        when (entry) {
-                            // Hold and drag onto a container tab to move it (worn clothes stay put).
-                            is PaneEntry.Stack -> Box(if (entry.worn) Modifier else Modifier.draggableItem(entry.stack, shown.id)) {
-                                if (layout == InventoryLayout.GRID) {
-                                    GridTile(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) })
-                                } else {
-                                    ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) })
-                                }
+        // Dropping a dragged item on the open container's items moves it there, like on its tab.
+        val drag = LocalItemDrag.current
+        val canDrop = drag != null && drag.active && drag.from != shown.id && !shown.container.locked
+        Box(
+            Modifier.fillMaxWidth().weight(1f).paneDropTarget(shown.id)
+                .then(if (canDrop) Modifier.border(2.dp, if (drag?.target() == shown.id) Good else Good.copy(alpha = 0.35f), RoundedCornerShape(10.dp)) else Modifier),
+        ) {
+            when {
+                shown.container.locked -> Hint("Locked")
+                shown.stacks.isEmpty() -> Hint("Empty")
+                else -> BoxWithConstraints(Modifier.fillMaxSize()) {
+                    // Whole rows only: the grid is cut to the rows that fit.
+                    val itemHeight = if (layout == InventoryLayout.GRID) TileHeight else RowHeight
+                    val rows = ((maxHeight + Gap) / (itemHeight + Gap)).toInt().coerceAtLeast(1)
+                    val entries = remember(shown.stacks, wornOpen) { shown.stacks.foldWorn(wornOpen) }
+                    LazyVerticalGrid(
+                        // Compact grid: ~7 columns on the Thor's bottom screen. List: 2 columns of rows.
+                        columns = GridCells.Adaptive(minSize = if (layout == InventoryLayout.GRID) 64.dp else 200.dp),
+                        horizontalArrangement = Arrangement.spacedBy(Gap),
+                        verticalArrangement = Arrangement.spacedBy(Gap),
+                        modifier = Modifier.fillMaxWidth().height((itemHeight + Gap) * rows - Gap),
+                    ) {
+                        items(entries, key = { entry ->
+                            when (entry) {
+                                is PaneEntry.Stack -> entry.stack.first.id
+                                is PaneEntry.Worn -> "worn"
                             }
-                            is PaneEntry.Worn -> WornTile(entry, iconUrl, list = layout == InventoryLayout.LIST, onClick = { wornOpen = !wornOpen })
+                        }) { entry ->
+                            when (entry) {
+                                // Hold and drag onto a container tab or the other open container to move it (worn clothes stay put).
+                                is PaneEntry.Stack -> Box(if (entry.worn) Modifier else Modifier.draggableItem(entry.stack, shown.id)) {
+                                    if (layout == InventoryLayout.GRID) {
+                                        GridTile(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) })
+                                    } else {
+                                        ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) })
+                                    }
+                                }
+                                is PaneEntry.Worn -> WornTile(entry, iconUrl, list = layout == InventoryLayout.LIST, onClick = { wornOpen = !wornOpen })
+                            }
                         }
                     }
                 }
