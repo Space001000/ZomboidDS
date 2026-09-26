@@ -233,15 +233,17 @@ fun InventoryScreen(
         }
         if (selection != null) {
             val (view, stack) = selection
-            // One-tap moves: out of a container into your inventory, and in the split layout to the other half.
-            val moves = buildList<Pair<String, () -> Unit>> {
-                if (!canMove) return@buildList
-                if (view.container.kind != ContainerKind.INVENTORY) {
-                    add((if (view.onPlayer) "Take out" else "Take") to { moveStack(stack, main) })
-                }
-                if (split && view.onPlayer && aroundShown != null && !aroundShown.container.locked) {
-                    add("Put in ${aroundShown.label}" to { moveStack(stack, aroundShown) })
-                }
+            // Where it can go, one tap each: your containers, then the ones around you (the open one first).
+            val targets = if (!canMove) MoveTargets(emptyList(), emptyList()) else {
+                val open = views.firstOrNull { it.id == (if (split) aroundShown?.id else singleShown.id) && !it.onPlayer }
+                    ?: aroundShown
+                val others = views.filter { it.id != view.id && !it.container.locked }
+                val around = others.filterNot { it.onPlayer }
+                MoveTargets(
+                    yours = others.filter { it.onPlayer },
+                    around = listOfNotNull(open?.takeIf { it in around }) + around.filter { it.id != open?.id },
+                    open = open,
+                )
             }
             val itemName = stack.first.name
             ItemPanel(
@@ -249,8 +251,7 @@ fun InventoryScreen(
                 // The game's own menu; for items around you, the one its loot window shows (Grab, ...).
                 loadMenu = { actions.itemMenu(stack.first.id) },
                 onAction = { action -> run(itemName) { actions.perform(ItemCommand(stack.first.id, action)) } },
-                moves = moves,
-                moveTargets = if (canMove) views.filter { it.id != view.id && !it.container.locked } else emptyList(),
+                targets = targets,
                 onMoveTo = { target -> moveStack(stack, target) },
                 onMenuOption = { menuId, optionId -> run(itemName) { actions.selectMenuOption(menuId, optionId) } },
                 onClose = { selectedId = null },

@@ -1,28 +1,41 @@
 package dev.zomboidds.companion.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.InventoryItem
@@ -30,8 +43,25 @@ import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemMenuResult
 import dev.zomboidds.companion.domain.ItemStack
 
-/** The panel for a tapped item: moves, quick actions and the game's own menu for it. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Where a tapped item can be moved: your own containers, then the ones around you. */
+internal class MoveTargets(
+    /** Your inventory, bags and key ring, without the one the item is in. */
+    val yours: List<ContainerView>,
+    /** Around you, the one open in the bottom half first ([open]). */
+    val around: List<ContainerView>,
+    val open: ContainerView? = null,
+) {
+    val isEmpty: Boolean get() = yours.isEmpty() && around.isEmpty()
+}
+
+/** Two columns from this width (the Thor, tablets); one on a narrow phone. */
+private val TwoColumnWidth = 480.dp
+
+/**
+ * The panel for a tapped item. Left: where it can go, one tap each. Right: what you can do with
+ * it: the quick actions, then the game's own menu for it. Each side scrolls on its own, so a busy
+ * kitchen and a long menu don't crowd each other.
+ */
 @Composable
 internal fun BoxScope.ItemPanel(
     stack: ItemStack,
@@ -39,16 +69,52 @@ internal fun BoxScope.ItemPanel(
     /** Null: no game menu for this item. */
     loadMenu: (suspend () -> ItemMenuResult)?,
     onAction: (ItemAction) -> Unit,
-    /** One-tap moves, shown first ("Take", "Put in Drawer"). */
-    moves: List<Pair<String, () -> Unit>>,
-    /** Every container the item could go to, behind "Move to…". */
-    moveTargets: List<ContainerView>,
+    targets: MoveTargets,
     onMoveTo: (ContainerView) -> Unit,
     onMenuOption: (menuId: String, optionId: String) -> Unit,
     onClose: () -> Unit,
-) = BottomPanel(onDismiss = onClose, spacing = 12.dp) {
+) {
     val item = stack.first
-    var choosingTarget by remember(item.id) { mutableStateOf(false) }
+    Box(
+        Modifier.fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.4f))
+            .clickable(interactionSource = null, indication = null, onClick = onClose),
+    )
+    Card(Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(0.92f)
+        // Taps on the panel stay on the panel.
+        .clickable(interactionSource = null, indication = null, onClick = {})) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Header(stack, iconUrl, onClose)
+            BoxWithConstraints(Modifier.weight(1f)) {
+                if (maxWidth >= TwoColumnWidth) {
+                    Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (!targets.isEmpty) {
+                            Column(Modifier.weight(0.42f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                MoveColumn(targets, iconUrl, onMoveTo)
+                            }
+                            VerticalDivider()
+                        }
+                        Column(Modifier.weight(0.58f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Actions(item, loadMenu, onAction, onMenuOption)
+                        }
+                    }
+                } else {
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (!targets.isEmpty) MoveColumn(targets, iconUrl, onMoveTo)
+                        HorizontalDivider()
+                        Actions(item, loadMenu, onAction, onMenuOption)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Header(stack: ItemStack, iconUrl: (String) -> String, onClose: () -> Unit) {
+    val item = stack.first
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         ItemIcon(item, iconUrl, 48.dp)
         Column(Modifier.weight(1f)) {
@@ -65,26 +131,45 @@ internal fun BoxScope.ItemPanel(
         }
         TextButton(onClick = onClose) { Text("Close") }
     }
-    // Where it goes first, then what you do with it.
-    if (moves.isNotEmpty() || moveTargets.isNotEmpty()) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            moves.forEach { (label, onClick) -> FilledTonalButton(onClick = onClick) { Text(label) } }
-            if (moveTargets.isNotEmpty()) {
-                OutlinedButton(onClick = { choosingTarget = !choosingTarget }) { Text("Move to…") }
-            }
+}
+
+/** "Move to": your containers, a divider, then the ones around you (the open one outlined). */
+@Composable
+private fun ColumnScope.MoveColumn(targets: MoveTargets, iconUrl: (String) -> String, onMoveTo: (ContainerView) -> Unit) {
+    Text("Move to", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    targets.yours.forEach { TargetButton(it, iconUrl, outlined = false, onMoveTo) }
+    if (targets.yours.isNotEmpty() && targets.around.isNotEmpty()) {
+        HorizontalDivider(Modifier.padding(vertical = 2.dp))
+    }
+    targets.around.forEach { TargetButton(it, iconUrl, outlined = it.id == targets.open?.id, onMoveTo) }
+}
+
+@Composable
+private fun TargetButton(target: ContainerView, iconUrl: (String) -> String, outlined: Boolean, onMoveTo: (ContainerView) -> Unit) {
+    Surface(
+        onClick = { onMoveTo(target) },
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = if (outlined) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
+        modifier = Modifier.fillMaxWidth().height(40.dp),
+    ) {
+        Row(Modifier.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            ContainerIcon(target.container, iconUrl, 24.dp)
+            Spacer(Modifier.width(8.dp))
+            Text(target.label, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
-    if (choosingTarget) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            moveTargets.forEach { target ->
-                OutlinedButton(onClick = { onMoveTo(target) }, contentPadding = PaddingValues(horizontal = 12.dp)) {
-                    ContainerIcon(target.container, iconUrl, 20.dp)
-                    Spacer(Modifier.width(6.dp))
-                    Text(target.label)
-                }
-            }
-        }
-    }
+}
+
+/** The quick actions, then the game's own menu for the item. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ColumnScope.Actions(
+    item: InventoryItem,
+    loadMenu: (suspend () -> ItemMenuResult)?,
+    onAction: (ItemAction) -> Unit,
+    onMenuOption: (menuId: String, optionId: String) -> Unit,
+) {
     if (item.actions.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item.actions.forEach { action ->
             if (action == ItemAction.DROP) {
@@ -95,7 +180,7 @@ internal fun BoxScope.ItemPanel(
         }
     }
     if (loadMenu != null) {
-        HorizontalDivider()
+        if (item.actions.isNotEmpty()) HorizontalDivider()
         // The game's own menu for this item, fetched when the panel opens (one round trip).
         LoadingGameMenu(key = item.id, load = loadMenu, onSelect = onMenuOption)
     }
