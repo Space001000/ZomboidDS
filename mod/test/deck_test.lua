@@ -22,7 +22,9 @@ function getText(key)
   }
   return texts[key] or key
 end
+local zoomed = {}
 function getCore() return {
+  doZoomScroll = function(_, playerIndex, step) table.insert(zoomed, playerIndex .. ":" .. step) end,
   getOptionClock24Hour = function() return clock24 end,
   getKey = function(_, name) return name == "Equip/Turn On/Off Light Source" and 33 or 0 end,
 } end
@@ -33,8 +35,9 @@ function getGameTime() return {
 UIManager = { getClock = function() return {
   isVisible = function() return clockVisible end, isDateVisible = function() return dateVisible end,
 } end }
-function screenZoomIn() called("zoomIn") end
-function screenZoomOut() called("zoomOut") end
+-- Empty in 42.20: the Deck must not rely on them.
+function screenZoomIn() end
+function screenZoomOut() end
 
 local search = { isSearchMode = false }
 function search:toggleSearchMode() self.isSearchMode = not self.isSearchMode; called("toggleSearch") end
@@ -107,7 +110,8 @@ for _, id in ipairs({ "zoom_in", "zoom_out", "search_mode", "flashlight", "map",
 end
 
 -- Running ---------------------------------------------------------------------------------------
-check(Deck.run(player, "zoom_in") == true and calls[#calls] == "zoomIn", "zoom in: the game's own zoom")
+check(Deck.run(player, "zoom_in") == true and zoomed[#zoomed] == "0:-1", "zoom in: one wheel step closer for this player")
+check(Deck.run(player, "zoom_out") == true and zoomed[#zoomed] == "0:1", "zoom out: one wheel step away")
 check(Deck.run(player, "search_mode") == true and search.isSearchMode == true and made == 1,
   "search mode switches on (the manager is made on first use, as the key does)")
 check(Deck.snapshot(player).commands[3].on == true, "... and the next snapshot says so")

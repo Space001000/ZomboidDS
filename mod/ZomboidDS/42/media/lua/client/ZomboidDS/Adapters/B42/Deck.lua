@@ -70,13 +70,14 @@ end
 --- (its name is the command's name). `available` and `on` get the player; `run` does it.
 local COMMANDS = {
     {
+        -- One mouse-wheel step, as the game zooms (Core.doZoomScroll; wheel up = -1 = closer). Not
+        -- screenZoomIn/Out: in 42.20 those are empty (seen on the Thor: nothing happened).
         id = "zoom_in", key = "Zoom in", icon = "ZoomIn",
-        -- ISPlayerDataObject.onKeyPressed
-        run = function() screenZoomIn() end,
+        run = function(player) getCore():doZoomScroll(playerNum(player), -1) end,
     },
     {
         id = "zoom_out", key = "Zoom out", icon = "ZoomOut",
-        run = function() screenZoomOut() end,
+        run = function(player) getCore():doZoomScroll(playerNum(player), 1) end,
     },
     {
         id = "search_mode", key = "Toggle Search Mode", icon = "Search_Icon_Off",
