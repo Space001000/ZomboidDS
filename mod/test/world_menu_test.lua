@@ -57,9 +57,52 @@ paused = true
 local ok3, reason3 = B42.commands.world_menu(player, {})
 check(ok3 == false and reason3:find("paused"), "no world menu while paused, like the game")
 paused = false
-vehicle = {}
-check(B42.commands.world_menu(player, {}) == false, "not in a vehicle (the vehicle has its own menu)")
+-- In a vehicle: the game's vehicle radial menu instead, recorded, without its sound or focus grab.
+local car = { getScript = function() return { getName = function() return "CarNormal" end } end }
+function getText(key) return key == "IGUI_VehicleNameCarNormal" and "Chevalier Dart" or key end
+local sounds, focus = 0, 0
+function getSoundManager() return { playUISound = function() sounds = sounds + 1 end } end
+function setJoypadFocus() focus = focus + 1 end
+local realRadial = { addSlice = function() error("the real radial menu must not be filled") end }
+function getPlayerRadialMenu() return realRadial end
+JoypadState = { players = { { id = "pad" } } }
+local ran = {}
+ISVehicleMenu = { onToggleHeadlights = function(p) table.insert(ran, "lights") end,
+                  onExit = function(p) table.insert(ran, "exit") end }
+function ISVehicleMenu.showRadialMenu(playerObj)
+  local menu = getPlayerRadialMenu(playerObj:getPlayerNum())
+  menu:clear()
+  if menu:isReallyVisible() then menu:undisplay() return end
+  menu:setX(menu:getWidth() / 2)
+  menu:addSlice("Headlights On", { getName = function() return "media/ui/vehicles/vehicle_lightsON.png" end },
+    ISVehicleMenu.onToggleHeadlights, playerObj)
+  menu:addSlice("Not tired enough", nil, nil, playerObj, vehicle)
+  menu:addSlice("Exit Vehicle", nil, ISVehicleMenu.onExit, playerObj)
+  menu:addToUIManager()
+  getSoundManager():playUISound("UIVehicleMenuOpen")
+  menu.sounds.undisplay = "UIVehicleMenuClose"
+  if JoypadState.players[playerObj:getPlayerNum() + 1] then setJoypadFocus(playerObj:getPlayerNum(), menu) end
+end
+local realSounds, realFocus = getSoundManager, setJoypadFocus
+
+vehicle = car
+local okV, _, dataV = B42.commands.world_menu(player, {})
+check(okV and dataV.options[1].name == "Chevalier Dart" and #dataV.options[1].children == 3,
+  "in a vehicle: one card named after it, with the vehicle menu's slices")
+local slices = dataV.options[1].children
+check(slices[1].name == "Headlights On" and slices[1].enabled and slices[1].icon == "vehicle_lightsON",
+  "a slice: the game's text and icon")
+check(slices[2].enabled == false and slices[2].tooltip == "Not tired enough", "a slice without a function: greyed, with its reason")
+check(sounds == 0 and focus == 0, "no menu sound, no controller focus grab while recording it")
+check(getSoundManager == realSounds and setJoypadFocus == realFocus and getPlayerRadialMenu() == realRadial
+  and JoypadState.players[1].id == "pad", "the game's functions and controller state are put back")
+square = { getX = function() return 11 end, getY = function() return 20 end, getZ = function() return 0 end }
+check(B42.commands.menu_select(player, { menuId = dataV.menuId, optionId = slices[1].id }) == true and ran[1] == "lights",
+  "choosing a slice runs it, even though the car moved")
+local _, _, dataV2 = B42.commands.world_menu(player, {})
 vehicle = nil
+local okV2, reasonV2 = B42.commands.menu_select(player, { menuId = dataV2.menuId, optionId = "1.3" })
+check(okV2 == false and reasonV2:find("no longer") and #ran == 1, "after getting out, the car's menu doesn't run")
 
 -- "Here" follows the player while the app watches -----------------------------------
 local builds = 0

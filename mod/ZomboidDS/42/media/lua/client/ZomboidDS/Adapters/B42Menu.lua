@@ -110,6 +110,40 @@ local function snapshot(menu, calls, prefix, depth, skip)
     return list
 end
 
+--- In a vehicle there's no world menu: the game's controller opens the vehicle radial menu instead
+--- (42.20 ISVehicleMenu.showRadialMenu: switch seat, engine, headlights, heater, horn, windows,
+--- doors, mechanics, sleep, exit). We let it build that menu into a recorder instead of the real
+--- radial menu, with its open sound and the controller focus switched off for that moment (Here
+--- rebuilds it every few seconds), and keep the slices: text, icon, and the function with its args.
+local function recordVehicleMenu(player)
+    local slices = {}
+    local recorder = { sounds = {} }
+    function recorder:addSlice(text, texture, fn, ...)
+        slices[#slices + 1] = { text = text, texture = texture, fn = fn, args = { ... } }
+        return {}
+    end
+    function recorder:isReallyVisible() return false end
+    function recorder:getWidth() return 0 end
+    function recorder:getHeight() return 0 end
+    local function nothing() end
+    for _, name in ipairs({ "clear", "undisplay", "setX", "setY", "addToUIManager", "setHideWhenButtonReleased" }) do
+        recorder[name] = nothing
+    end
+
+    local slot = player:getPlayerNum() + 1
+    local joypads = JoypadState and JoypadState.players
+    local joypad = joypads and joypads[slot]
+    local saved = { radial = getPlayerRadialMenu, sounds = getSoundManager, focus = setJoypadFocus }
+    getPlayerRadialMenu = function() return recorder end
+    getSoundManager = function() return { playUISound = nothing } end
+    setJoypadFocus = nothing
+    if joypads then joypads[slot] = nil end -- no focus grab, no "ignore aim until centred"
+    local ok, err = pcall(ISVehicleMenu.showRadialMenu, player)
+    getPlayerRadialMenu, getSoundManager, setJoypadFocus = saved.radial, saved.sounds, saved.focus
+    if joypads then joypads[slot] = joypad end
+    return ok, err, slices
+end
+
 local function isPaused()
     local ok, speed = pcall(function() return UIManager.getSpeedControls():getCurrentGameSpeed() end)
     return ok and speed == 0
@@ -151,11 +185,12 @@ function B42Menu.openWorld(player)
     if prompts == nil or ISContextManager == nil then
         return false, "The game's world menu is not available"
     end
-    if player:getVehicle() then
-        return false, "Not while in a vehicle"
-    end
     if isPaused() then
         return false, "The game is paused"
+    end
+    local vehicle = player:getVehicle()
+    if vehicle then
+        return B42Menu.openVehicle(player, vehicle)
     end
     local objects = prompts:getInteractOptionsButtonObjects(nil)
     if objects == nil or objects:isEmpty() then
@@ -188,6 +223,51 @@ function B42Menu.openWorld(player)
     end
     menus.world = { id = id, created = getTimestampMs(), calls = calls, signature = signature, world = true,
                     square = square, dir = player:getDir() }
+    return true, nil, { menuId = id, options = options }
+end
+
+--- "Here" in a vehicle: the vehicle's radial menu (see recordVehicleMenu), as one card named after
+--- the vehicle with its slices as actions. A slice without a function is the game's reason why not
+--- (e.g. "Not tired enough"): greyed, with that text. Returns true, nil, { menuId, options } or false, reason.
+function B42Menu.openVehicle(player, vehicle)
+    if ISVehicleMenu == nil or ISVehicleMenu.showRadialMenu == nil then
+        return false, "The game's vehicle menu is not available"
+    end
+    local ok, err, slices = recordVehicleMenu(player)
+    if not ok then
+        return false, "Could not read the vehicle menu: " .. tostring(err)
+    end
+    if #slices == 0 then
+        return false, "Nothing to do here"
+    end
+    local calls, children = {}, {}
+    for index, slice in ipairs(slices) do
+        local id = "1." .. index
+        local text = plainText(tostring(slice.text)) or "?"
+        local entry = { id = id, name = text, icon = iconName(slice.texture), enabled = slice.fn ~= nil }
+        if slice.fn ~= nil then
+            local a = slice.args
+            calls[id] = { fn = slice.fn, target = a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11] }
+        else
+            entry.tooltip = text
+        end
+        children[#children + 1] = entry
+    end
+    local script = Util.try(vehicle, "getScript")
+    local name = Util.try(script, "getName")
+    name = name and getText("IGUI_VehicleName" .. name) or "Vehicle"
+    local options = { { id = "1", name = name, enabled = true, children = children } }
+
+    local signature = Signature.of(options)
+    local previous = menus.world
+    local id
+    if previous ~= nil and previous.signature == signature then
+        id = previous.id
+    else
+        nextMenuId = nextMenuId + 1
+        id = "m" .. nextMenuId
+    end
+    menus.world = { id = id, created = getTimestampMs(), calls = calls, signature = signature, vehicle = vehicle }
     return true, nil, { menuId = id, options = options }
 end
 
@@ -250,8 +330,9 @@ function B42Menu.select(player, args, findItem)
         end
     end
     local menu = slot and menus[slot]
-    -- Item and health menus expire; a world menu stays valid while the player stays put (checked below).
-    if menu == nil or (not menu.world and getTimestampMs() - menu.created > MENU_TTL_MS) then
+    -- Item and health menus expire; a world or vehicle menu stays valid while the player stays put
+    -- (or in the vehicle; checked below).
+    if menu == nil or (not menu.world and not menu.vehicle and getTimestampMs() - menu.created > MENU_TTL_MS) then
         return false, "This menu is out of date; tap the item again"
     end
     local call = menu.calls[tostring(args.optionId)]
@@ -263,6 +344,12 @@ function B42Menu.select(player, args, findItem)
         if stillThere == nil then
             menus[slot] = nil
             return false, "The item is no longer there"
+        end
+    elseif menu.vehicle ~= nil then
+        -- The car moves, so no position check: only that you're still in it.
+        if player:getVehicle() ~= menu.vehicle then
+            menus[slot] = nil
+            return false, "You're no longer in that vehicle"
         end
     elseif menu.world and (menu.square ~= player:getCurrentSquare() or menu.dir ~= player:getDir()) then
         -- A world menu is about what was around the player then; don't act on the wrong spot.
