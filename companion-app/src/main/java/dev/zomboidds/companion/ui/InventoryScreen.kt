@@ -121,14 +121,19 @@ fun InventoryScreen(
         ?: around.firstOrNull { it.container.selected } ?: around.firstOrNull()
     val singleShown = views.firstOrNull { it.id == singleOpen } ?: main
 
+    // Opening a container opens it in both layouts: in Single, picking one of your bags also makes it
+    // where "Take all" puts things, as in Split.
+    fun open(id: String) {
+        singleOpen = id
+        if (views.firstOrNull { it.id == id }?.onPlayer == true) mineOpen = id else aroundOpen = id
+    }
+
     // The game asked for a container (Loot button): open its tab, in whichever half it belongs.
     LaunchedEffect(show) {
         if (show == null) return@LaunchedEffect
-        val id = show.containerId ?: main.id
         onShowHandled()
         selectedId = null
-        singleOpen = id
-        if (views.firstOrNull { it.id == id }?.onPlayer == true) mineOpen = id else aroundOpen = id
+        open(show.containerId ?: main.id)
     }
 
     // Follow the selected item through updates, wherever it is now; it's gone once used up or out of reach.
@@ -171,8 +176,9 @@ fun InventoryScreen(
         }
     }
 
+    // Into your selected container, like the game's "Loot all" (not always the main inventory).
     fun takeAll(view: ContainerView) =
-        ("Take all" to { moveAll(view, main) }).takeIf { canMove && !view.container.locked && view.container.kind != ContainerKind.INVENTORY }
+        ("Take all" to { moveAll(view, mineShown) }).takeIf { canMove && !view.container.locked && view.container.kind != ContainerKind.INVENTORY }
 
     Box(Modifier.fillMaxSize()) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -211,7 +217,7 @@ fun InventoryScreen(
                     }
                 }
             } else {
-                ContainerPane(views, singleShown, { singleOpen = it; highlight(it) }, display.items, iconUrl, selection?.second, onItem,
+                ContainerPane(views, singleShown, { open(it); highlight(it) }, display.items, iconUrl, selection?.second, onItem,
                     allAction = takeAll(singleShown), modifier = Modifier.weight(1f), trailing = switch)
             }
         }
