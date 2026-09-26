@@ -63,8 +63,13 @@ your character:
   floor, ...). In **Split** view yours are on top and the ones around you below; **Single** shows one
   container at a time. The open container's tab shows its name and weight; the others show the
   game's icon (tap one to open it). Opening a container's tab outlines it in the game.
-  - Tap an item for **Take** / **Put in …** / **Move to…**, quick actions (equip, wear, drop) and
-    the game's own menu for it (read, eat, apply, craft, ...).
+  - Tap an item: on the left **Move to**, every container it can go to, one tap each (your bags,
+    then the ones around you, the open one outlined). On the right the game's own menu for it: its
+    main uses as buttons on top (eat, drink, wear, read, apply bandage, reload, turn on, ...; equip
+    and attach for weapons), the rest below. Buttons with **›** unfold the game's choices (Eat: all,
+    half, quarter).
+  - Or **hold an item a moment and drag it** onto a container's tab, or onto the other open
+    container's items. The places it can go light up green.
   - Your worn clothes are folded into one **Worn** tile: tap it to show them, tap again to fold.
   - A thin bar under an item means it's damaged (green, yellow, red); undamaged items have none.
     Food has a dot: green fresh, yellow stale, red rotten.

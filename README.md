@@ -7,7 +7,7 @@ runs on the top screen (through [Zomdroid](https://github.com/udarmolota/zomdroi
 **ZomboidDS Companion** app on the bottom screen, in the game's own art:
 
 - **Inventory**: your bags and every container around you, with the game's icons; move items with a
-  tap, and use them through the game's own item menu (read, eat, apply, craft, ...).
+  tap or by dragging, and use them through the game's own item menu (read, eat, apply, craft, ...).
 - **Here**: what you can do where you stand (open, sit, drink, ...); in a car, the car's own menu.
 - **Deck**: the game's speed buttons, the time, and your own commands: zoom, search mode, flashlight,
   map, your hotbar weapons, your watch's alarm, ...

@@ -103,7 +103,7 @@ class GatewayMockServerTest {
         val containers = withTimeout(5_000) { gateway.state.first { it.containers != null } }.containers!!
         val floor = containers.first { it.kind == ContainerKind.FLOOR }
         assertEquals(CommandResult.Ok, gateway.selectContainer(floor.id))
-        withTimeout(5_000) { gateway.state.first { state -> state.containers!!.single { it.selected }.id == floor.id } }
+        withTimeout(5_000) { gateway.state.first { state -> state.containers!!.singleOrNull { it.selected }?.id == floor.id } }
         Unit
     }
 
