@@ -113,7 +113,7 @@ internal fun BoxScope.ItemPanel(
                         Column(Modifier.weight(0.58f).fillMaxHeight().verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Actions(item, key, loadMenu, appActions, onAction, onMenuOption)
-                            onUnpick?.let { Picked(stacks, iconUrl, it) }
+                            onUnpick?.let { PickedList(stacks, iconUrl, it) }
                         }
                     }
                 } else {
@@ -121,7 +121,7 @@ internal fun BoxScope.ItemPanel(
                         if (!targets.isEmpty) MoveColumn(targets, iconUrl, onMoveTo)
                         HorizontalDivider()
                         Actions(item, key, loadMenu, appActions, onAction, onMenuOption)
-                        onUnpick?.let { Picked(stacks, iconUrl, it) }
+                        onUnpick?.let { PickedList(stacks, iconUrl, it) }
                     }
                 }
             }
@@ -169,7 +169,7 @@ private fun GroupHeader(stacks: List<ItemStack>, iconUrl: (String) -> String, on
 
 /** The picked items, each with a ✕ to leave it out. */
 @Composable
-private fun ColumnScope.Picked(stacks: List<ItemStack>, iconUrl: (String) -> String, onUnpick: (ItemStack) -> Unit) {
+private fun ColumnScope.PickedList(stacks: List<ItemStack>, iconUrl: (String) -> String, onUnpick: (ItemStack) -> Unit) {
     HorizontalDivider()
     stacks.forEach { stack ->
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
