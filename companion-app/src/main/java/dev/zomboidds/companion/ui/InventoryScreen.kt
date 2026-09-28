@@ -1,13 +1,5 @@
 package dev.zomboidds.companion.ui
 
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.items
@@ -26,16 +19,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.zomboidds.companion.ContainerLayout
@@ -48,9 +48,12 @@ import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemActions
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemStack
+import dev.zomboidds.companion.domain.PickedItems
+import dev.zomboidds.companion.domain.ShownPicks
 import dev.zomboidds.companion.domain.foldWorn
 import dev.zomboidds.companion.domain.labels
 import dev.zomboidds.companion.domain.stacks
+import dev.zomboidds.companion.domain.toggle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -85,9 +88,6 @@ internal class ContainerView(
     val onPlayer: Boolean get() = container.kind == ContainerKind.INVENTORY || container.kind == ContainerKind.BAG
 }
 
-/** Items picked to act on together (hold one, then tap more): all in one container, by item id. */
-private data class Picked(val containerId: String, val ids: Set<Long>)
-
 /** The main inventory first, then the rest in the game's order. Without `containers` (older mod), only the inventory. */
 private fun containerViews(inventory: Inventory, containers: List<Container>?): List<ContainerView> {
     val main = containers?.firstOrNull { it.kind == ContainerKind.INVENTORY }
@@ -119,7 +119,7 @@ fun InventoryScreen(
     val split = canMove && display.containers == ContainerLayout.SPLIT
     val scope = rememberCoroutineScope()
     var selectedId by remember { mutableStateOf<Long?>(null) }
-    var picked by remember { mutableStateOf<Picked?>(null) }
+    var picked by remember { mutableStateOf<PickedItems?>(null) }
     var pickedOpen by remember { mutableStateOf(false) }
     var failure by remember { mutableStateOf<String?>(null) }
 
@@ -155,8 +155,8 @@ fun InventoryScreen(
     // once none of it is left there.
     val shownIds = if (split) setOfNotNull(mineShown.id, aroundShown?.id) else setOf(singleShown.id)
     val pickedView = picked?.let { p -> views.firstOrNull { it.id == p.containerId && it.id in shownIds } }
-    val pickedIds = picked?.ids.orEmpty()
-    val pickedStacks = pickedView?.stacks?.filter { stack -> stack.items.any { it.id in pickedIds } }.orEmpty()
+    val pickedStacks = pickedView?.let { picked?.stacksIn(it.stacks) }.orEmpty()
+    val shownPicks = ShownPicks(pickedView?.id, pickedStacks)
     LaunchedEffect(pickedStacks.isEmpty()) {
         if (pickedStacks.isEmpty()) {
             picked = null
@@ -167,13 +167,10 @@ fun InventoryScreen(
     // Holding an item and letting go picks it (or leaves it out again); while something is picked
     // in a container, a tap there does the same. Otherwise a tap opens the item's panel.
     fun pick(stack: ItemStack, from: String) {
-        val ids = stack.items.map { it.id }.toSet()
-        val current = picked?.takeIf { it.containerId == from }?.ids.orEmpty()
-        val next = if (ids.any { it in current }) current - ids else current + ids
-        picked = next.takeIf { it.isNotEmpty() }?.let { Picked(from, it) }
+        picked = picked.toggle(stack, from)
     }
     fun tap(stack: ItemStack, from: String) {
-        if (pickedView?.id == from && pickedStacks.isNotEmpty()) pick(stack, from) else selectedId = stack.first.id
+        if (shownPicks.tapPicks(from)) pick(stack, from) else selectedId = stack.first.id
     }
 
     // Follow the selected item through updates, wherever it is now; it's gone once used up or out of reach.
@@ -213,17 +210,10 @@ fun InventoryScreen(
     // Dragging an item onto a container tab moves the whole stack there; a picked one takes
     // everything picked with it.
     val currentViews by rememberUpdatedState(views)
-    val currentPicked by rememberUpdatedState(pickedView?.id to pickedStacks)
+    val currentPicks by rememberUpdatedState(shownPicks)
     val drag = remember {
         ItemDrag(
-            carried = { stack, from ->
-                val (pickedIn, stacks) = currentPicked
-                if (pickedIn == from && stacks.any { it.first.id == stack.first.id }) {
-                    listOf(stack) + stacks.filter { it.first.id != stack.first.id }
-                } else {
-                    listOf(stack)
-                }
-            },
+            carried = { stack, from -> currentPicks.carried(stack, from) },
             onDrop = { dragged, to ->
                 currentViews.firstOrNull { it.id == to && !it.container.locked }?.let { target -> moveStacks(dragged, target) }
             },
@@ -256,11 +246,11 @@ fun InventoryScreen(
             ) = ContainerPane(
                 tabs, shown, onOpen, display.items, iconUrl, selection?.second, { tap(it, shown.id) },
                 allAction = allAction, modifier = modifier, trailing = trailing,
-                picked = picked?.takeIf { it.containerId == shown.id }?.ids.orEmpty(),
+                picked = picked?.idsIn(shown.id).orEmpty(),
                 onHold = { pick(it, shown.id) },
                 onOpenPicked = { pickedOpen = true },
                 onClearPicked = { picked = null },
-                onPickSet = { ids -> picked = ids.takeIf { it.isNotEmpty() }?.let { Picked(shown.id, it) } },
+                onPickSet = { ids -> picked = PickedItems.of(shown.id, ids) },
             )
             if (split) BoxWithConstraints {
                 // The half with more to show gets more room, but each keeps at least about a third,
@@ -307,9 +297,10 @@ fun InventoryScreen(
             }
         }
         // The panel: for what's picked (opened from its chip), or for one tapped item.
-        val group = pickedOpen && pickedView != null && pickedStacks.isNotEmpty()
+        val pickedPanel = pickedView?.takeIf { pickedOpen && pickedStacks.isNotEmpty() }
+        val group = pickedPanel != null
         val panelFor = when {
-            group -> pickedView!! to pickedStacks
+            pickedPanel != null -> pickedPanel to pickedStacks
             selection != null -> selection.first to listOf(selection.second)
             else -> null
         }

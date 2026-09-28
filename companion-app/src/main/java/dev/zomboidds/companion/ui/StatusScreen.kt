@@ -265,15 +265,21 @@ private fun BoxScope.TreatmentPanel(
     }
     HorizontalDivider()
     // The game builds no treatment menu while paused: wait, and load it by itself once it runs.
-    LoadingGameMenu(key = part.id, load = loadMenu, onSelect = onSelect, enabled = time?.speed != GameSpeed.PAUSED, whileDisabled = {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (time?.gameMenuOpen == true) "Close the game's menu, then unpause to treat" else "Unpause to treat",
-                Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (time?.canChange == true && !time.gameMenuOpen) TextButton(onClick = onUnpause) { Text("Unpause") }
-        }
-    })
+    LoadingGameMenu(
+        key = part.id,
+        load = loadMenu,
+        onSelect = onSelect,
+        enabled = time?.speed != GameSpeed.PAUSED,
+        whileDisabled = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (time?.gameMenuOpen == true) "Close the game's menu, then unpause to treat" else "Unpause to treat",
+                    Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (time?.canChange == true && !time.gameMenuOpen) TextButton(onClick = onUnpause) { Text("Unpause") }
+            }
+        },
+    )
 }
 
 /** The game's own colours for health lines. */

@@ -113,7 +113,7 @@ internal fun BoxScope.ItemPanel(
                         Column(Modifier.weight(0.58f).fillMaxHeight().verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Actions(item, key, loadMenu, appActions, onAction, onMenuOption)
-                            onUnpick?.let { Picked(stacks, iconUrl, it) }
+                            onUnpick?.let { PickedList(stacks, iconUrl, it) }
                         }
                     }
                 } else {
@@ -121,7 +121,7 @@ internal fun BoxScope.ItemPanel(
                         if (!targets.isEmpty) MoveColumn(targets, iconUrl, onMoveTo)
                         HorizontalDivider()
                         Actions(item, key, loadMenu, appActions, onAction, onMenuOption)
-                        onUnpick?.let { Picked(stacks, iconUrl, it) }
+                        onUnpick?.let { PickedList(stacks, iconUrl, it) }
                     }
                 }
             }
@@ -169,7 +169,7 @@ private fun GroupHeader(stacks: List<ItemStack>, iconUrl: (String) -> String, on
 
 /** The picked items, each with a ✕ to leave it out. */
 @Composable
-private fun ColumnScope.Picked(stacks: List<ItemStack>, iconUrl: (String) -> String, onUnpick: (ItemStack) -> Unit) {
+private fun ColumnScope.PickedList(stacks: List<ItemStack>, iconUrl: (String) -> String, onUnpick: (ItemStack) -> Unit) {
     HorizontalDivider()
     stacks.forEach { stack ->
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -230,7 +230,7 @@ private fun ColumnScope.Actions(
     }
     LoadingGameMenu(
         key = key, load = loadMenu, onSelect = onMenuOption,
-        whileLoading = { AppActions(item, appActions, onAction) },
+        untilReady = { AppActions(item, appActions, onAction) },
     ) { menu, select ->
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             val (pills, rest) = menu.options.partition { it.pill != null }
@@ -299,8 +299,8 @@ private fun Pills(menu: ItemMenu, pills: List<MenuOption>, onSelect: (optionId: 
                 }
             }
             // A greyed choice can't be tapped: show the game's reason.
-            choices.firstOrNull { !it.enabled && it.tooltip != null }?.let {
-                Text(it.tooltip!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            choices.firstNotNullOfOrNull { choice -> choice.tooltip?.takeIf { !choice.enabled } }?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
