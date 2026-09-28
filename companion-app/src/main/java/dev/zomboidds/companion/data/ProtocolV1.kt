@@ -271,7 +271,11 @@ object ProtocolV1 {
 
     fun watchHereRequest(on: Boolean) = Request("watch_here", buildJsonObject { put("on", on) })
 
-    fun itemMenuRequest(itemId: Long) = Request("item_menu", buildJsonObject { put("itemId", JsonPrimitive(itemId)) })
+    /** `itemId` is the first (what a mod before 0.21 reads); `itemIds` all of them, when several. */
+    fun itemMenuRequest(itemIds: List<Long>) = Request("item_menu", buildJsonObject {
+        put("itemId", JsonPrimitive(itemIds.first()))
+        if (itemIds.size > 1) put("itemIds", JsonArray(itemIds.map { JsonPrimitive(it) }))
+    })
 
     fun menuSelectRequest(menuId: String, optionId: String) = Request("menu_select", buildJsonObject {
         put("menuId", menuId)

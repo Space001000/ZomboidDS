@@ -47,12 +47,12 @@ import dev.zomboidds.companion.domain.stacks
 /**
  * Compact tile: icon first, the name on one line; everything else is in the action panel. In hand:
  * a small corner label. Condition: a thin bar only once it's damaged. [worn]: one of the unfolded
- * worn clothes.
+ * worn clothes. [picked]: one of several picked to act on together (a check in the corner).
  */
 @Composable
-internal fun GridTile(stack: ItemStack, iconUrl: (String) -> String, selected: Boolean, worn: Boolean, onClick: () -> Unit) {
+internal fun GridTile(stack: ItemStack, iconUrl: (String) -> String, selected: Boolean, worn: Boolean, onClick: () -> Unit, picked: Boolean = false) {
     val item = stack.first
-    Card(onClick = onClick, border = selectedBorder(selected) ?: wornBorder(worn), modifier = Modifier.height(TileHeight)) {
+    Card(onClick = onClick, border = selectedBorder(selected || picked) ?: wornBorder(worn), modifier = Modifier.height(TileHeight)) {
         Box(Modifier.fillMaxSize().padding(3.dp)) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Box(Modifier.fillMaxWidth().height(38.dp), contentAlignment = Alignment.Center) {
@@ -67,8 +67,9 @@ internal fun GridTile(stack: ItemStack, iconUrl: (String) -> String, selected: B
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            val hand = handLabel(item.equipped)
+            val hand = handLabel(item.equipped).takeIf { !picked }
             hand?.let { CornerLabel(it, Modifier.align(Alignment.TopStart)) }
+            if (picked) PickedCheck(Modifier.align(Alignment.TopStart))
             item.freshness?.let { FreshnessDot(it, Modifier.align(if (hand == null) Alignment.TopStart else Alignment.TopEnd).padding(3.dp)) }
             damage(item.condition)?.let { (fraction, color) ->
                 Box(Modifier.align(Alignment.BottomCenter).padding(horizontal = 3.dp)) { Meter(fraction, color, 2.dp) }
@@ -125,14 +126,15 @@ private fun damage(condition: Float?): Pair<Float, Color>? {
 
 /** List row: readable names plus where the item is and what it weighs. */
 @Composable
-internal fun ListRow(stack: ItemStack, iconUrl: (String) -> String, selected: Boolean, worn: Boolean, onClick: () -> Unit) {
+internal fun ListRow(stack: ItemStack, iconUrl: (String) -> String, selected: Boolean, worn: Boolean, onClick: () -> Unit, picked: Boolean = false) {
     val item = stack.first
-    Card(onClick = onClick, border = selectedBorder(selected) ?: wornBorder(worn), modifier = Modifier.height(RowHeight)) {
+    Card(onClick = onClick, border = selectedBorder(selected || picked) ?: wornBorder(worn), modifier = Modifier.height(RowHeight)) {
         Row(
             Modifier.fillMaxSize().padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            if (picked) PickedCheck(Modifier)
             ItemIcon(item, iconUrl, 32.dp)
             item.freshness?.let { FreshnessDot(it, Modifier) }
             Column(Modifier.weight(1f)) {
@@ -188,8 +190,19 @@ internal fun equippedLabel(slot: EquipSlot?) = when (slot) {
     null -> null
 }
 
+/** The check on a picked item. */
 @Composable
-private fun Badge(text: String, modifier: Modifier, fontSize: TextUnit = 9.sp) {
+private fun PickedCheck(modifier: Modifier) {
+    Box(
+        modifier.size(16.dp).background(MaterialTheme.colorScheme.primary, CircleShape).semantics { contentDescription = "picked" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("✓", color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, lineHeight = 11.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+internal fun Badge(text: String, modifier: Modifier, fontSize: TextUnit = 9.sp) {
     Text(
         text,
         modifier = modifier

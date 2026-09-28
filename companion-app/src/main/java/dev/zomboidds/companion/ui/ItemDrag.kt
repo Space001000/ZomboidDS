@@ -19,15 +19,26 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.unit.dp
 import dev.zomboidds.companion.domain.ItemStack
 
 /**
  * Dragging an item onto a container tab, like dragging between the game's inventory windows: the
  * state the item tiles, the tabs and the floating item share. Positions are in root coordinates.
  */
-internal class ItemDrag(private val onDrop: (stack: ItemStack, toContainer: String) -> Unit) {
-    var stack by mutableStateOf<ItemStack?>(null)
+internal class ItemDrag(
+    /** What a drag from a stack carries: that stack, or everything picked with it (it first). */
+    private val carried: (stack: ItemStack, from: String) -> List<ItemStack>,
+    private val onDrop: (stacks: List<ItemStack>, toContainer: String) -> Unit,
+) {
+    var stacks by mutableStateOf<List<ItemStack>>(emptyList())
         private set
+
+    /** The stack under the finger. */
+    val stack: ItemStack? get() = stacks.firstOrNull()
     var from by mutableStateOf<String?>(null)
         private set
     var position by mutableStateOf(Offset.Zero)
@@ -39,13 +50,13 @@ internal class ItemDrag(private val onDrop: (stack: ItemStack, toContainer: Stri
     /** Where each open container's items are shown, by container id: dropping there works too. */
     val panes = mutableStateMapOf<String, Rect>()
 
-    val active: Boolean get() = stack != null
+    val active: Boolean get() = stacks.isNotEmpty()
 
     fun target(): String? = (tabs.entries.firstOrNull { it.value.contains(position) }
         ?: panes.entries.firstOrNull { it.value.contains(position) })?.key
 
     internal fun start(stack: ItemStack, from: String, at: Offset) {
-        this.stack = stack
+        stacks = carried(stack, from)
         this.from = from
         position = at
     }
@@ -55,10 +66,10 @@ internal class ItemDrag(private val onDrop: (stack: ItemStack, toContainer: Stri
     }
 
     internal fun end(drop: Boolean) {
-        val dragged = stack
+        val dragged = stacks
         val target = target()
-        if (drop && dragged != null && target != null && target != from) onDrop(dragged, target)
-        stack = null
+        if (drop && dragged.isNotEmpty() && target != null && target != from) onDrop(dragged, target)
+        stacks = emptyList()
         from = null
     }
 }
@@ -72,11 +83,20 @@ internal val LocalItemDrag = staticCompositionLocalOf<ItemDrag?> { null }
 private const val HOLD_MS = 250L
 
 /**
- * Makes an item tile draggable: hold it a moment, then drag. A tap stays a tap and a quick swipe
- * still scrolls; once lifted, the gesture is ours (no click on release, no scrolling).
+ * A resting finger wobbles a little: once an item is lifted, it only starts dragging past this, so
+ * holding it and letting go picks it instead.
  */
-internal fun Modifier.draggableItem(stack: ItemStack, from: String): Modifier = composed {
+private val DragSlop = 14.dp
+
+/**
+ * Makes an item tile draggable: hold it a moment, then drag; or hold it and let go without moving
+ * to pick it ([onHold]). A tap stays a tap and a quick swipe still scrolls; once lifted, the
+ * gesture is ours (no click on release, no scrolling).
+ */
+internal fun Modifier.draggableItem(stack: ItemStack, from: String, onHold: () -> Unit): Modifier = composed {
     val drag = LocalItemDrag.current ?: return@composed this
+    val haptics = LocalHapticFeedback.current
+    val hold by rememberUpdatedState(onHold)
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     this
         .onGloballyPositioned { coordinates = it }
@@ -97,18 +117,25 @@ internal fun Modifier.draggableItem(stack: ItemStack, from: String): Modifier = 
                 }
                 if (decided != null) return@awaitEachGesture // a tap or a scroll: not ours
                 val origin = coordinates ?: return@awaitEachGesture
-                drag.start(stack, from, origin.localToRoot(down.position))
-                var dropped = false
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                // Lifted: moving on drags it; letting go where it is picks it.
+                val slop = DragSlop.toPx()
+                var dragging = false
+                var released = false
                 while (true) {
                     val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
                     change.consume()
                     if (!change.pressed) {
-                        dropped = true
+                        released = true
                         break
                     }
-                    coordinates?.let { drag.move(it.localToRoot(change.position)) }
+                    if (!dragging && (change.position - down.position).getDistance() > slop) {
+                        dragging = true
+                        drag.start(stack, from, origin.localToRoot(down.position))
+                    }
+                    if (dragging) coordinates?.let { drag.move(it.localToRoot(change.position)) }
                 }
-                drag.end(drop = dropped)
+                if (dragging) drag.end(drop = released) else if (released) hold()
             }
         }
 }

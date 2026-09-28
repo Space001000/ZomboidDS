@@ -101,7 +101,7 @@ class WebSocketGameGateway(
 
     override suspend fun perform(command: ItemCommand): CommandResult = send(ProtocolV1.request(command)).result
 
-    override suspend fun itemMenu(itemId: Long): ItemMenuResult = menuFrom(send(ProtocolV1.itemMenuRequest(itemId)))
+    override suspend fun itemMenu(itemIds: List<Long>): ItemMenuResult = menuFrom(send(ProtocolV1.itemMenuRequest(itemIds)))
 
     override suspend fun bodyPartMenu(partId: String): ItemMenuResult = menuFrom(send(ProtocolV1.bodyPartMenuRequest(partId)))
 

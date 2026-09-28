@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -79,13 +80,25 @@ internal fun ContainerPane(
     allAction: Pair<String, () -> Unit>?,
     modifier: Modifier,
     trailing: (@Composable () -> Unit)? = null,
+    /** Items picked in this pane to act on together, by item id. */
+    picked: Set<Long> = emptySet(),
+    onHold: (ItemStack) -> Unit = {},
+    onOpenPicked: () -> Unit = {},
+    onClearPicked: () -> Unit = {},
 ) {
+    val pickedCount = shown.stacks.count { stack -> stack.items.any { it.id in picked } }
     var wornOpen by rememberSaveable { mutableStateOf(false) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(PaneSpacing)) {
         // One row: tabs (the open one with its weight), the "all" action, and [trailing].
         Row(Modifier.height(PaneHeader), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.weight(1f)) { ContainerTabs(tabs, shown, onOpen, iconUrl) }
-            allAction?.takeIf { shown.stacks.isNotEmpty() }?.let { (label, onClick) -> AllButton(label, shown.id, onClick) }
+            if (pickedCount > 0) {
+                // What's picked: its panel, or let go of all of it (instead of the "all" action).
+                PickedChip("$pickedCount selected ›", filled = true, onClick = onOpenPicked)
+                PickedChip("✕", filled = false, onClick = onClearPicked)
+            } else {
+                allAction?.takeIf { shown.stacks.isNotEmpty() }?.let { (label, onClick) -> AllButton(label, shown.id, onClick) }
+            }
             trailing?.let {
                 Spacer(Modifier.width(8.dp)) // a little away from the "all" action: no mis-taps
                 it()
@@ -120,12 +133,14 @@ internal fun ContainerPane(
                             }
                         }) { entry ->
                             when (entry) {
-                                // Hold and drag onto a container tab or the other open container to move it (worn clothes stay put).
-                                is PaneEntry.Stack -> Box(if (entry.worn) Modifier else Modifier.draggableItem(entry.stack, shown.id)) {
+                                // Hold and drag onto a container tab or the other open container to move it; hold
+                                // and let go to pick it (worn clothes stay put).
+                                is PaneEntry.Stack -> Box(if (entry.worn) Modifier else Modifier.draggableItem(entry.stack, shown.id) { onHold(entry.stack) }) {
+                                    val isPicked = entry.stack.items.any { it.id in picked }
                                     if (layout == InventoryLayout.GRID) {
-                                        GridTile(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) })
+                                        GridTile(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) }, picked = isPicked)
                                     } else {
-                                        ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) })
+                                        ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) }, picked = isPicked)
                                     }
                                 }
                                 is PaneEntry.Worn -> WornTile(entry, iconUrl, list = layout == InventoryLayout.LIST, onClick = { wornOpen = !wornOpen })
@@ -135,6 +150,16 @@ internal fun ContainerPane(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PickedChip(label: String, filled: Boolean, onClick: () -> Unit) {
+    val padding = PaddingValues(horizontal = 10.dp)
+    if (filled) {
+        Button(onClick = onClick, contentPadding = padding, modifier = Modifier.height(34.dp)) { Text(label) }
+    } else {
+        OutlinedButton(onClick = onClick, contentPadding = padding, modifier = Modifier.height(34.dp)) { Text(label) }
     }
 }
 

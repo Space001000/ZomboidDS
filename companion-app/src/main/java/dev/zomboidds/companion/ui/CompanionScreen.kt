@@ -273,7 +273,7 @@ private fun InGamePreview() {
         iconUrl = { it },
         actions = object : ItemActions {
             override suspend fun perform(command: ItemCommand) = CommandResult.Ok
-            override suspend fun itemMenu(itemId: Long) = ItemMenuResult.Failed("preview")
+            override suspend fun itemMenu(itemIds: List<Long>) = ItemMenuResult.Failed("preview")
             override suspend fun selectMenuOption(menuId: String, optionId: String) = CommandResult.Ok
             override suspend fun transfer(itemId: Long, toContainer: String) = CommandResult.Ok
             override suspend fun transferAll(fromContainer: String, toContainer: String) = CommandResult.Ok

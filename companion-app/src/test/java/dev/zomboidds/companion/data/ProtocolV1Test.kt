@@ -145,7 +145,11 @@ class ProtocolV1Test {
         fun parse(json: String) = kotlinx.serialization.json.Json.parseToJsonElement(json).toString()
         assertEquals(
             parse("""{"v":1,"type":"command","id":"c-1","name":"item_menu","args":{"itemId":42}}"""),
-            parse(ProtocolV1.encode("c-1", ProtocolV1.itemMenuRequest(42))),
+            parse(ProtocolV1.encode("c-1", ProtocolV1.itemMenuRequest(listOf(42)))),
+        )
+        assertEquals(
+            parse("""{"v":1,"type":"command","id":"c-2","name":"item_menu","args":{"itemId":42,"itemIds":[42,43]}}"""),
+            parse(ProtocolV1.encode("c-2", ProtocolV1.itemMenuRequest(listOf(42, 43)))),
         )
         assertEquals(
             parse("""{"v":1,"type":"command","id":"c-2","name":"menu_select","args":{"menuId":"m7","optionId":"2.1"}}"""),

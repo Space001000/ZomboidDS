@@ -78,15 +78,16 @@ end
 --- (never by name, so translations and other mods' labels don't matter): the item's main uses. A
 --- submenu is a pill when everything in it is (Eat > All / Half / Quarter, Apply Bandage > a body
 --- part, Attach > a slot). Equipping and attaching are pills for weapons only: the game offers them
---- for nearly anything you can hold. Drop is "drop" (the app draws it quieter); the rest "action".
-local function pillFunctions(item)
+--- for nearly anything you can hold (and only for one weapon, not a selection). Drop is "drop" (the
+--- app draws it quieter); the rest "action".
+local function pillFunctions(items)
     local set = {}
     local function add(fn, kind)
         if fn ~= nil then set[fn] = kind or "action" end
     end
     local P = ISInventoryPaneContextMenu
     if P ~= nil then
-        if instanceof(item, "HandWeapon") then
+        if #items == 1 and instanceof(items[1], "HandWeapon") then
             add(P.OnPrimaryWeapon)
             add(P.OnSecondWeapon)
             add(P.OnTwoHandsEquip)
@@ -209,21 +210,24 @@ local function isPaused()
     return ok and speed == 0
 end
 
---- Builds the menu for `item`. Returns true, nil, { menuId, options } or false, reason.
-function B42Menu.open(player, item)
+--- Builds the menu for `items`: one item, or several picked together (the game's menu for a
+--- selection in its own inventory: Drop, Eat, ... for all of them). The first one leads.
+--- Returns true, nil, { menuId, options } or false, reason.
+function B42Menu.open(player, items)
     if ISInventoryPaneContextMenu == nil or ISInventoryPaneContextMenu.createMenu == nil then
         return false, "The game's item menu is not available"
     end
+    local item = items[1]
     local container = item:getContainer()
     local inInventory = container ~= nil and container:isInCharacterInventory(player)
 
-    local menu = ISInventoryPaneContextMenu.createMenu(player:getPlayerNum(), inInventory, { item }, 0, 0)
+    local menu = ISInventoryPaneContextMenu.createMenu(player:getPlayerNum(), inInventory, items, 0, 0)
     if menu == nil then
         return false, isPaused() and "The game is paused" or "The game has no menu for this item"
     end
 
     local calls = {}
-    local ok, options = pcall(snapshot, menu, calls, "", 1, appDuplicates(), pillFunctions(item))
+    local ok, options = pcall(snapshot, menu, calls, "", 1, appDuplicates(), pillFunctions(items))
     menu:hideAndChildren() -- same tick as createMenu, so it never shows on the top screen
     if not ok then
         return false, "Could not read the game's menu: " .. tostring(options)

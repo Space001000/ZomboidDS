@@ -14,11 +14,16 @@ local function check(cond, msg) if not cond then error("FAIL: " .. msg, 2) end p
 
 -- A book in the player's inventory.
 local book = { getID = function() return 42 end }
+local magazine = { getID = function() return 43 end }
 local inventory = {
   isInCharacterInventory = function() return true end,
-  getItemWithIDRecursiv = function(_, id) if id == 42 and book.present ~= false then return book end end,
+  getItemWithIDRecursiv = function(_, id)
+    if id == 42 and book.present ~= false then return book end
+    if id == 43 then return magazine end
+  end,
 }
 book.getContainer = function() return inventory end
+magazine.getContainer = function() return inventory end
 local player = { getPlayerNum = function() return 0 end, getInventory = function() return inventory end }
 
 -- Fake ISContextMenu: options in an array, submenus resolved through getSubMenu.
@@ -41,10 +46,11 @@ local function newMenu()
 end
 
 local calls = {}
-local lastMenu
+local lastMenu, lastItems
 ISInventoryPaneContextMenu = {
   createMenu = function(playerNum, inInventory, items, x, y)
     if paused then return nil end
+    lastItems = items
     local menu = newMenu()
     local P = ISInventoryPaneContextMenu
     menu:addOption("Read", "readTarget", P.onLiteratureItems, items[1], "fast")
@@ -137,6 +143,16 @@ weapon = true
 local _, _, weaponMenu = B42.commands.item_menu(player, { itemId = 42 })
 check(weaponMenu.options[5].pill == "action", "equipping is a pill for a weapon")
 weapon = false
+
+-- several items picked together: the game's menu for all of them, the first leading
+local okGroup, _, group = B42.commands.item_menu(player, { itemIds = { 42, 43 } })
+check(okGroup and #lastItems == 2 and lastItems[1] == book and lastItems[2] == magazine, "a menu for several items at once")
+weapon = true
+local _, _, weapons = B42.commands.item_menu(player, { itemIds = { 42, 43 } })
+check(weapons.options[5].pill == nil, "equipping is no pill for a selection, even of weapons")
+weapon = false
+check(B42.commands.item_menu(player, { itemIds = { 42, 99 } }) == false, "one missing item: no menu")
+check(B42.commands.menu_select(player, { menuId = group.menuId, optionId = "1" }) == false, "(an older menu is out of date)")
 
 paused = true
 local ok6, reason6 = B42.commands.item_menu(player, { itemId = 42 })

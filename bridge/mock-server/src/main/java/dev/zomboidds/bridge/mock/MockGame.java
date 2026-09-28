@@ -190,15 +190,23 @@ final class MockGame {
             case "unequip" -> setEquipped(command, null);
             case "drop" -> drop(command);
             case "item_menu" -> {
-                // Like the adapter: items you carry and items in containers within reach.
-                Object id = command.args().get("itemId");
-                Map<String, Object> item = id instanceof Number n ? findAnywhere(n.longValue()) : null;
-                if (item == null) {
+                // Like the adapter: items you carry and items in containers within reach; several
+                // picked together (`itemIds`) get the first one's menu, acting on all of them.
+                List<?> ids = command.args().get("itemIds") instanceof List<?> list ? list : List.of(command.args().getOrDefault("itemId", ""));
+                List<Map<String, Object>> picked = new ArrayList<>();
+                for (Object id : ids) {
+                    Map<String, Object> item = id instanceof Number n ? findAnywhere(n.longValue()) : null;
+                    if (item == null) {
+                        break;
+                    }
+                    picked.add(item);
+                }
+                if (picked.isEmpty() || picked.size() < ids.size()) {
                     yield "item not found";
                 }
-                data[0] = menu.open(item, () -> {
-                    items().remove(item);
-                    containers.forEach(c -> itemsOf(c).remove(item));
+                data[0] = menu.open(picked.get(0), () -> {
+                    items().removeAll(picked);
+                    containers.forEach(c -> itemsOf(c).removeAll(picked));
                     inventoryDirty = true;
                     containersDirty = true;
                 });

@@ -25,8 +25,11 @@ interface ItemActions {
     /** A quick action (equip, wear, drop, ...). Never throws. */
     suspend fun perform(command: ItemCommand): CommandResult
 
-    /** The game's own right-click menu for an item. Never throws. */
-    suspend fun itemMenu(itemId: Long): ItemMenuResult
+    /**
+     * The game's own right-click menu for one item, or for several picked together (the game's menu
+     * for a selection: Drop, Eat, ... for all of them; the first leads). Never throws.
+     */
+    suspend fun itemMenu(itemIds: List<Long>): ItemMenuResult
 
     /** Runs an option of a menu from [itemMenu], like clicking it in the game. Never throws. */
     suspend fun selectMenuOption(menuId: String, optionId: String): CommandResult

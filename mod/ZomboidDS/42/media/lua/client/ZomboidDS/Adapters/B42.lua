@@ -163,12 +163,21 @@ B42.commands = {
     -- The game's own right-click menu for an item (see B42Menu.lua): for items you carry, and for
     -- items in containers within reach, which get the loot window's menu (Grab, and options like
     -- Read or Eat that take the item first).
+    -- `itemIds`: several items picked together (the first leads); or one `itemId`.
     item_menu = function(player, args)
-        local item = Containers.findItem(player, tonumber(args.itemId))
-        if item == nil then
+        local ids = type(args.itemIds) == "table" and args.itemIds or { args.itemId }
+        local items = {}
+        for _, id in ipairs(ids) do
+            local item = Containers.findItem(player, tonumber(id))
+            if item == nil then
+                return false, "item not found"
+            end
+            items[#items + 1] = item
+        end
+        if #items == 0 then
             return false, "item not found"
         end
-        return B42Menu.open(player, item)
+        return B42Menu.open(player, items)
     end,
 
     -- The game's treatment menu for a body part from `health` (see B42Menu.openHealth).

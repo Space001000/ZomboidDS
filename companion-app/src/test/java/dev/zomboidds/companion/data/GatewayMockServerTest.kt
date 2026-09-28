@@ -66,7 +66,7 @@ class GatewayMockServerTest {
         val inventory = withTimeout(5_000) { gateway.state.first { it.inventory != null } }.inventory!!
         val beans = inventory.items.first { it.name == "Beans" }
 
-        val menu = (gateway.itemMenu(beans.id) as ItemMenuResult.Ready).menu
+        val menu = (gateway.itemMenu(listOf(beans.id)) as ItemMenuResult.Ready).menu
         val eat = menu.options.first { it.name == "Eat" }
         val all = eat.children.first { it.name == "All" }
         assertTrue(menu.options.any { it.name == "Rename" && !it.enabled && it.tooltip != null })
@@ -111,7 +111,7 @@ class GatewayMockServerTest {
     fun `items in containers have the game's menu too`() = runBlocking {
         val containers = withTimeout(5_000) { gateway.state.first { it.containers != null } }.containers!!
         val pen = containers.first { it.name == "Shelves" }.items!!.first { it.name == "Pen" }
-        assertTrue(gateway.itemMenu(pen.id) is ItemMenuResult.Ready)
+        assertTrue(gateway.itemMenu(listOf(pen.id)) is ItemMenuResult.Ready)
     }
 
     @Test

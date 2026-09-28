@@ -6,7 +6,7 @@ import java.util.Set;
 public final class Protocol {
 
     public static final int VERSION = 1;
-    public static final String BRIDGE_VERSION = "0.20.5";
+    public static final String BRIDGE_VERSION = "0.21.0";
 
     public static final String TYPE_HELLO = "hello";
     public static final String TYPE_SESSION = "session";

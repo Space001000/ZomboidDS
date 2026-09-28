@@ -37,12 +37,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.zomboidds.companion.ContainerLayout
 import dev.zomboidds.companion.InventoryLayout
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.Container
 import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.Inventory
+import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemActions
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemStack
@@ -83,6 +85,9 @@ internal class ContainerView(
     val onPlayer: Boolean get() = container.kind == ContainerKind.INVENTORY || container.kind == ContainerKind.BAG
 }
 
+/** Items picked to act on together (hold one, then tap more): all in one container, by item id. */
+private data class Picked(val containerId: String, val ids: Set<Long>)
+
 /** The main inventory first, then the rest in the game's order. Without `containers` (older mod), only the inventory. */
 private fun containerViews(inventory: Inventory, containers: List<Container>?): List<ContainerView> {
     val main = containers?.firstOrNull { it.kind == ContainerKind.INVENTORY }
@@ -114,6 +119,8 @@ fun InventoryScreen(
     val split = canMove && display.containers == ContainerLayout.SPLIT
     val scope = rememberCoroutineScope()
     var selectedId by remember { mutableStateOf<Long?>(null) }
+    var picked by remember { mutableStateOf<Picked?>(null) }
+    var pickedOpen by remember { mutableStateOf(false) }
     var failure by remember { mutableStateOf<String?>(null) }
 
     // The open tab of each pane, by container id. A container that went out of reach falls back to the first.
@@ -144,6 +151,31 @@ fun InventoryScreen(
         open(show.containerId ?: main.id)
     }
 
+    // What's picked, as it is now: gone with its container (another tab opened, out of reach) or
+    // once none of it is left there.
+    val shownIds = if (split) setOfNotNull(mineShown.id, aroundShown?.id) else setOf(singleShown.id)
+    val pickedView = picked?.let { p -> views.firstOrNull { it.id == p.containerId && it.id in shownIds } }
+    val pickedIds = picked?.ids.orEmpty()
+    val pickedStacks = pickedView?.stacks?.filter { stack -> stack.items.any { it.id in pickedIds } }.orEmpty()
+    LaunchedEffect(pickedStacks.isEmpty()) {
+        if (pickedStacks.isEmpty()) {
+            picked = null
+            pickedOpen = false
+        }
+    }
+
+    // Holding an item and letting go picks it (or leaves it out again); while something is picked
+    // in a container, a tap there does the same. Otherwise a tap opens the item's panel.
+    fun pick(stack: ItemStack, from: String) {
+        val ids = stack.items.map { it.id }.toSet()
+        val current = picked?.takeIf { it.containerId == from }?.ids.orEmpty()
+        val next = if (ids.any { it in current }) current - ids else current + ids
+        picked = next.takeIf { it.isNotEmpty() }?.let { Picked(from, it) }
+    }
+    fun tap(stack: ItemStack, from: String) {
+        if (pickedView?.id == from && pickedStacks.isNotEmpty()) pick(stack, from) else selectedId = stack.first.id
+    }
+
     // Follow the selected item through updates, wherever it is now; it's gone once used up or out of reach.
     val selection = views.firstNotNullOfOrNull { view ->
         view.stacks.firstOrNull { stack -> stack.items.any { it.id == selectedId } }?.let { view to it }
@@ -158,6 +190,8 @@ fun InventoryScreen(
 
     fun run(label: String, action: suspend () -> CommandResult) {
         selectedId = null
+        picked = null
+        pickedOpen = false
         scope.launch {
             val result = action()
             if (result is CommandResult.Failed) failure = "$label: ${result.reason}"
@@ -165,9 +199,9 @@ fun InventoryScreen(
     }
 
     // A stack moves as a whole, like dragging it in the game: one command per item, the game queues them.
-    fun moveStack(stack: ItemStack, to: ContainerView) = run(stack.first.name) {
+    fun moveStacks(stacks: List<ItemStack>, to: ContainerView) = run(stacks.singleOrNull()?.first?.name ?: "${stacks.size} items") {
         var result: CommandResult = CommandResult.Ok
-        for (item in stack.items) {
+        for (item in stacks.flatMap { it.items }) {
             result = actions.transfer(item.id, to.id)
             if (result is CommandResult.Failed) break
         }
@@ -176,12 +210,24 @@ fun InventoryScreen(
 
     fun moveAll(from: ContainerView, to: ContainerView) = run(from.label) { actions.transferAll(from.id, to.id) }
 
-    // Dragging an item onto a container tab moves the whole stack there.
+    // Dragging an item onto a container tab moves the whole stack there; a picked one takes
+    // everything picked with it.
     val currentViews by rememberUpdatedState(views)
+    val currentPicked by rememberUpdatedState(pickedView?.id to pickedStacks)
     val drag = remember {
-        ItemDrag { dragged, to ->
-            currentViews.firstOrNull { it.id == to && !it.container.locked }?.let { target -> moveStack(dragged, target) }
-        }
+        ItemDrag(
+            carried = { stack, from ->
+                val (pickedIn, stacks) = currentPicked
+                if (pickedIn == from && stacks.any { it.first.id == stack.first.id }) {
+                    listOf(stack) + stacks.filter { it.first.id != stack.first.id }
+                } else {
+                    listOf(stack)
+                }
+            },
+            onDrop = { dragged, to ->
+                currentViews.firstOrNull { it.id == to && !it.container.locked }?.let { target -> moveStacks(dragged, target) }
+            },
+        )
     }
     var origin by remember { mutableStateOf(Offset.Zero) }
 
@@ -202,7 +248,19 @@ fun InventoryScreen(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             // The display toggles sit at the end of the first tab row, so they cost no screen height.
             val switch = @Composable { DisplaySwitch(display, onDisplayChange, showContainerLayout = canMove) }
-            val onItem = { stack: ItemStack -> selectedId = stack.first.id }
+            // What each pane passes on: taps, holds and its picked items.
+            @Composable
+            fun Pane(
+                tabs: List<ContainerView>, shown: ContainerView, onOpen: (String) -> Unit, allAction: Pair<String, () -> Unit>?,
+                modifier: Modifier, trailing: (@Composable () -> Unit)? = null,
+            ) = ContainerPane(
+                tabs, shown, onOpen, display.items, iconUrl, selection?.second, { tap(it, shown.id) },
+                allAction = allAction, modifier = modifier, trailing = trailing,
+                picked = picked?.takeIf { it.containerId == shown.id }?.ids.orEmpty(),
+                onHold = { pick(it, shown.id) },
+                onOpenPicked = { pickedOpen = true },
+                onClearPicked = { picked = null },
+            )
             if (split) BoxWithConstraints {
                 // The half with more to show gets more room, but each keeps at least about a third,
                 // in whole rows: the grids' height is shared out row by row.
@@ -226,17 +284,15 @@ fun InventoryScreen(
                     "Put all" to { moveAll(mineShown, target) }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(SplitSpacing)) {
-                    ContainerPane(mine, mineShown, { mineOpen = it }, display.items, iconUrl, selection?.second, onItem,
-                        allAction = putAll, modifier = Modifier.height(PaneHeader + PaneSpacing + row * mineRows - Gap), trailing = switch)
+                    Pane(mine, mineShown, { mineOpen = it }, putAll,
+                        modifier = Modifier.height(PaneHeader + PaneSpacing + row * mineRows - Gap), trailing = switch)
                     HorizontalDivider(thickness = SplitDivider)
                     if (aroundShown != null) {
-                        ContainerPane(around, aroundShown, { aroundOpen = it; highlight(it) }, display.items, iconUrl, selection?.second, onItem,
-                            allAction = takeAll(aroundShown), modifier = Modifier.weight(1f))
+                        Pane(around, aroundShown, { aroundOpen = it; highlight(it) }, takeAll(aroundShown), modifier = Modifier.weight(1f))
                     }
                 }
             } else {
-                ContainerPane(views, singleShown, { open(it); highlight(it) }, display.items, iconUrl, selection?.second, onItem,
-                    allAction = takeAll(singleShown), modifier = Modifier.weight(1f), trailing = switch)
+                Pane(views, singleShown, { open(it); highlight(it) }, takeAll(singleShown), modifier = Modifier.weight(1f), trailing = switch)
             }
         }
         failure?.let {
@@ -249,8 +305,15 @@ fun InventoryScreen(
                 Text(it, Modifier.padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall)
             }
         }
-        if (selection != null) {
-            val (view, stack) = selection
+        // The panel: for what's picked (opened from its chip), or for one tapped item.
+        val group = pickedOpen && pickedView != null && pickedStacks.isNotEmpty()
+        val panelFor = when {
+            group -> pickedView!! to pickedStacks
+            selection != null -> selection.first to listOf(selection.second)
+            else -> null
+        }
+        if (panelFor != null) {
+            val (view, stacks) = panelFor
             // Where it can go, one tap each: your containers, then the ones around you (the open one first).
             val targets = if (!canMove) MoveTargets(emptyList(), emptyList()) else {
                 val open = views.firstOrNull { it.id == (if (split) aroundShown?.id else singleShown.id) && !it.onPlayer }
@@ -263,25 +326,49 @@ fun InventoryScreen(
                     open = open,
                 )
             }
-            val itemName = stack.first.name
+            val name = stacks.singleOrNull()?.first?.name ?: "${stacks.size} items"
+            val ids = stacks.map { it.first.id }
             ItemPanel(
-                stack, iconUrl,
+                stacks, iconUrl,
                 // The game's own menu; for items around you, the one its loot window shows (Grab, ...).
-                loadMenu = { actions.itemMenu(stack.first.id) },
-                onAction = { action -> run(itemName) { actions.perform(ItemCommand(stack.first.id, action)) } },
+                loadMenu = { actions.itemMenu(ids) },
+                // For several, only what they all have (the game's menu has the rest).
+                appActions = if (stacks.size == 1) {
+                    stacks.first().first.actions
+                } else {
+                    listOf(ItemAction.DROP).filter { action -> stacks.all { action in it.first.actions } }
+                },
+                onAction = { action ->
+                    run(name) {
+                        var result: CommandResult = CommandResult.Ok
+                        for (id in ids) {
+                            result = actions.perform(ItemCommand(id, action))
+                            if (result is CommandResult.Failed) break
+                        }
+                        result
+                    }
+                },
                 targets = targets,
-                onMoveTo = { target -> moveStack(stack, target) },
-                onMenuOption = { menuId, optionId -> run(itemName) { actions.selectMenuOption(menuId, optionId) } },
-                onClose = { selectedId = null },
+                onMoveTo = { target -> moveStacks(stacks, target) },
+                onMenuOption = { menuId, optionId -> run(name) { actions.selectMenuOption(menuId, optionId) } },
+                onClose = { if (group) pickedOpen = false else selectedId = null },
+                onUnpick = if (group) { stack -> pick(stack, view.id) } else null,
             )
         }
-        // The dragged item, under the finger.
+        // The dragged item, under the finger; several picked ones as a little pile with how many.
         drag.stack?.let { dragged ->
             val at = drag.position - origin
+            val count = drag.stacks.size
             Box(Modifier.offset { IntOffset((at.x - FloatHalfSize.toPx()).roundToInt(), (at.y - FloatHalfSize.toPx()).roundToInt()) }
                 .graphicsLayer { rotationZ = -4f; shadowElevation = 12f }) {
+                if (count > 1) {
+                    Box(Modifier.offset(6.dp, 6.dp).size(FloatHalfSize * 2)) {
+                        GridTile(drag.stacks[1], iconUrl, selected = true, worn = false, onClick = {})
+                    }
+                }
                 Box(Modifier.size(FloatHalfSize * 2)) {
                     GridTile(dragged, iconUrl, selected = true, worn = false, onClick = {})
+                    if (count > 1) Badge("×$count", Modifier.align(Alignment.TopEnd).padding(3.dp), fontSize = 12.sp)
                 }
             }
         }

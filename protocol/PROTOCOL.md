@@ -151,7 +151,7 @@ executed on the game thread on the next tick (also while the game is paused), us
 | `wear`    | `itemId` |
 | `unequip` | `itemId` |
 | `drop`    | `itemId` |
-| `item_menu` | `itemId`. Result `data`: the game's own context menu for the item, see below; without the entries the app has as its own buttons (Grab / Grab all, Move To, Transfer all / Loot all; recognised by the game function behind them) |
+| `item_menu` | `itemId`, or `itemIds` for several items picked together (the game's menu for a selection; the first leads; mod 0.21+, `itemId` is sent as well for older ones). Result `data`: the game's own context menu for the item, see below; without the entries the app has as its own buttons (Grab / Grab all, Move To, Transfer all / Loot all; recognised by the game function behind them) |
 | `watch_here` | `on` (default true): the app shows "Here". Lasts 10 s, so the app repeats it every few seconds while it's shown; `on: false` stops it. |
 | `health_menu` | `part` (a body part `id` from `health`). Result `data`: the game's treatment menu for it (bandage, disinfect, remove glass, splint, ... with what the player carries), same shape as `item_menu` |
 | `world_menu` | none. Result `data`: the game's world menu for where the player stands ("Here"), same shape as `item_menu` |

@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -65,23 +67,29 @@ internal class MoveTargets(
 private val TwoColumnWidth = 480.dp
 
 /**
- * The panel for a tapped item. Left: where it can go, one tap each. Right: what you can do with
- * it: the quick actions, then the game's own menu for it. Each side scrolls on its own, so a busy
+ * The panel for a tapped item, or for several picked together. Left: where it can go, one tap
+ * each. Right: what you can do with it: the game's own menu for it (or the app's own buttons until
+ * that's there), and for several, the list of them. Each side scrolls on its own, so a busy
  * kitchen and a long menu don't crowd each other.
  */
 @Composable
 internal fun BoxScope.ItemPanel(
-    stack: ItemStack,
+    stacks: List<ItemStack>,
     iconUrl: (String) -> String,
     /** Null: no game menu for this item. */
     loadMenu: (suspend () -> ItemMenuResult)?,
+    /** The app's own buttons, for while the game's menu isn't there. */
+    appActions: List<ItemAction>,
     onAction: (ItemAction) -> Unit,
     targets: MoveTargets,
     onMoveTo: (ContainerView) -> Unit,
     onMenuOption: (menuId: String, optionId: String) -> Unit,
     onClose: () -> Unit,
+    /** For picked items: leave one out. */
+    onUnpick: ((ItemStack) -> Unit)? = null,
 ) {
-    val item = stack.first
+    val item = stacks.first().first
+    val key = stacks.map { it.first.id }
     Box(
         Modifier.fillMaxSize()
             .background(Color.Black.copy(alpha = 0.4f))
@@ -91,7 +99,7 @@ internal fun BoxScope.ItemPanel(
         // Taps on the panel stay on the panel.
         .clickable(interactionSource = null, indication = null, onClick = {})) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Header(stack, iconUrl, onClose)
+            if (stacks.size == 1) Header(stacks.first(), iconUrl, onClose) else GroupHeader(stacks, iconUrl, onClose)
             BoxWithConstraints(Modifier.weight(1f)) {
                 if (maxWidth >= TwoColumnWidth) {
                     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -104,14 +112,16 @@ internal fun BoxScope.ItemPanel(
                         }
                         Column(Modifier.weight(0.58f).fillMaxHeight().verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Actions(item, loadMenu, onAction, onMenuOption)
+                            Actions(item, key, loadMenu, appActions, onAction, onMenuOption)
+                            onUnpick?.let { Picked(stacks, iconUrl, it) }
                         }
                     }
                 } else {
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         if (!targets.isEmpty) MoveColumn(targets, iconUrl, onMoveTo)
                         HorizontalDivider()
-                        Actions(item, loadMenu, onAction, onMenuOption)
+                        Actions(item, key, loadMenu, appActions, onAction, onMenuOption)
+                        onUnpick?.let { Picked(stacks, iconUrl, it) }
                     }
                 }
             }
@@ -137,6 +147,38 @@ private fun Header(stack: ItemStack, iconUrl: (String) -> String, onClose: () ->
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         TextButton(onClick = onClose) { Text("Close") }
+    }
+}
+
+/** Several items: a few of their icons, how many, and what they weigh together. */
+@Composable
+private fun GroupHeader(stacks: List<ItemStack>, iconUrl: (String) -> String, onClose: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.height(48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
+            stacks.take(4).forEach { stack -> ItemIcon(stack.first, iconUrl, 36.dp) }
+        }
+        Column(Modifier.weight(1f)) {
+            Text("${stacks.size} items", style = MaterialTheme.typography.titleMedium)
+            val weight = stacks.sumOf { stack -> stack.items.sumOf { (it.weight ?: 0f).toDouble() } }
+            Text("weight %.2f".format(weight), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        TextButton(onClick = onClose) { Text("Close") }
+    }
+}
+
+/** The picked items, each with a ✕ to leave it out. */
+@Composable
+private fun ColumnScope.Picked(stacks: List<ItemStack>, iconUrl: (String) -> String, onUnpick: (ItemStack) -> Unit) {
+    HorizontalDivider()
+    stacks.forEach { stack ->
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ItemIcon(stack.first, iconUrl, 28.dp)
+            Text(stack.first.name + if (stack.count > 1) " ×${stack.count}" else "", Modifier.weight(1f),
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            OutlinedButton(onClick = { onUnpick(stack) }, contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.size(36.dp)) { Text("✕") }
+        }
     }
 }
 
@@ -176,22 +218,24 @@ private fun TargetButton(target: ContainerView, iconUrl: (String) -> String, out
 @Composable
 private fun ColumnScope.Actions(
     item: InventoryItem,
+    key: Any,
     loadMenu: (suspend () -> ItemMenuResult)?,
+    appActions: List<ItemAction>,
     onAction: (ItemAction) -> Unit,
     onMenuOption: (menuId: String, optionId: String) -> Unit,
 ) {
     if (loadMenu == null) {
-        AppActions(item, onAction)
+        AppActions(item, appActions, onAction)
         return
     }
     LoadingGameMenu(
-        key = item.id, load = loadMenu, onSelect = onMenuOption,
-        whileLoading = { AppActions(item, onAction) },
+        key = key, load = loadMenu, onSelect = onMenuOption,
+        whileLoading = { AppActions(item, appActions, onAction) },
     ) { menu, select ->
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             val (pills, rest) = menu.options.partition { it.pill != null }
             // The game leaves Drop out while a controller is in use (the Thor): then the app's.
-            val appDrop = ItemAction.DROP.takeIf { it in item.actions && pills.none { p -> p.pill == MenuPill.DROP } }
+            val appDrop = ItemAction.DROP.takeIf { it in appActions && pills.none { p -> p.pill == MenuPill.DROP } }
             Pills(menu, pills, select) {
                 if (appDrop != null) OutlinedButton(onClick = { onAction(appDrop) }) { Text(label(appDrop, item)) }
             }
@@ -206,9 +250,9 @@ private fun ColumnScope.Actions(
 /** The app's own buttons (equip, wear, drop, ...), for when the game's menu isn't there. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AppActions(item: InventoryItem, onAction: (ItemAction) -> Unit) {
-    if (item.actions.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item.actions.forEach { action ->
+private fun AppActions(item: InventoryItem, actions: List<ItemAction>, onAction: (ItemAction) -> Unit) {
+    if (actions.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        actions.forEach { action ->
             if (action == ItemAction.DROP) {
                 OutlinedButton(onClick = { onAction(action) }) { Text(label(action, item)) }
             } else {
