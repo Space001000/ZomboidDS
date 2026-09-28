@@ -103,19 +103,15 @@ internal fun Modifier.draggableItem(stack: ItemStack, from: String, onHold: () -
         .pointerInput(stack.first.id, from) {
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
-                // Tap, scroll or hold? Watch without consuming until the hold time is up.
-                val decided = withTimeoutOrNull(HOLD_MS) {
-                    while (true) {
+                // Tap, scroll or hold? Watch without consuming until the hold time is up: the finger
+                // lifting or moving before then ends the watch early (null only when time ran out).
+                val endedEarly = withTimeoutOrNull(HOLD_MS) {
+                    do {
                         val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
-                            ?: return@withTimeoutOrNull false
-                        if (!change.pressed) return@withTimeoutOrNull false
-                        if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
-                            return@withTimeoutOrNull false
-                        }
-                    }
-                    @Suppress("UNREACHABLE_CODE") false
+                    } while (change != null && change.pressed &&
+                        (change.position - down.position).getDistance() <= viewConfiguration.touchSlop)
                 }
-                if (decided != null) return@awaitEachGesture // a tap or a scroll: not ours
+                if (endedEarly != null) return@awaitEachGesture // a tap or a scroll: not ours
                 val origin = coordinates ?: return@awaitEachGesture
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 // Lifted: moving on drags it; letting go where it is picks it.
