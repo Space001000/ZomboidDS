@@ -85,8 +85,11 @@ internal fun ContainerPane(
     onHold: (ItemStack) -> Unit = {},
     onOpenPicked: () -> Unit = {},
     onClearPicked: () -> Unit = {},
+    /** A box drawn over the items picked these (on top of what was picked). */
+    onPickSet: (Set<Long>) -> Unit = {},
 ) {
     val pickedCount = shown.stacks.count { stack -> stack.items.any { it.id in picked } }
+    val boxSelect = remember(shown.id) { BoxSelect() }
     var wornOpen by rememberSaveable { mutableStateOf(false) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(PaneSpacing)) {
         // One row: tabs (the open one with its weight), the "all" action, and [trailing].
@@ -109,7 +112,9 @@ internal fun ContainerPane(
         val canDrop = drag != null && drag.active && drag.from != shown.id && !shown.container.locked
         Box(
             Modifier.fillMaxWidth().weight(1f).paneDropTarget(shown.id)
-                .then(if (canDrop) Modifier.border(2.dp, if (drag?.target() == shown.id) Good else Good.copy(alpha = 0.35f), RoundedCornerShape(10.dp)) else Modifier),
+                .then(if (canDrop) Modifier.border(2.dp, if (drag?.target() == shown.id) Good else Good.copy(alpha = 0.35f), RoundedCornerShape(10.dp)) else Modifier)
+                // From empty space: a box that picks what it touches.
+                .then(if (shown.container.locked) Modifier else Modifier.boxSelect(boxSelect, picked, onPickSet, onEmptyTap = onClearPicked)),
         ) {
             when {
                 shown.container.locked -> Hint("Locked")
@@ -135,12 +140,17 @@ internal fun ContainerPane(
                             when (entry) {
                                 // Hold and drag onto a container tab or the other open container to move it; hold
                                 // and let go to pick it (worn clothes stay put).
-                                is PaneEntry.Stack -> Box(if (entry.worn) Modifier else Modifier.draggableItem(entry.stack, shown.id) { onHold(entry.stack) }) {
+                                is PaneEntry.Stack -> Box(
+                                    if (entry.worn) Modifier
+                                    else Modifier.draggableItem(entry.stack, shown.id) { onHold(entry.stack) }.boxTile(boxSelect, entry.stack),
+                                ) {
                                     val isPicked = entry.stack.items.any { it.id in picked }
+                                    // Worn clothes can't be picked: while picking, a tap on them does nothing.
+                                    val onClick = { if (!(entry.worn && pickedCount > 0)) onItem(entry.stack) }
                                     if (layout == InventoryLayout.GRID) {
-                                        GridTile(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) }, picked = isPicked)
+                                        GridTile(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = onClick, picked = isPicked)
                                     } else {
-                                        ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = { onItem(entry.stack) }, picked = isPicked)
+                                        ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = onClick, picked = isPicked)
                                     }
                                 }
                                 is PaneEntry.Worn -> WornTile(entry, iconUrl, list = layout == InventoryLayout.LIST, onClick = { wornOpen = !wornOpen })

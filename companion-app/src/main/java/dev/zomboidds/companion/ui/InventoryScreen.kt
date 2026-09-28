@@ -260,6 +260,7 @@ fun InventoryScreen(
                 onHold = { pick(it, shown.id) },
                 onOpenPicked = { pickedOpen = true },
                 onClearPicked = { picked = null },
+                onPickSet = { ids -> picked = ids.takeIf { it.isNotEmpty() }?.let { Picked(shown.id, it) } },
             )
             if (split) BoxWithConstraints {
                 // The half with more to show gets more room, but each keeps at least about a third,
