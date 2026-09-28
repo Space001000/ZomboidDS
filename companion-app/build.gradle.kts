@@ -69,8 +69,8 @@ android {
         applicationId = "dev.zomboidds.companion"
         minSdk = 30 // same as Zomdroid
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.2.0"
+        versionCode = 5
+        versionName = "1.2.1"
 
         buildConfigField("String", "BRIDGE_HOST", "\"$bridgeHost\"")
         buildConfigField("int", "BRIDGE_PORT", bridgePort)
