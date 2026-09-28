@@ -307,9 +307,10 @@ fun InventoryScreen(
             }
         }
         // The panel: for what's picked (opened from its chip), or for one tapped item.
-        val group = pickedOpen && pickedView != null && pickedStacks.isNotEmpty()
+        val pickedPanel = pickedView?.takeIf { pickedOpen && pickedStacks.isNotEmpty() }
+        val group = pickedPanel != null
         val panelFor = when {
-            group -> pickedView!! to pickedStacks
+            pickedPanel != null -> pickedPanel to pickedStacks
             selection != null -> selection.first to listOf(selection.second)
             else -> null
         }

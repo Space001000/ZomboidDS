@@ -299,8 +299,8 @@ private fun Pills(menu: ItemMenu, pills: List<MenuOption>, onSelect: (optionId: 
                 }
             }
             // A greyed choice can't be tapped: show the game's reason.
-            choices.firstOrNull { !it.enabled && it.tooltip != null }?.let {
-                Text(it.tooltip!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            choices.firstNotNullOfOrNull { choice -> choice.tooltip?.takeIf { !choice.enabled } }?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
