@@ -73,8 +73,8 @@ internal fun GameMenu(menu: ItemMenu, onSelect: (optionId: String) -> Unit, top:
  * The game's menu for something (an item, a body part), fetched when shown: a spinner while it
  * loads, the game's reason with Retry when there's none, then the menu. While [enabled] is false
  * nothing is fetched and [whileDisabled] shows instead (e.g. "Unpause to treat"); it loads by itself
- * once enabled. [content] draws the menu (the whole menu as a list by default); [whileLoading]
- * goes above the spinner or the reason.
+ * once enabled. [content] draws the menu (the whole menu as a list by default); [untilReady]
+ * goes above the spinner or the reason, until there's a menu to show.
  */
 @Composable
 internal fun LoadingGameMenu(
@@ -83,7 +83,7 @@ internal fun LoadingGameMenu(
     onSelect: (menuId: String, optionId: String) -> Unit,
     enabled: Boolean = true,
     whileDisabled: @Composable () -> Unit = {},
-    whileLoading: @Composable () -> Unit = {},
+    untilReady: @Composable () -> Unit = {},
     content: @Composable (menu: ItemMenu, onSelect: (optionId: String) -> Unit) -> Unit = { menu, select -> GameMenu(menu, select) },
 ) {
     var reload by remember { mutableIntStateOf(0) }
@@ -94,14 +94,14 @@ internal fun LoadingGameMenu(
     when (val result = menu) {
         null if !enabled -> whileDisabled()
         null -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            whileLoading()
+            untilReady()
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                 Text("Loading the game's menu...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         is ItemMenuResult.Failed -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            whileLoading()
+            untilReady()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(result.reason, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = { reload++ }) { Text("Retry") }

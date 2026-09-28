@@ -230,7 +230,7 @@ private fun ColumnScope.Actions(
     }
     LoadingGameMenu(
         key = key, load = loadMenu, onSelect = onMenuOption,
-        whileLoading = { AppActions(item, appActions, onAction) },
+        untilReady = { AppActions(item, appActions, onAction) },
     ) { menu, select ->
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             val (pills, rest) = menu.options.partition { it.pill != null }
