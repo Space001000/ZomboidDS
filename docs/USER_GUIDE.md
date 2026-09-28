@@ -70,6 +70,10 @@ your character:
     half, quarter).
   - Or **hold an item a moment and drag it** onto a container's tab, or onto the other open
     container's items. The places it can go light up green.
+  - **Several at once:** hold an item and let go without moving to pick it; then tap more to add
+    or remove them. Or draw a box from empty space over the items. **N selected ›** opens the panel
+    for all of them (Move to, the game's menu for the lot), dragging one of them takes them all,
+    and **✕** or a tap on empty space lets go.
   - Your worn clothes are folded into one **Worn** tile: tap it to show them, tap again to fold.
   - A thin bar under an item means it's damaged (green, yellow, red); undamaged items have none.
     Food has a dot: green fresh, yellow stale, red rotten.
