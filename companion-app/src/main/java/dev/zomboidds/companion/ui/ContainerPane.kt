@@ -36,7 +36,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -87,10 +86,12 @@ internal fun ContainerPane(
     onClearPicked: () -> Unit = {},
     /** A box drawn over the items picked these (on top of what was picked). */
     onPickSet: (Set<Long>) -> Unit = {},
+    /** Your worn clothes unfolded (held by the screen: the split layout sizes its panes by it). */
+    wornOpen: Boolean = false,
+    onWornOpenChange: (Boolean) -> Unit = {},
 ) {
     val pickedCount = shown.stacks.count { stack -> stack.items.any { it.id in picked } }
     val boxSelect = remember(shown.id) { BoxSelect() }
-    var wornOpen by rememberSaveable { mutableStateOf(false) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(PaneSpacing)) {
         // One row: tabs (the open one with its weight), the "all" action, and [trailing].
         Row(Modifier.height(PaneHeader), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -153,7 +154,7 @@ internal fun ContainerPane(
                                         ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = onClick, picked = isPicked)
                                     }
                                 }
-                                is PaneEntry.Worn -> WornTile(entry, iconUrl, list = layout == InventoryLayout.LIST, onClick = { wornOpen = !wornOpen })
+                                is PaneEntry.Worn -> WornTile(entry, iconUrl, list = layout == InventoryLayout.LIST, onClick = { onWornOpenChange(!wornOpen) })
                             }
                         }
                     }

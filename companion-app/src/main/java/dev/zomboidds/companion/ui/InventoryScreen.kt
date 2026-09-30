@@ -121,6 +121,7 @@ fun InventoryScreen(
     var selectedId by remember { mutableStateOf<Long?>(null) }
     var picked by remember { mutableStateOf<PickedItems?>(null) }
     var pickedOpen by remember { mutableStateOf(false) }
+    var wornOpen by rememberSaveable { mutableStateOf(false) }
     var failure by remember { mutableStateOf<String?>(null) }
 
     // The open tab of each pane, by container id. A container that went out of reach falls back to the first.
@@ -251,6 +252,7 @@ fun InventoryScreen(
                 onOpenPicked = { pickedOpen = true },
                 onClearPicked = { picked = null },
                 onPickSet = { ids -> picked = PickedItems.of(shown.id, ids) },
+                wornOpen = wornOpen, onWornOpenChange = { wornOpen = it },
             )
             if (split) BoxWithConstraints {
                 // The half with more to show gets more room, but each keeps at least about a third,
@@ -265,7 +267,8 @@ fun InventoryScreen(
                 val rows = (grids / row).toInt().coerceAtLeast(2)
                 // Neither half keeps rows it has nothing for: the other one gets them.
                 val columns = ((maxWidth + Gap) / ((if (display.items == InventoryLayout.GRID) 64.dp else 200.dp) + Gap)).toInt().coerceAtLeast(1)
-                fun rowsFor(view: ContainerView?) = ((view?.stacks?.foldWorn(open = false)?.size ?: 0) + columns - 1) / columns
+                // With the worn clothes as shown: unfolded, they need their rows too (2 per row in the list).
+                fun rowsFor(view: ContainerView?) = ((view?.stacks?.foldWorn(open = wornOpen)?.size ?: 0) + columns - 1) / columns
                 val mineNeed = rowsFor(mineShown).coerceAtLeast(1)
                 val aroundNeed = rowsFor(aroundShown).coerceAtLeast(1)
                 var mineRows = (rows * mineShare).roundToInt().coerceIn(1, rows - 1)
