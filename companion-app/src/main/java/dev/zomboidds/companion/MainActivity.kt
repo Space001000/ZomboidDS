@@ -75,6 +75,7 @@ class MainActivity : ComponentActivity() {
             val worldMap by container.worldMap.state.collectAsStateWithLifecycle()
             val mapPlacement by container.settings.mapPlacement.collectAsStateWithLifecycle()
             val whatsNewSeen by container.settings.whatsNewSeen.collectAsStateWithLifecycle()
+            val mapSymbols by container.settings.mapSymbols.collectAsStateWithLifecycle()
             // The map files are read once, the first time a game shows the map.
             val mapShown = state.mapPosition?.shown == true
             LaunchedEffect(mapShown) { if (mapShown) container.worldMap.load() }
@@ -96,7 +97,7 @@ class MainActivity : ComponentActivity() {
                 whatsNewDue = whatsNewSeen != BuildConfig.VERSION_NAME,
                 onWhatsNewSeen = { container.settings.setWhatsNewSeen(BuildConfig.VERSION_NAME) },
                 map = (worldMap as? WorldMapState.Loaded)?.let {
-                    MapDisplay(it.map, mapPlacement, container.settings::setMapPlacement)
+                    MapDisplay(it.map, mapPlacement, container.settings::setMapPlacement, mapSymbols, container.settings::setMapSymbols)
                 },
             )
         }

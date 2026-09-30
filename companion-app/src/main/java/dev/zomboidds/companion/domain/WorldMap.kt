@@ -85,6 +85,45 @@ class ExploredAreas(
     }
 }
 
+/**
+ * A symbol on the map: one the player put on their world map, or one of the game's printed
+ * labels ([label]: town, river, building names). An [icon] (a game image, e.g.
+ * `LootableMaps/map_star`) or a [text], at tile ([x], [y]). [color]: red, green, blue, alpha (0-1);
+ * alpha 0 means the map style's colour. [scale]: the game's size for it (0.666 is its default).
+ * [rotation]: degrees. [anchorX]/[anchorY]: which point of it sits on the spot (0-1). Shown between
+ * the game's zoom levels [minZoom] and [maxZoom] (see [gameZoom]).
+ */
+data class MapSymbol(
+    val icon: String?,
+    val text: String?,
+    val x: Float,
+    val y: Float,
+    val color: List<Float>,
+    val scale: Float,
+    val rotation: Float,
+    val anchorX: Float,
+    val anchorY: Float,
+    val label: Boolean = false,
+    val minZoom: Float = 0f,
+    val maxZoom: Float = 24f,
+) {
+    fun isShownAt(zoom: Float): Boolean = zoom >= minZoom && zoom < maxZoom
+}
+
+/**
+ * The game's zoom level for a map drawn at [pixelsPerTile] in a view [heightPx] tall: its maps
+ * zoom like web maps, the whole Earth ([EARTH_CIRCUMFERENCE_METERS]) at zoom 0 fitting the view's
+ * height, a tile being a metre (zombie.worldMap.MapProjection.metersPerPixelAtZoom, 42.20).
+ */
+fun gameZoom(pixelsPerTile: Float, heightPx: Float): Float =
+    (Math.log(pixelsPerTile.toDouble() * EARTH_CIRCUMFERENCE_METERS / heightPx) / Math.log(2.0)).toFloat()
+
+/** The pixels per tile at which a view [heightPx] tall shows the game's [zoom] level (the inverse of [gameZoom]). */
+fun pixelsPerTileAt(zoom: Float, heightPx: Float): Float =
+    (Math.pow(2.0, zoom.toDouble()) * heightPx / EARTH_CIRCUMFERENCE_METERS).toFloat()
+
+private const val EARTH_CIRCUMFERENCE_METERS = 4.007501668557849E7
+
 /** The game's world map, as read from its map files. */
 class WorldMap(val cellSize: Int, cells: Collection<MapCell>) {
 

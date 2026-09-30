@@ -102,9 +102,13 @@ function Map.snapshot(player)
         end
         heading = last.heading
     end
-    -- The Java side sends the seen areas itself (a large bit field; only when it changed).
+    -- The Java side sends the seen areas (a large bit field) and the player's map symbols itself,
+    -- each only when it changed.
     if ZomboidDSBridge and ZomboidDSBridge.publishExplored then
         pcall(ZomboidDSBridge.publishExplored)
+    end
+    if ZomboidDSBridge and ZomboidDSBridge.publishSymbols then
+        pcall(ZomboidDSBridge.publishSymbols)
     end
     return {
         miniMap = allow.miniMap,

@@ -24,6 +24,8 @@ data class GameState(
     val mapPosition: MapPosition? = null,
     /** The parts of the map the player has seen; null until the game reported them. */
     val explored: ExploredAreas? = null,
+    /** The symbols and notes the player put on their map; empty until the game reported them. */
+    val mapSymbols: List<MapSymbol> = emptyList(),
 )
 
 /** What the game's moodle column shows, most urgent first, and the images to draw them with. */

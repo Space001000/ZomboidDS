@@ -188,14 +188,14 @@ private fun InGame(
         TabBar(tabs, shown, iconUrl, title = { if (it == Tab.HERE && driving != null) "Vehicle" else it.title }, onSelect = { tab = it })
         Box(Modifier.fillMaxSize().padding(10.dp)) {
             when (shown) {
-                Tab.HERE -> WithMap(map, state, onPlacementChange) {
+                Tab.HERE -> WithMap(map, state, onPlacementChange, iconUrl) {
                     if (driving != null) {
                         VehicleTab(driving, state.here, controls, actions, iconUrl)
                     } else {
                         HereScreen(state.here, controls, actions, iconUrl)
                     }
                 }
-                Tab.MAP -> map?.let { PlayerMiniMap(it, state.mapPosition, state.explored, onPlacementChange, Modifier.fillMaxSize()) }
+                Tab.MAP -> map?.let { PlayerMiniMap(it, state, onPlacementChange, iconUrl, Modifier.fillMaxSize()) }
                 Tab.INVENTORY -> InventoryScreen(state.inventory, state.containers, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange,
                     show = showRequest, onShowHandled = { showRequest = null })
                 Tab.DECK -> if (editingDeck && state.deck != null) {
@@ -251,10 +251,16 @@ private fun TabBar(tabs: List<Tab>, selected: Tab, iconUrl: (String) -> String, 
 
 /** [content] with the map beside it, when the map sits on this tab. */
 @Composable
-private fun WithMap(map: MapDisplay?, state: GameState, onPlacementChange: (MapPlacement) -> Unit, content: @Composable () -> Unit) {
+private fun WithMap(
+    map: MapDisplay?,
+    state: GameState,
+    onPlacementChange: (MapPlacement) -> Unit,
+    iconUrl: (String) -> String,
+    content: @Composable () -> Unit,
+) {
     if (map == null || map.placement == MapPlacement.OWN_TAB) return content()
     @Composable fun Map() =
-        PlayerMiniMap(map, state.mapPosition, state.explored, onPlacementChange, Modifier.width(250.dp).fillMaxHeight())
+        PlayerMiniMap(map, state, onPlacementChange, iconUrl, Modifier.width(250.dp).fillMaxHeight())
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         if (map.placement == MapPlacement.LEFT_OF_HERE) Map()
         Box(Modifier.weight(1f)) { content() }

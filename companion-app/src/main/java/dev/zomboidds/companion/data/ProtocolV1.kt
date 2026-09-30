@@ -27,6 +27,7 @@ import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenu
 import dev.zomboidds.companion.domain.MapPosition
+import dev.zomboidds.companion.domain.MapSymbol
 import dev.zomboidds.companion.domain.MenuOption
 import dev.zomboidds.companion.domain.MenuPill
 import dev.zomboidds.companion.domain.Moodle
@@ -200,6 +201,26 @@ object ProtocolV1 {
         val width: Int = 0,
         val height: Int = 0,
         val bits: String = "",
+    )
+
+    @Serializable
+    private data class MapSymbolsDto(val symbols: List<MapSymbolDto> = emptyList())
+
+    @Serializable
+    private data class MapSymbolDto(
+        val kind: String? = null,
+        val icon: String? = null,
+        val text: String? = null,
+        val x: Float = 0f,
+        val y: Float = 0f,
+        val color: List<Float> = emptyList(),
+        val scale: Float = 0.666f,
+        val rotation: Float = 0f,
+        val anchorX: Float = 0.5f,
+        val anchorY: Float = 0.5f,
+        val label: Boolean = false,
+        val minZoom: Float = 0f,
+        val maxZoom: Float = 24f,
     )
 
     /** The game's seen-areas bit field: base64 of zlib-deflated bytes (the bridge's ExploredAreas). */
@@ -559,6 +580,15 @@ object ProtocolV1 {
                 val bits = runCatching { inflate(dto.bits) }.getOrNull()
                 if (bits == null || dto.width <= 0 || dto.unit <= 0) state
                 else state.copy(explored = ExploredAreas(dto.originX, dto.originY, dto.unit, dto.width, dto.height, bits))
+            }
+            "map_symbols" -> json.decodeFromJsonElement<MapSymbolsDto>(data).let { dto ->
+                state.copy(mapSymbols = dto.symbols.mapNotNull {
+                    val icon = it.icon?.takeIf { _ -> it.kind == "icon" }
+                    val text = it.text?.takeIf { _ -> it.kind == "text" }
+                    if (icon == null && text == null) null
+                    else MapSymbol(icon, text, it.x, it.y, it.color.takeIf { c -> c.size == 4 } ?: listOf(0f, 0f, 0f, 1f),
+                        it.scale, it.rotation, it.anchorX, it.anchorY, it.label, it.minZoom, it.maxZoom)
+                })
             }
             "containers" -> json.decodeFromJsonElement<ContainersDto>(data).let { dto ->
                 state.copy(containers = dto.containers.map { it.toDomain() })

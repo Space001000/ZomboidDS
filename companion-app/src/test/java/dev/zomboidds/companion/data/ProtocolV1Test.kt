@@ -233,6 +233,20 @@ class ProtocolV1Test {
     }
 
     @Test
+    fun `map symbols carry the player's icons and notes`() {
+        val symbols = applyAll("map_symbols.json").mapSymbols
+        assertEquals("a kind from a newer mod is skipped", 2, symbols.size)
+        val star = symbols[0]
+        assertEquals("LootableMaps/map_star", star.icon)
+        assertEquals(listOf(0.8f, 0.1f, 0.1f, 1f), star.color)
+        val note = symbols[1]
+        assertEquals("Safehouse", note.text)
+        assertNull(note.icon)
+        assertEquals(15f, note.rotation)
+        assertEquals(0f, note.anchorX)
+    }
+
+    @Test
     fun `health lists the game's injury lines with their tone`() {
         val parts = applyAll("health.json").health!!.parts
         assertEquals(listOf("Left Hand", "Right Shin"), parts.map { it.name })

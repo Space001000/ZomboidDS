@@ -48,6 +48,16 @@ class AppSettings(context: Context) {
         _mapPlacement.value = placement
     }
 
+    private val _mapSymbols = MutableStateFlow(prefs.getBoolean(KEY_MAP_SYMBOLS, false))
+
+    /** Show the player's own map symbols and notes on the map. Off by default, like the game's minimap. */
+    val mapSymbols: StateFlow<Boolean> = _mapSymbols.asStateFlow()
+
+    fun setMapSymbols(show: Boolean) {
+        prefs.edit().putBoolean(KEY_MAP_SYMBOLS, show).apply()
+        _mapSymbols.value = show
+    }
+
     private val _whatsNewSeen = MutableStateFlow(prefs.getString(KEY_WHATS_NEW_SEEN, null))
 
     /** The app version whose "What's new" the user closed; null on a new install. */
@@ -78,5 +88,6 @@ class AppSettings(context: Context) {
         private const val KEY_DECK_COMMANDS = "deckCommands"
         private const val KEY_MAP_PLACEMENT = "mapPlacement"
         private const val KEY_WHATS_NEW_SEEN = "whatsNewSeen"
+        private const val KEY_MAP_SYMBOLS = "mapSymbols"
     }
 }

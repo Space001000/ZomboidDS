@@ -21,6 +21,7 @@ public final class LuaApi {
     private final BridgeContext bridge;
     private final KahluaConverter converter;
     private final ExploredAreas explored = new ExploredAreas();
+    private final MapSymbols symbols = new MapSymbols();
 
     LuaApi(BridgeContext bridge, KahluaConverter converter) {
         this.bridge = bridge;
@@ -72,6 +73,14 @@ public final class LuaApi {
         }
     }
 
+    /** Sends the symbols and notes the player put on their map as {@code map_symbols}, if they changed (every 2 s at most). */
+    public void publishSymbols() {
+        Map<String, Object> data = symbols.changed(System.currentTimeMillis());
+        if (data != null) {
+            bridge.state().publish("map_symbols", data);
+        }
+    }
+
     public int clients() {
         return bridge.connectedClients();
     }
@@ -83,6 +92,7 @@ public final class LuaApi {
     public void reset() {
         bridge.state().clearRetained();
         explored.reset();
+        symbols.reset();
         bridge.state().publish("session", Map.of("inGame", false));
         bridge.commands().drain(Integer.MAX_VALUE);
     }

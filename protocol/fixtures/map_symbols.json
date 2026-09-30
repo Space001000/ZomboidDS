@@ -1,0 +1,8 @@
+{
+  "v": 1, "type": "map_symbols", "seq": 17,
+  "data": { "symbols": [
+    { "kind": "icon", "icon": "LootableMaps/map_star", "x": 10750.5, "y": 9955, "color": [0.8, 0.1, 0.1, 1], "scale": 0.666, "rotation": 0, "anchorX": 0.5, "anchorY": 0.5 },
+    { "kind": "text", "text": "Safehouse", "x": 10760, "y": 9970, "color": [0, 0, 0, 1], "scale": 1.0, "rotation": 15, "anchorX": 0, "anchorY": 0 },
+    { "kind": "shape", "x": 1, "y": 1 }
+  ] }
+}
