@@ -8,13 +8,14 @@ data class Release(val version: String, val title: String, val date: String?, va
 
 /** Newest first. Add the next release at the top when releasing. */
 val RELEASES = listOf(
-    Release("1.3.0", "Map", null, listOf(
-        "**Map:** the game's minimap on the bottom screen, drawn from the game's own map. It only shows what you've explored, like in the game.",
-        "It sits beside **Here**, or on a tab of its own: the button in the map's corner moves it.",
-        "The arrow points where you face. In a car the map follows the car.",
-        "Drag the map to look around. It comes back to you after a few seconds, or right away with ⌖.",
-        "It shows on saves that allow the minimap. For other saves, turn it on in **Options → Mods → ZomboidDS**.",
-        "The Map tab is a small icon, so the other tabs keep their room.",
+    Release("1.3.0", "Map", "30 Sep 2026", listOf(
+        "**Map:** the game's minimap on the bottom screen, drawn from the game's own map. It follows you (or your car), and only shows what you've explored.",
+        "It sits beside **Here**, left or right, or on a tab of its own: the button in the map's corner moves it.",
+        "Zoom with + and −, drag to look around. The star shows your map symbols and notes, and the game's place names.",
+        "It shows on saves that allow the minimap. For other saves, tick **Map on every save** in **Options → Mods → ZomboidDS**.",
+        "**Inventory layouts:** the button next to Put all picks top and bottom, **side by side**, or one at a time.",
+        "**What's new** after an update, with every earlier version. It's also in the About card.",
+        "**Fixed:** tapping Worn in list view didn't unfold your clothes in the top-and-bottom layout.",
     )),
     Release("1.2.1", "Pick several items", "28 Sep 2026", listOf(
         "**Hold to pick:** hold an item and let go without moving to pick it. Then tap other items to add or remove them.",

@@ -60,9 +60,9 @@ Start Project Zomboid in Zomdroid and load a game. The bottom screen switches fr
 your character:
 
 - **Inventory**: your inventory and bags, and every container around you (drawers, shelves, the
-  floor, ...). In **Split** view yours are on top and the ones around you below; **Single** shows one
-  container at a time. The open container's tab shows its name and weight; the others show the
-  game's icon (tap one to open it). Opening a container's tab outlines it in the game.
+  floor, ...). Yours are on top and the ones around you below, or side by side (yours on the left),
+  or one container at a time. The open container's tab shows its name and weight; the others show
+  the game's icon (tap one to open it). Opening a container's tab outlines it in the game.
   - Tap an item: on the left **Move to**, every container it can go to, one tap each (your bags,
     then the ones around you, the open one outlined). On the right the game's own menu for it: its
     main uses as buttons on top (eat, drink, wear, read, apply bandage, reload, turn on, ...; equip
@@ -80,7 +80,8 @@ your character:
   - **Take all** and **Put all** move everything, so they ask first: tap once (the button turns red
     and asks), tap again within 3 seconds to do it. Take all puts things in the bag you have open in
     your half (your main inventory if none), like the game's Loot all.
-  - The two small buttons at the top right switch the layout and between grid and list.
+  - The two small buttons at the top right pick the layout (top and bottom, side by side, one at a
+    time) and switch between grid and list.
 - **Here**: what you can do where you stand (open a door, sit, drink, ...), as cards per object,
   updating by itself as you walk. Tap an action to do it; greyed-out ones tell you why when tapped.
   **In a vehicle** this tab becomes **Vehicle**: speed, engine and fuel, and the car's own menu (the
@@ -95,6 +96,12 @@ your character:
   for what it means). Below, your body with injured parts in colour, what's wrong with each (as your
   First Aid skill lets you see it), and **Treat ›** for the game's own treatments (bandage,
   disinfect, ...). While the game is paused, the treatments wait: tap **Unpause** and they appear.
+- **Map**, on saves that allow the game's minimap (Sandbox options, Map, Allow Mini-Map): the
+  minimap, beside **Here** or on a tab of its own (the button in the map's top-left corner moves it).
+  It follows you and only shows what you've explored, like the game's minimap. **+** and **−** zoom,
+  dragging looks around (it comes back after a few seconds, or with **⌖**), and the **star** shows
+  your map symbols and notes and the game's place names. To have it on every save, tick **Map on
+  every save** in the game's Options → Mods → ZomboidDS.
 - **Craft**: the game's recipes, by default only the ones you can make now with what's in reach
   (your bags and the containers around you); categories along the top. Tap one to see what it needs
   (✓ have, ✗ missing), what it makes and how long it takes, then **Craft** (− / + for several). Your

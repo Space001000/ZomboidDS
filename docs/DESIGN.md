@@ -90,6 +90,7 @@ Everything below was checked against the game's Lua sources and `projectzomboid.
 | Moodles | `player:getMoodles()` for levels, names and descriptions; the moodle column's rules (level > 0, "food eaten" from level 3, background grey → good/bad highlight colour by level/4). The type → icon table is Java-only (`zombie.ui.MoodleTextureSet`), so the adapter holds a copy. |
 | Food freshness | The rule `Food:getName` uses for "Fresh / Stale / Rotten". |
 | Crafting | Java `HandcraftLogic` with the crafting window's default query (`InHandCraft;AnySurfaceCraft`), its containers and manual input selection; crafting runs the window's own `startHandcraft` with a stand-in for its craft control (fetch ingredients, walk to a surface, queue the actions, put items back). |
+| Map | The app reads the game's own map files from the player's copy (`worldmap.xml.bin` and the forest file, the format of `WorldMapBinary`) and draws them in the minimap's style (`MapUtils.initDefaultStyleV1`: colours, and detail fading out by zoom). Shown only where `ISMiniMap.IsAllowed` (or with the mod option "Map on every save", never without the world map). Explored areas are the game's `WorldMapVisited` bits; symbols are the player's own from `MapItem`'s symbol list plus the game's labels from each map's `worldmap-annotations.lua`, shown like the minimap's Symbols option (off by default, handwriting, each label's zoom range, with zoom converted by `MapProjection`). Zoom stops between the game's zoom levels 15.5 and 20. |
 | Icons | The bridge serves loose textures (`media/textures`, `media/ui`), item and UI packs, and world-object sprites from `Tiles1x.pack`, cropped to their visible pixels; a missing icon is never cached. |
 
 ## Setup and install
@@ -134,7 +135,7 @@ installer (same signing key only).
 ## What's next
 
 - A fuller vehicle dashboard.
-- Inventory organisation, character info (skills, protection), a map view.
+- Inventory organisation, character info (skills, protection).
 - Several Zomdroid instances at once, and B41 through its own adapter.
 - Upstream ideas: a Zomdroid intent to launch an instance on a chosen display; a ZombieBuddy release
   asset with the full mod for non-Steam installs.
