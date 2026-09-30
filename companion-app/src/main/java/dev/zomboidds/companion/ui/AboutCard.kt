@@ -36,7 +36,7 @@ private const val KO_FI_URL = "https://ko-fi.com/space000"
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun AboutCard(openUrl: (String) -> Unit, onLicences: () -> Unit) {
+fun AboutCard(openUrl: (String) -> Unit, onLicences: () -> Unit, onWhatsNew: () -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("About", style = MaterialTheme.typography.titleMedium)
@@ -46,6 +46,7 @@ fun AboutCard(openUrl: (String) -> Unit, onLicences: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onWhatsNew) { Text("What's new") }
                 OutlinedButton(onClick = { openUrl(SOURCE_URL) }) { Text("Source on GitHub") }
                 OutlinedButton(onClick = onLicences) { Text("Open-source licences") }
                 OutlinedButton(onClick = { openUrl(KO_FI_URL) }) { Text("Support on Ko-fi") }

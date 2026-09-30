@@ -87,7 +87,8 @@ local function onGameStart()
     -- Channels an adapter may leave out (an older game build without them).
     for _, channel in ipairs({ { "containers", "snapshotContainers" }, { "time", "snapshotTime" },
                                { "health", "snapshotHealth" }, { "moodles", "snapshotMoodles" },
-                               { "here", "snapshotHere" }, { "deck", "snapshotDeck" } }) do
+                               { "here", "snapshotHere" }, { "deck", "snapshotDeck" },
+                               { "map", "snapshotMap" } }) do
         local name, snapshot = channel[1], adapter[channel[2]]
         if snapshot then
             emitter:addChannel(name, snapshot, Config.intervalsMs[name])

@@ -19,6 +19,7 @@ import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
+import dev.zomboidds.companion.domain.MapPosition
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -207,6 +208,28 @@ class ProtocolV1Test {
             kotlinx.serialization.json.Json.parseToJsonElement("""{"v":1,"type":"command","id":"c-1","name":"set_speed","args":{"speed":0}}"""),
             kotlinx.serialization.json.Json.parseToJsonElement(ProtocolV1.encode("c-1", ProtocolV1.setSpeedRequest(GameSpeed.PAUSED))),
         )
+    }
+
+    @Test
+    fun `map carries the player's position and the save's map rules`() {
+        assertEquals(MapPosition(10745.3f, 9960.7f, 0, 90, miniMapAllowed = true, worldMapAllowed = true), applyAll("map.json").mapPosition)
+        val noPosition = ProtocolV1.apply(GameState(), """{"v":1,"type":"map","data":{"miniMap":true}}""")
+        assertNull("without a position there's nothing to show", noPosition.mapPosition)
+    }
+
+    @Test
+    fun `explored unpacks the game's seen-areas bits`() {
+        val explored = applyAll("explored.json").explored!!
+        assertTrue("unit (0, 0) visited", explored.isUnitSeen(0, 0))
+        assertTrue("unit (7, 1) known from a map", explored.isUnitSeen(7, 1))
+        assertFalse(explored.isUnitSeen(1, 0))
+        assertFalse(explored.isUnitSeen(6, 1))
+        assertTrue("tile (31, 31) is in unit (0, 0)", explored.isSeen(31, 31))
+        assertFalse("tile (32, 0) is in unit (1, 0)", explored.isSeen(32, 0))
+        assertFalse("outside the world", explored.isUnitSeen(8, 0))
+        assertFalse("outside the world", explored.isSeen(-1, 0))
+        val broken = ProtocolV1.apply(GameState(), """{"v":1,"type":"explored","data":{"width":8,"height":2,"bits":"not base64!"}}""")
+        assertNull("broken data is dropped, not a crash", broken.explored)
     }
 
     @Test

@@ -1,5 +1,9 @@
 package dev.zomboidds.companion.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,10 +23,12 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +41,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -42,42 +49,76 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.zomboidds.companion.MapPlacement
+import dev.zomboidds.companion.domain.ExploredAreas
 import dev.zomboidds.companion.domain.MapCell
 import dev.zomboidds.companion.domain.MapLayer
+import dev.zomboidds.companion.domain.MapPosition
 import dev.zomboidds.companion.domain.WorldMap
+import kotlinx.coroutines.delay
 import kotlin.math.floor
 
 /** The map, once the game's map files are read, and where the user wants it. */
 class MapDisplay(val map: WorldMap, val placement: MapPlacement, val onPlacementChange: (MapPlacement) -> Unit)
 
 /**
- * Where the player is on the map. For now a fixed spot in Muldraugh's centre, until the mod
- * sends the player's position.
+ * The map around the player. Until the game reports where they are (or with an older mod), it
+ * looks at Muldraugh's centre without a marker.
  */
 @Composable
-fun PlayerMiniMap(display: MapDisplay, onPlacementChange: (MapPlacement) -> Unit, modifier: Modifier = Modifier) =
-    MiniMap(display.map, 10745f, 9960f, display.placement, onPlacementChange, modifier)
+fun PlayerMiniMap(
+    display: MapDisplay,
+    position: MapPosition?,
+    explored: ExploredAreas?,
+    onPlacementChange: (MapPlacement) -> Unit,
+    modifier: Modifier = Modifier,
+) = MiniMap(display.map, position, explored, display.placement, onPlacementChange, modifier)
 
 /** Where the map is looking: a tile position and a zoom in pixels per tile. */
 private data class MapView(val x: Float, val y: Float, val scale: Float)
 
 /**
- * The game's minimap, drawn from its own map data in its own colours. Follows [playerX]/[playerY]
- * unless the user drags it; ⌖ brings it back.
+ * The game's minimap, drawn from its own map data in its own colours, with the areas the player
+ * hasn't seen greyed out as the game does ([explored]; everything shows while that's unknown).
+ * Follows [position] unless the user drags it; it returns after a few seconds, or with ⌖.
  */
 @Composable
 fun MiniMap(
     map: WorldMap,
-    playerX: Float,
-    playerY: Float,
+    position: MapPosition?,
+    explored: ExploredAreas?,
     placement: MapPlacement,
     onPlacementChange: (MapPlacement) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var scale by remember { mutableFloatStateOf(DEFAULT_SCALE) }
+    val target = position?.let { Offset(it.x, it.y) } ?: MULDRAUGH
+    // The game reports about four times a second: glide between reports instead of jumping.
+    // A long way (the first report, a teleport) jumps.
+    val glide = remember { Animatable(target, Offset.VectorConverter) }
+    LaunchedEffect(target) {
+        if ((target - glide.value).getDistance() > JUMP_TILES) glide.snapTo(target)
+        else glide.animateTo(target, tween(GLIDE_MS, easing = LinearEasing))
+    }
+    val player = glide.value
+    val currentPlayer by rememberUpdatedState(player)
+    // The arrow turns the short way round (350 to 10 degrees is 20, not 340).
+    val heading = position?.heading
+    val turn = remember { Animatable(heading?.toFloat() ?: 0f) }
+    LaunchedEffect(heading) {
+        if (heading != null) {
+            val from = turn.value
+            turn.animateTo(from + ((heading - from) % 360 + 540) % 360 - 180, tween(TURN_MS))
+        }
+    }
     // Set while the user has dragged the map away from the player.
     var looking by remember { mutableStateOf<Offset?>(null) }
-    val center = looking ?: Offset(playerX, playerY)
+    LaunchedEffect(looking) {
+        if (looking != null) {
+            delay(LOOK_AROUND_MS)
+            looking = null
+        }
+    }
+    val center = looking ?: player
     val paths = remember(map) { HashMap<Long, LayerPaths>() }
 
     Box(modifier.clip(RoundedCornerShape(8.dp)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))) {
@@ -85,13 +126,18 @@ fun MiniMap(
             Modifier.fillMaxSize().pointerInput(Unit) {
                 detectDragGestures { change, drag ->
                     change.consume()
-                    val from = looking ?: Offset(playerX, playerY)
+                    val from = looking ?: currentPlayer
                     looking = from - drag / scale
                 }
             },
         ) {
-            drawMap(map, MapView(center.x, center.y, scale), paths)
-            drawPlayer(Offset(size.width / 2 + (playerX - center.x) * scale, size.height / 2 + (playerY - center.y) * scale))
+            val view = MapView(center.x, center.y, scale)
+            drawMap(map, view, paths)
+            explored?.let { drawUnexplored(it, view) }
+            if (position != null) {
+                drawPlayer(Offset(size.width / 2 + (player.x - center.x) * scale, size.height / 2 + (player.y - center.y) * scale),
+                    if (heading != null) turn.value else null)
+            }
         }
         PlacementButton(placement, onPlacementChange, Modifier.align(Alignment.TopStart).padding(8.dp))
         Column(Modifier.align(Alignment.TopEnd).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -130,6 +176,30 @@ private fun DrawScope.drawMap(map: WorldMap, view: MapView, cache: HashMap<Long,
     }
 }
 
+/** Grey over every unit the player hasn't seen, with the game's faint grid on it. */
+private fun DrawScope.drawUnexplored(explored: ExploredAreas, view: MapView) {
+    val unit = explored.unit
+    val halfW = size.width / 2 / view.scale
+    val halfH = size.height / 2 / view.scale
+    val ux0 = Math.floorDiv(floor(view.x - halfW).toInt() - explored.originX, unit)
+    val ux1 = Math.floorDiv(floor(view.x + halfW).toInt() - explored.originX, unit)
+    val uy0 = Math.floorDiv(floor(view.y - halfH).toInt() - explored.originY, unit)
+    val uy1 = Math.floorDiv(floor(view.y + halfH).toInt() - explored.originY, unit)
+    val unitPx = unit * view.scale
+    val hairline = 1.dp.toPx().coerceAtMost(unitPx / 8)
+    for (uy in uy0..uy1) {
+        for (ux in ux0..ux1) {
+            if (explored.isUnitSeen(ux, uy)) continue
+            val topLeft = Offset(
+                size.width / 2 + (explored.originX + ux * unit - view.x) * view.scale,
+                size.height / 2 + (explored.originY + uy * unit - view.y) * view.scale,
+            )
+            drawRect(MapColors.unexplored, topLeft, Size(unitPx, unitPx))
+            drawRect(MapColors.unexploredGrid, topLeft, Size(unitPx, unitPx), style = Stroke(hairline))
+        }
+    }
+}
+
 private fun key(cell: MapCell, layer: MapLayer): Long =
     ((cell.x.toLong() * 4096 + cell.y) shl 8) or layer.ordinal.toLong()
 
@@ -163,7 +233,13 @@ private class LayerPaths(val solid: Path?, val holed: Path?) {
     }
 }
 
-private fun DrawScope.drawPlayer(at: Offset) {
+/** An arrow pointing where the player faces ([heading]: degrees clockwise from east); a dot while unknown. */
+private fun DrawScope.drawPlayer(at: Offset, heading: Float?) {
+    if (heading == null) {
+        drawCircle(Color.Black.copy(alpha = 0.6f), 7.dp.toPx(), at)
+        drawCircle(MapColors.player, 5.5.dp.toPx(), at)
+        return
+    }
     val s = 7.dp.toPx()
     val arrow = Path().apply {
         moveTo(at.x, at.y - s * 1.3f)
@@ -172,8 +248,11 @@ private fun DrawScope.drawPlayer(at: Offset) {
         lineTo(at.x - s, at.y + s)
         close()
     }
-    drawPath(arrow, Color.Black.copy(alpha = 0.6f), style = Stroke(width = 2.dp.toPx()))
-    drawPath(arrow, MapColors.player)
+    // The arrow is drawn pointing up (north, -90 degrees).
+    rotate(heading + 90f, at) {
+        drawPath(arrow, Color.Black.copy(alpha = 0.6f), style = Stroke(width = 2.dp.toPx()))
+        drawPath(arrow, MapColors.player)
+    }
 }
 
 @Composable
@@ -252,6 +331,8 @@ private fun PlacementGlyph(placement: MapPlacement, sizeDp: Size) {
 /** The minimap's colours, from `MapUtils.initDefaultStyleV1` (ISMapDefinitions.lua, 42.20). */
 private object MapColors {
     val background = Color(219, 215, 192)
+    val unexplored = Color(200, 197, 176) // background * 0.915 (setUnvisitedRGBA)
+    val unexploredGrid = Color(170, 167, 149) // background * 0.777 (setUnvisitedGridRGBA)
     val player = Color(0xFFE35050)
     val buttonBackground = Color(0xDB121212)
 
@@ -271,6 +352,19 @@ private object MapColors {
         MapLayer.RETAIL -> Color(184, 205, 84)
     }
 }
+
+/** Until the game reports the player's position. */
+private val MULDRAUGH = Offset(10745f, 9960f)
+
+/** Gliding from one reported position to the next; about the time between reports. */
+private const val GLIDE_MS = 250
+private const val TURN_MS = 200
+
+/** Further than this (tiles) between two reports is a jump, not a walk or a drive. */
+private const val JUMP_TILES = 60f
+
+/** How long the map stays where the user dragged it before following the player again. */
+private const val LOOK_AROUND_MS = 8_000L
 
 private const val DEFAULT_SCALE = 3f // pixels per tile
 private const val MIN_SCALE = 0.25f

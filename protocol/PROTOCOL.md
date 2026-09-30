@@ -53,6 +53,8 @@ older state messages of the same type are dropped in favour of the newest.
 | `here`           | Lua      | "Here", while the app watches (`watch_here`): `watching`; then either `menuId` + `options` (the world menu for where the player stands, same shape as `item_menu`'s) or `unavailable` (the reason, e.g. paused). `{ "watching": false }` otherwise. |
 | `time`           | Lua      | `speed`: the game's speed button, 0 pause, 1 play, 2 fast forward (×5), 3 faster (×20), 4 wait (×40); `canChange` (false in multiplayer); `gameMenuOpen` (true while the game's pause menu is open: `set_speed` is refused then, as the game's own buttons are) |
 | `deck`           | Lua      | The Command deck: `clock` and `commands[]`, see below. |
+| `map`            | Lua      | The minimap: `x`, `y` (tiles; the car's while driving, as the game's minimap centres on it), `z` (floor), `heading` (degrees clockwise from east, 90 = south; optional, from the car's movement while driving), `miniMap` / `worldMap` (the save's sandbox Map options, `ISMiniMap.IsAllowed` / `ISWorldMap.IsAllowed`). Sent when the player moves or turns (mod 0.22+). |
+| `explored`       | bridge   | The parts of the map the player has seen, as the game remembers them (`WorldMapVisited`): `originX`, `originY` (tile of unit 0,0), `unit` (32 tiles), `width`, `height` (in units), `bits`: base64 of zlib-deflated bytes, 2 bits per unit (1 visited, 2 known from a map), 4 units per byte, unit `x` in bits `(x % 4) * 2` of byte `x / 4 + y * width / 4`. The minimap shows a unit when either bit is set. Sent when it changes, checked every 2 s. |
 | `command_result` | Lua      | `id`, `ok`, `error` (optional), `data` (optional, command-specific). Event, never replayed. |
 | `show`           | Lua      | `panel` (`inventory`), `container` (optional container id). The player asked the game for that panel, e.g. pressed the controller's Loot/Inventory button: the app shows it. Event, never replayed. |
 
@@ -133,7 +135,7 @@ Two commands take arguments and come with their own state in `deck`:
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`, `deck`.
+`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`, `deck`, `map`.
 
 ## Client → server
 

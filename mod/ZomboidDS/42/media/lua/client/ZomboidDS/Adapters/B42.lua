@@ -15,12 +15,13 @@ local Time = require("ZomboidDS/Adapters/B42/Time")
 local Here = require("ZomboidDS/Adapters/B42/Here")
 local Deck = require("ZomboidDS/Adapters/B42/Deck")
 local Crafting = require("ZomboidDS/Adapters/B42/Crafting")
+local Map = require("ZomboidDS/Adapters/B42/Map")
 local try, round = Util.try, Util.round
 
 local B42 = {
     id = "b42",
     capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop", "item_menu",
-                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "deck" },
+                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "deck", "map" },
     dirtyEvents = {
         inventory = { "OnContainerUpdate", "OnRefreshInventoryWindowContainers", "OnClothingUpdated",
                       "OnEquipPrimary", "OnEquipSecondary" },
@@ -42,6 +43,7 @@ B42.snapshotMoodles = Moodles.snapshot
 B42.snapshotTime = Time.snapshot
 B42.snapshotHere = Here.snapshot
 B42.snapshotDeck = Deck.snapshot
+B42.snapshotMap = Map.snapshot
 
 -- Player ---------------------------------------------------------------------
 

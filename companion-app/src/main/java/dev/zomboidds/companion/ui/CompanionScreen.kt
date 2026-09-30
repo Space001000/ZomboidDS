@@ -85,7 +85,11 @@ fun CompanionScreen(
     deckCommands: List<String> = emptyList(),
     onDeckCommandsChange: (List<String>) -> Unit = {},
     map: MapDisplay? = null,
+    /** "What's new" opens by itself (a new install or an update); [onWhatsNewSeen] when it's closed. */
+    whatsNewDue: Boolean = false,
+    onWhatsNewSeen: () -> Unit = {},
 ) {
+    var whatsNewOpen by rememberSaveable { mutableStateOf(false) }
     ZomboidTheme {
         Surface(Modifier.fillMaxSize()) {
             // Keep clear of system bars on ordinary phones (the Thor's bottom screen has none).
@@ -103,9 +107,15 @@ fun CompanionScreen(
                     ) {
                         StatusHeader(state, connection)
                         SetupChecklist(setup, update, gameStep(connection), setupActions)
-                        AboutCard(openUrl = setupActions::openUrl, onLicences = { licences = true })
+                        AboutCard(openUrl = setupActions::openUrl, onLicences = { licences = true }, onWhatsNew = { whatsNewOpen = true })
                     }
                     if (licences) LicencesPanel(onClose = { licences = false })
+                }
+                if (whatsNewDue || whatsNewOpen) {
+                    WhatsNewScreen(onClose = {
+                        whatsNewOpen = false
+                        onWhatsNewSeen()
+                    })
                 }
             }
         }
@@ -176,14 +186,14 @@ private fun InGame(
         TabBar(tabs, shown, iconUrl, title = { if (it == Tab.HERE && driving != null) "Vehicle" else it.title }, onSelect = { tab = it })
         Box(Modifier.fillMaxSize().padding(10.dp)) {
             when (shown) {
-                Tab.HERE -> WithMap(map, onPlacementChange) {
+                Tab.HERE -> WithMap(map, state, onPlacementChange) {
                     if (driving != null) {
                         VehicleTab(driving, state.here, controls, actions, iconUrl)
                     } else {
                         HereScreen(state.here, controls, actions, iconUrl)
                     }
                 }
-                Tab.MAP -> map?.let { PlayerMiniMap(it, onPlacementChange, Modifier.fillMaxSize()) }
+                Tab.MAP -> map?.let { PlayerMiniMap(it, state.mapPosition, state.explored, onPlacementChange, Modifier.fillMaxSize()) }
                 Tab.INVENTORY -> InventoryScreen(state.inventory, state.containers, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange,
                     show = showRequest, onShowHandled = { showRequest = null })
                 Tab.DECK -> if (editingDeck && state.deck != null) {
@@ -239,9 +249,10 @@ private fun TabBar(tabs: List<Tab>, selected: Tab, iconUrl: (String) -> String, 
 
 /** [content] with the map beside it, when the map sits on this tab. */
 @Composable
-private fun WithMap(map: MapDisplay?, onPlacementChange: (MapPlacement) -> Unit, content: @Composable () -> Unit) {
+private fun WithMap(map: MapDisplay?, state: GameState, onPlacementChange: (MapPlacement) -> Unit, content: @Composable () -> Unit) {
     if (map == null || map.placement == MapPlacement.OWN_TAB) return content()
-    @Composable fun Map() = PlayerMiniMap(map, onPlacementChange, Modifier.width(250.dp).fillMaxHeight())
+    @Composable fun Map() =
+        PlayerMiniMap(map, state.mapPosition, state.explored, onPlacementChange, Modifier.width(250.dp).fillMaxHeight())
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         if (map.placement == MapPlacement.LEFT_OF_HERE) Map()
         Box(Modifier.weight(1f)) { content() }

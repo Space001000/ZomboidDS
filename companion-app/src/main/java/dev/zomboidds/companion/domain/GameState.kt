@@ -20,6 +20,10 @@ data class GameState(
     val moodles: Moodles? = null,
     /** The Command deck's clock and commands; null until the game reported them (or an older mod). */
     val deck: DeckState? = null,
+    /** Where the player is on the map, and what the save allows; null until the game reported it (or an older mod). */
+    val mapPosition: MapPosition? = null,
+    /** The parts of the map the player has seen; null until the game reported them. */
+    val explored: ExploredAreas? = null,
 )
 
 /** What the game's moodle column shows, most urgent first, and the images to draw them with. */

@@ -10,6 +10,7 @@ import se.krka.kahlua.vm.KahluaTable;
  * <pre>
  *   ZomboidDSBridge.emit("player", data)   -- publish state or events to the companion app
  *   ZomboidDSBridge.poll(8)                -- array of { id, name, args } commands, or nil
+ *   ZomboidDSBridge.publishExplored()      -- send the map areas the player has seen, if changed
  *   ZomboidDSBridge.clients()              -- number of connected companion apps
  *   ZomboidDSBridge.reset()                -- forget state from the previous session
  *   ZomboidDSBridge.version()              -- bridge version string
@@ -29,6 +30,13 @@ public final class ZomboidDSBridge {
     public static KahluaTable poll(int max) {
         LuaApi api = LuaApi.current();
         return api != null ? api.poll(max) : null;
+    }
+
+    public static void publishExplored() {
+        LuaApi api = LuaApi.current();
+        if (api != null) {
+            api.publishExplored();
+        }
     }
 
     public static int clients() {

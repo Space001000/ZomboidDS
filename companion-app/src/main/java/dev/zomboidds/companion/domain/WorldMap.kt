@@ -39,6 +39,44 @@ class MapFeature(val layer: MapLayer, val rings: List<ShortArray>)
 /** A square of [WorldMap.cellSize] tiles; cell (x, y) starts at tile (x * cellSize, y * cellSize). */
 class MapCell(val x: Int, val y: Int, val features: List<MapFeature>)
 
+/**
+ * Where the player (or the car they're in) is, in tiles. [heading]: degrees clockwise from east,
+ * as the map's y axis points down (90 = south); null while unknown. [miniMapAllowed] and
+ * [worldMapAllowed]: the save's sandbox Map options.
+ */
+data class MapPosition(
+    val x: Float,
+    val y: Float,
+    val z: Int,
+    val heading: Int?,
+    val miniMapAllowed: Boolean,
+    val worldMapAllowed: Boolean,
+)
+
+/**
+ * The parts of the world the player has seen, as the game's map remembers them: [width] x [height]
+ * units of [unit] tiles from tile ([originX], [originY]), two bits per unit (visited, known), four
+ * units per byte. The minimap shows a unit when either bit is set.
+ */
+class ExploredAreas(
+    val originX: Int,
+    val originY: Int,
+    val unit: Int,
+    val width: Int,
+    val height: Int,
+    private val bits: ByteArray,
+) {
+    /** Whether the unit containing tile ([x], [y]) has been seen. Outside the world: no. */
+    fun isSeen(x: Int, y: Int): Boolean = isUnitSeen(Math.floorDiv(x - originX, unit), Math.floorDiv(y - originY, unit))
+
+    fun isUnitSeen(ux: Int, uy: Int): Boolean {
+        if (ux < 0 || uy < 0 || ux >= width || uy >= height) return false
+        val index = ux / 4 + uy * (width / 4)
+        if (index >= bits.size) return false
+        return (bits[index].toInt() shr ((ux % 4) * 2)) and 3 != 0
+    }
+}
+
 /** The game's world map, as read from its map files. */
 class WorldMap(val cellSize: Int, cells: Collection<MapCell>) {
 

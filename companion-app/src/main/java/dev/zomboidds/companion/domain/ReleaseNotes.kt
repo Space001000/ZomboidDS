@@ -1,0 +1,48 @@
+package dev.zomboidds.companion.domain
+
+/**
+ * One release as the app's "What's new" shows it: short versions of the GitHub release notes,
+ * without the install steps. [notes] may mark words **bold**. [date] is null until released.
+ */
+data class Release(val version: String, val title: String, val date: String?, val notes: List<String>)
+
+/** Newest first. Add the next release at the top when releasing. */
+val RELEASES = listOf(
+    Release("1.3.0", "Map", null, listOf(
+        "**Map:** the game's minimap on the bottom screen, drawn from the game's own map. It only shows what you've explored, like in the game.",
+        "It sits beside **Here**, or on a tab of its own: the button in the map's corner moves it.",
+        "The arrow points where you face. In a car the map follows the car.",
+        "Drag the map to look around. It comes back to you after a few seconds, or right away with ⌖.",
+        "It shows on saves that allow the minimap. For other saves, turn it on in **Options → Mods → ZomboidDS**.",
+        "The Map tab is a small icon, so the other tabs keep their room.",
+    )),
+    Release("1.2.1", "Pick several items", "28 Sep 2026", listOf(
+        "**Hold to pick:** hold an item and let go without moving to pick it. Then tap other items to add or remove them.",
+        "**Box select:** draw a box from empty space over items to pick them together, like the game's inventory window.",
+        "**N selected ›** opens what you can do with the group: move them all, or the game's own menu (drop, eat, ...). ✕ or a tap on empty space clears the pick.",
+        "**Drag** one picked item and the rest come along.",
+    )),
+    Release("1.2.0", "Drag and drop", "26 Sep 2026", listOf(
+        "**Tap an item** and the panel lists everywhere it can go: your bags and key ring, then the containers around you. One tap moves it.",
+        "**Hold an item and drag it** onto a container's tab, or onto the other open container. Places it can go light up green.",
+        "**An item's main uses are buttons**, from the game's own menu: eat, drink, wear, read, apply bandage, reload, ... Buttons with › unfold the game's choices.",
+        "**Deck** moved to the middle of the tabs, and **Weapons** is on it by default.",
+    )),
+    Release("1.1.0", "Here and the Deck", "26 Sep 2026", listOf(
+        "**Here** is its own tab: what you can do where you stand, as cards per object (fridge, sink, door, ...), updating as you walk.",
+        "**In a car** it becomes **Vehicle**: speed, engine and fuel, and the car's own menu as big buttons.",
+        "**The command deck:** the game's speed buttons, the time and your alarm (with a watch), and the commands you pick under **Add or edit**: zoom, search mode, flashlight, map, sit, shout, drop bag, weapons, alarm.",
+        "**Take all** puts things in the bag you have open, like the game's Loot all.",
+    )),
+    Release("1.0.1", "Take all fix", "26 Sep 2026", listOf(
+        "**Take all** puts everything into the container you have selected (a bag, for example), like the game's Loot all.",
+        "In the **Single** layout, picking one of your bags makes it where Take all goes.",
+    )),
+    Release("1.0.0", "First release", "25 Sep 2026", listOf(
+        "**Inventory:** your bags and every container around you, with the game's own icons. Move items with a tap, use them through the game's item menu. The controller's Loot button opens the container here.",
+        "**Deck:** the game's speed buttons, and what you can do where you stand.",
+        "**Status:** the game's moodles, your body with its injuries, and the game's treatments.",
+        "**Craft:** the recipes you can make with what's in reach, and crafting them.",
+        "**Vehicle:** speed, fuel and engine while you drive.",
+    )),
+)

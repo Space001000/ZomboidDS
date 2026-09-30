@@ -6,6 +6,7 @@ import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.Container
 import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.EquipSlot
+import dev.zomboidds.companion.domain.ExploredAreas
 import dev.zomboidds.companion.domain.Freshness
 import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameSpeed
@@ -25,6 +26,7 @@ import dev.zomboidds.companion.domain.InventoryItem
 import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenu
+import dev.zomboidds.companion.domain.MapPosition
 import dev.zomboidds.companion.domain.MenuOption
 import dev.zomboidds.companion.domain.MenuPill
 import dev.zomboidds.companion.domain.Moodle
@@ -41,6 +43,9 @@ import dev.zomboidds.companion.domain.RecipeSummary
 import dev.zomboidds.companion.domain.SessionInfo
 import dev.zomboidds.companion.domain.TimeState
 import dev.zomboidds.companion.domain.Vehicle
+import java.io.ByteArrayOutputStream
+import java.util.Base64
+import java.util.zip.Inflater
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -175,6 +180,44 @@ object ProtocolV1 {
         val available: Boolean = true,
         val on: Boolean? = null,
     )
+
+    @Serializable
+    private data class MapDto(
+        val x: Float? = null,
+        val y: Float? = null,
+        val z: Int = 0,
+        val heading: Int? = null,
+        val miniMap: Boolean = false,
+        val worldMap: Boolean = false,
+    )
+
+    @Serializable
+    private data class ExploredDto(
+        val originX: Int = 0,
+        val originY: Int = 0,
+        val unit: Int = 32,
+        val width: Int = 0,
+        val height: Int = 0,
+        val bits: String = "",
+    )
+
+    /** The game's seen-areas bit field: base64 of zlib-deflated bytes (the bridge's ExploredAreas). */
+    private fun inflate(base64: String): ByteArray {
+        val inflater = Inflater()
+        try {
+            inflater.setInput(Base64.getDecoder().decode(base64))
+            val out = ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            while (!inflater.finished()) {
+                val n = inflater.inflate(buffer)
+                if (n == 0 && (inflater.needsInput() || inflater.needsDictionary())) break
+                out.write(buffer, 0, n)
+            }
+            return out.toByteArray()
+        } finally {
+            inflater.end()
+        }
+    }
 
     @Serializable
     private data class TimeDto(val speed: Int? = null, val canChange: Boolean = false, val gameMenuOpen: Boolean = false)
@@ -506,6 +549,15 @@ object ProtocolV1 {
                         if (a.hour == null || a.minute == null) null else AlarmClock(a.name ?: "Watch", a.hour, a.minute, a.on)
                     },
                 ))
+            }
+            "map" -> json.decodeFromJsonElement<MapDto>(data).let { dto ->
+                if (dto.x == null || dto.y == null) state
+                else state.copy(mapPosition = MapPosition(dto.x, dto.y, dto.z, dto.heading, dto.miniMap, dto.worldMap))
+            }
+            "explored" -> json.decodeFromJsonElement<ExploredDto>(data).let { dto ->
+                val bits = runCatching { inflate(dto.bits) }.getOrNull()
+                if (bits == null || dto.width <= 0 || dto.unit <= 0) state
+                else state.copy(explored = ExploredAreas(dto.originX, dto.originY, dto.unit, dto.width, dto.height, bits))
             }
             "containers" -> json.decodeFromJsonElement<ContainersDto>(data).let { dto ->
                 state.copy(containers = dto.containers.map { it.toDomain() })

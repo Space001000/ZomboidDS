@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
             val deckCommands by container.settings.deckCommands.collectAsStateWithLifecycle()
             val worldMap by container.worldMap.state.collectAsStateWithLifecycle()
             val mapPlacement by container.settings.mapPlacement.collectAsStateWithLifecycle()
+            val whatsNewSeen by container.settings.whatsNewSeen.collectAsStateWithLifecycle()
             // The map files are read once, the first time a game is running.
             LaunchedEffect(state.session?.inGame) { if (state.session?.inGame == true) container.worldMap.load() }
             CompanionScreen(
@@ -90,6 +91,9 @@ class MainActivity : ComponentActivity() {
                 crafting = gateway,
                 deckCommands = deckCommands,
                 onDeckCommandsChange = container.settings::setDeckCommands,
+                // On a new install and after every update, until closed.
+                whatsNewDue = whatsNewSeen != BuildConfig.VERSION_NAME,
+                onWhatsNewSeen = { container.settings.setWhatsNewSeen(BuildConfig.VERSION_NAME) },
                 map = (worldMap as? WorldMapState.Loaded)?.let {
                     MapDisplay(it.map, mapPlacement, container.settings::setMapPlacement)
                 },

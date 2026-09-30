@@ -20,6 +20,7 @@ public final class LuaApi {
 
     private final BridgeContext bridge;
     private final KahluaConverter converter;
+    private final ExploredAreas explored = new ExploredAreas();
 
     LuaApi(BridgeContext bridge, KahluaConverter converter) {
         this.bridge = bridge;
@@ -60,6 +61,17 @@ public final class LuaApi {
         return (KahluaTable) converter.toLua(batch);
     }
 
+    /**
+     * Sends the parts of the map the player has seen as {@code explored}, if they changed (checked
+     * at most every 2 s). Retained like any state, so apps that connect later get it too.
+     */
+    public void publishExplored() {
+        Map<String, Object> data = explored.changed(System.currentTimeMillis());
+        if (data != null) {
+            bridge.state().publish("explored", data);
+        }
+    }
+
     public int clients() {
         return bridge.connectedClients();
     }
@@ -70,6 +82,7 @@ public final class LuaApi {
      */
     public void reset() {
         bridge.state().clearRetained();
+        explored.reset();
         bridge.state().publish("session", Map.of("inGame", false));
         bridge.commands().drain(Integer.MAX_VALUE);
     }

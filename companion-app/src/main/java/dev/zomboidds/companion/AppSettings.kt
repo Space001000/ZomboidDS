@@ -48,6 +48,16 @@ class AppSettings(context: Context) {
         _mapPlacement.value = placement
     }
 
+    private val _whatsNewSeen = MutableStateFlow(prefs.getString(KEY_WHATS_NEW_SEEN, null))
+
+    /** The app version whose "What's new" the user closed; null on a new install. */
+    val whatsNewSeen: StateFlow<String?> = _whatsNewSeen.asStateFlow()
+
+    fun setWhatsNewSeen(version: String) {
+        prefs.edit().putString(KEY_WHATS_NEW_SEEN, version).apply()
+        _whatsNewSeen.value = version
+    }
+
     private val _deckCommands = MutableStateFlow(
         prefs.getString(KEY_DECK_COMMANDS, null)?.split(',')?.filter { it.isNotBlank() } ?: DEFAULT_DECK_COMMANDS)
 
@@ -67,5 +77,6 @@ class AppSettings(context: Context) {
         private const val KEY_CONTAINER_LAYOUT = "containerLayout"
         private const val KEY_DECK_COMMANDS = "deckCommands"
         private const val KEY_MAP_PLACEMENT = "mapPlacement"
+        private const val KEY_WHATS_NEW_SEEN = "whatsNewSeen"
     }
 }
