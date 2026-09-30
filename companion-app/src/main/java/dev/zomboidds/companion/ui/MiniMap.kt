@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -401,41 +402,11 @@ private fun RoundMapButton(label: String, onClick: () -> Unit) {
 
 /** The top-left button: pick where the map sits, like a window layout menu. */
 @Composable
-private fun PlacementButton(placement: MapPlacement, onChange: (MapPlacement) -> Unit, modifier: Modifier) {
-    var open by remember { mutableStateOf(false) }
-    Box(modifier) {
-        val shape = RoundedCornerShape(8.dp)
-        Box(
-            Modifier.size(40.dp).clip(shape)
-                .background(if (open) MaterialTheme.colorScheme.primaryContainer else MapColors.buttonBackground)
-                .border(1.dp, if (open) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, shape)
-                .clickable { open = true },
-            contentAlignment = Alignment.Center,
-        ) { PlacementGlyph(placement, Size(20f, 15f)) }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Map position", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    MapPlacement.entries.forEach { option ->
-                        val selected = option == placement
-                        Column(
-                            Modifier.width(64.dp).clip(shape)
-                                .background(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                                .border(1.dp, if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, shape)
-                                .clickable { open = false; onChange(option) }
-                                .padding(vertical = 8.dp, horizontal = 2.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
-                        ) {
-                            PlacementGlyph(option, Size(40f, 28f))
-                            Text(option.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+private fun PlacementButton(placement: MapPlacement, onChange: (MapPlacement) -> Unit, modifier: Modifier) =
+    LayoutPicker(
+        "Map position", placement, MapPlacement.entries, { it.label }, { it.parts }, onChange, modifier,
+        background = MapColors.buttonBackground, outlined = true,
+    )
 
 private val MapPlacement.label get() = when (this) {
     MapPlacement.LEFT_OF_HERE -> "Left of Here"
@@ -443,24 +414,11 @@ private val MapPlacement.label get() = when (this) {
     MapPlacement.OWN_TAB -> "Own tab"
 }
 
-/** A small screen outline with the map's part filled in. */
-@Composable
-private fun PlacementGlyph(placement: MapPlacement, sizeDp: Size) {
-    val color = MaterialTheme.colorScheme.onSurface
-    Canvas(Modifier.size(sizeDp.width.dp, sizeDp.height.dp)) {
-        val stroke = 1.5.dp.toPx()
-        val r = CornerRadius(3.dp.toPx())
-        drawRoundRect(color, topLeft = Offset(stroke / 2, stroke / 2),
-            size = Size(size.width - stroke, size.height - stroke), cornerRadius = r, style = Stroke(stroke))
-        val inset = stroke * 2
-        val part = (size.width - inset * 2) * 0.35f
-        val (left, width) = when (placement) {
-            MapPlacement.LEFT_OF_HERE -> inset to part
-            MapPlacement.RIGHT_OF_HERE -> size.width - inset - part to part
-            MapPlacement.OWN_TAB -> inset to size.width - inset * 2
-        }
-        drawRect(color, topLeft = Offset(left, inset), size = Size(width, size.height - inset * 2))
-    }
+/** The map's part of the screen, for the picker's pictures. */
+private val MapPlacement.parts get() = when (this) {
+    MapPlacement.LEFT_OF_HERE -> listOf(Rect(0f, 0f, 0.35f, 1f))
+    MapPlacement.RIGHT_OF_HERE -> listOf(Rect(0.65f, 0f, 1f, 1f))
+    MapPlacement.OWN_TAB -> listOf(Rect(0f, 0f, 1f, 1f))
 }
 
 /** The minimap's colours, from `MapUtils.initDefaultStyleV1` (ISMapDefinitions.lua, 42.20). */

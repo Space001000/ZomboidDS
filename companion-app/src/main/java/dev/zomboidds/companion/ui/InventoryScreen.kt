@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -64,6 +67,8 @@ internal val RowHeight = 50.dp
 internal val Gap = 5.dp
 internal val PaneHeader = 36.dp
 internal val PaneSpacing = 6.dp
+/** The second header row of a side-by-side pane: the open container's name and weight, and its actions. */
+internal val PaneSubHeader = 34.dp
 private val SplitDivider = 2.dp
 private val SplitSpacing = 8.dp
 
@@ -116,7 +121,9 @@ fun InventoryScreen(
     val views = remember(inventory, containers) { containerViews(inventory, containers) }
     // Moving between containers needs the containers message (and its ids).
     val canMove = containers != null
-    val split = canMove && display.containers == ContainerLayout.SPLIT
+    // Two panes, yours and around you: top and bottom, or side by side.
+    val split = canMove && display.containers != ContainerLayout.SINGLE
+    val sideBySide = split && display.containers == ContainerLayout.SIDE_BY_SIDE
     val scope = rememberCoroutineScope()
     var selectedId by remember { mutableStateOf<Long?>(null) }
     var picked by remember { mutableStateOf<PickedItems?>(null) }
@@ -253,8 +260,23 @@ fun InventoryScreen(
                 onClearPicked = { picked = null },
                 onPickSet = { ids -> picked = PickedItems.of(shown.id, ids) },
                 wornOpen = wornOpen, onWornOpenChange = { wornOpen = it },
+                stackedHeader = sideBySide,
             )
-            if (split) BoxWithConstraints {
+            if (sideBySide) {
+                // Yours on the left, around you on the right, each the full height.
+                val putAll = aroundShown?.takeIf { !it.container.locked }?.let { target ->
+                    "Put all" to { moveAll(mineShown, target) }
+                }
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(SplitSpacing)) {
+                    Pane(mine, mineShown, { mineOpen = it }, putAll, modifier = Modifier.weight(1f), trailing = switch)
+                    VerticalDivider(thickness = SplitDivider)
+                    if (aroundShown != null) {
+                        Pane(around, aroundShown, { aroundOpen = it; highlight(it) }, takeAll(aroundShown), modifier = Modifier.weight(1f))
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            } else if (split) BoxWithConstraints {
                 // The half with more to show gets more room, but each keeps at least about a third,
                 // in whole rows: the grids' height is shared out row by row.
                 val mineCount = mineShown.stacks.size.coerceAtLeast(1).toFloat()

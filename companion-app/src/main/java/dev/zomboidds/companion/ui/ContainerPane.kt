@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -89,13 +90,16 @@ internal fun ContainerPane(
     /** Your worn clothes unfolded (held by the screen: the split layout sizes its panes by it). */
     wornOpen: Boolean = false,
     onWornOpenChange: (Boolean) -> Unit = {},
+    /**
+     * Two slim header rows instead of one (side by side, where a pane is half as wide): the tabs
+     * across the whole pane, then the open container's name and weight with the actions.
+     */
+    stackedHeader: Boolean = false,
 ) {
     val pickedCount = shown.stacks.count { stack -> stack.items.any { it.id in picked } }
     val boxSelect = remember(shown.id) { BoxSelect() }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(PaneSpacing)) {
-        // One row: tabs (the open one with its weight), the "all" action, and [trailing].
-        Row(Modifier.height(PaneHeader), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(Modifier.weight(1f)) { ContainerTabs(tabs, shown, onOpen, iconUrl) }
+        val actions = @Composable {
             if (pickedCount > 0) {
                 // What's picked: its panel, or let go of all of it (instead of the "all" action).
                 PickedChip("$pickedCount selected ›", filled = true, onClick = onOpenPicked)
@@ -106,6 +110,24 @@ internal fun ContainerPane(
             trailing?.let {
                 Spacer(Modifier.width(8.dp)) // a little away from the "all" action: no mis-taps
                 it()
+            }
+        }
+        if (stackedHeader) {
+            Box(Modifier.height(PaneHeader)) { ContainerTabs(tabs, shown, onOpen, iconUrl, nameInTab = false) }
+            Row(Modifier.height(PaneSubHeader), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // The name takes whatever the actions leave, and only shortens when that isn't enough.
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(shown.label, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false))
+                    WeightLabel(shown)
+                }
+                actions()
+            }
+        } else {
+            // One row: tabs (the open one with its weight), the "all" action, and [trailing].
+            Row(Modifier.height(PaneHeader), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(Modifier.weight(1f)) { ContainerTabs(tabs, shown, onOpen, iconUrl) }
+                actions()
             }
         }
         // Dropping a dragged item on the open container's items moves it there, like on its tab.
@@ -202,7 +224,14 @@ private fun AllButton(label: String, containerId: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ContainerTabs(tabs: List<ContainerView>, shown: ContainerView, onOpen: (String) -> Unit, iconUrl: (String) -> String) {
+private fun ContainerTabs(
+    tabs: List<ContainerView>,
+    shown: ContainerView,
+    onOpen: (String) -> Unit,
+    iconUrl: (String) -> String,
+    /** The open tab shows its name and weight; without, they're in the row below and the tab is its icon. */
+    nameInTab: Boolean = true,
+) {
     val scroll = rememberScrollState()
     val drag = LocalItemDrag.current
     Row(
@@ -224,7 +253,7 @@ private fun ContainerTabs(tabs: List<ContainerView>, shown: ContainerView, onOpe
         tabs.forEach { view ->
             val open = view.id == shown.id
             // Only the open tab has its name; the others are the game's icon (and number, "Shelves 2").
-            val compact = !open && view.container.icon != null
+            val compact = (!open || !nameInTab) && view.container.icon != null
             val number = view.label.removePrefix(view.container.name).trim().takeIf { view.label != view.container.name }
             // While an item is dragged, the tabs it can go to light up.
             val canDrop = drag != null && drag.active && drag.from != view.id && !view.container.locked
@@ -249,7 +278,7 @@ private fun ContainerTabs(tabs: List<ContainerView>, shown: ContainerView, onOpe
                             Text(view.label, style = MaterialTheme.typography.labelMedium, maxLines = 1,
                                 overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 120.dp))
                         }
-                        if (open) WeightLabel(view)
+                        if (open && nameInTab) WeightLabel(view)
                     }
                     if (open) WeightMeter(view)
                 }
@@ -308,17 +337,10 @@ internal fun ContainerIcon(container: Container, iconUrl: (String) -> String, si
 internal fun DisplaySwitch(display: InventoryDisplay, onChange: (InventoryDisplay) -> Unit, showContainerLayout: Boolean) {
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         if (showContainerLayout) {
-            val split = display.containers == ContainerLayout.SPLIT
-            ToggleIcon(if (split) "Split layout" else "Single layout", onClick = {
-                onChange(display.copy(containers = if (split) ContainerLayout.SINGLE else ContainerLayout.SPLIT))
-            }) { color ->
-                if (split) {
-                    drawRect(color, Offset(0f, 0f), Size(size.width, size.height * 0.44f), style = Stroke(2.dp.toPx()))
-                    drawRect(color, Offset(0f, size.height * 0.56f), Size(size.width, size.height * 0.44f), style = Stroke(2.dp.toPx()))
-                } else {
-                    drawRect(color, style = Stroke(2.dp.toPx()))
-                }
-            }
+            LayoutPicker(
+                "Containers", display.containers, ContainerLayout.entries, { it.label }, { it.parts },
+                onChange = { onChange(display.copy(containers = it)) }, buttonSize = 34.dp,
+            )
         }
         val grid = display.items == InventoryLayout.GRID
         ToggleIcon(if (grid) "Grid view" else "List view", onClick = {
@@ -334,6 +356,19 @@ internal fun DisplaySwitch(display: InventoryDisplay, onChange: (InventoryDispla
             }
         }
     }
+}
+
+private val ContainerLayout.label get() = when (this) {
+    ContainerLayout.SPLIT -> "Top and bottom"
+    ContainerLayout.SIDE_BY_SIDE -> "Side by side"
+    ContainerLayout.SINGLE -> "One at a time"
+}
+
+/** The panes, for the picker's pictures. */
+private val ContainerLayout.parts get() = when (this) {
+    ContainerLayout.SPLIT -> listOf(Rect(0f, 0f, 1f, 0.42f), Rect(0f, 0.58f, 1f, 1f))
+    ContainerLayout.SIDE_BY_SIDE -> listOf(Rect(0f, 0f, 0.42f, 1f), Rect(0.58f, 0f, 1f, 1f))
+    ContainerLayout.SINGLE -> listOf(Rect(0f, 0f, 1f, 1f))
 }
 
 @Composable

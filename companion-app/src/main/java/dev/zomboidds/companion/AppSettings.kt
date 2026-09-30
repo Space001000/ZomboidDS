@@ -7,8 +7,11 @@ import kotlinx.coroutines.flow.asStateFlow
 
 enum class InventoryLayout { GRID, LIST }
 
-/** SPLIT: your containers on top, the ones around you below. SINGLE: one container at a time. */
-enum class ContainerLayout { SPLIT, SINGLE }
+/**
+ * SPLIT: your containers on top, the ones around you below. SIDE_BY_SIDE: yours on the left, the
+ * ones around you on the right. SINGLE: one container at a time.
+ */
+enum class ContainerLayout { SPLIT, SIDE_BY_SIDE, SINGLE }
 
 /** Where the map sits: beside the Here/Vehicle tab's content, or on a tab of its own. */
 enum class MapPlacement { LEFT_OF_HERE, RIGHT_OF_HERE, OWN_TAB }
