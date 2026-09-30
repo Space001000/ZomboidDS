@@ -49,14 +49,10 @@ you'd like to say thanks: [ko-fi.com/space000](https://ko-fi.com/space000).
   Android's folder picker, into the folder you choose, and the ZombieBuddy download is saved to
   Downloads.
 
-## How it was made
-
-ZomboidDS was written with [Claude Code](https://claude.com/claude-code), Anthropic's AI coding
-agent, directed and reviewed by me (Space000, a software developer), and tested on a real AYN Thor
-throughout. How the game works was checked against its own files rather than guessed; the design
-and those findings are in [docs/DESIGN.md](docs/DESIGN.md).
-
 ## How it fits together
+
+The design, and how the game works as checked against its own files, are in
+[docs/DESIGN.md](docs/DESIGN.md).
 
 ```
 Top screen: Zomdroid → Project Zomboid (B42)
