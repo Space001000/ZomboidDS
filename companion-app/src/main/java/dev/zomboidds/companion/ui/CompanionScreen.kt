@@ -141,10 +141,10 @@ private fun InGame(
     crafting: Crafting?,
     deckCommands: List<String>,
     onDeckCommandsChange: (List<String>) -> Unit,
-    readMap: MapDisplay?,
+    loadedMap: MapDisplay?,
 ) {
     // The map only where the save allows it (or the player asked for it in the game's mod options).
-    val map = readMap?.takeIf { state.mapPosition?.shown == true }
+    val map = loadedMap?.takeIf { state.mapPosition?.shown == true }
     val driving = state.vehicle as? Vehicle.Driving
     var editingDeck by rememberSaveable { mutableStateOf(false) }
     // Craft only with a mod that can craft.
@@ -259,12 +259,12 @@ private fun WithMap(
     content: @Composable () -> Unit,
 ) {
     if (map == null || map.placement == MapPlacement.OWN_TAB) return content()
-    @Composable fun Map() =
+    @Composable fun MapBeside() =
         PlayerMiniMap(map, state, onPlacementChange, iconUrl, Modifier.width(250.dp).fillMaxHeight())
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (map.placement == MapPlacement.LEFT_OF_HERE) Map()
+        if (map.placement == MapPlacement.LEFT_OF_HERE) MapBeside()
         Box(Modifier.weight(1f)) { content() }
-        if (map.placement == MapPlacement.RIGHT_OF_HERE) Map()
+        if (map.placement == MapPlacement.RIGHT_OF_HERE) MapBeside()
     }
 }
 

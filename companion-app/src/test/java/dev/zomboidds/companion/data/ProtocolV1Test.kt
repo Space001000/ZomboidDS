@@ -224,10 +224,8 @@ class ProtocolV1Test {
         assertTrue("unit (7, 1) known from a map", explored.isUnitSeen(7, 1))
         assertFalse(explored.isUnitSeen(1, 0))
         assertFalse(explored.isUnitSeen(6, 1))
-        assertTrue("tile (31, 31) is in unit (0, 0)", explored.isSeen(31, 31))
-        assertFalse("tile (32, 0) is in unit (1, 0)", explored.isSeen(32, 0))
         assertFalse("outside the world", explored.isUnitSeen(8, 0))
-        assertFalse("outside the world", explored.isSeen(-1, 0))
+        assertFalse("outside the world", explored.isUnitSeen(-1, 0))
         val broken = ProtocolV1.apply(GameState(), """{"v":1,"type":"explored","data":{"width":8,"height":2,"bits":"not base64!"}}""")
         assertNull("broken data is dropped, not a crash", broken.explored)
     }

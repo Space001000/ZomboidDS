@@ -74,9 +74,7 @@ class ExploredAreas(
     val height: Int,
     private val bits: ByteArray,
 ) {
-    /** Whether the unit containing tile ([x], [y]) has been seen. Outside the world: no. */
-    fun isSeen(x: Int, y: Int): Boolean = isUnitSeen(Math.floorDiv(x - originX, unit), Math.floorDiv(y - originY, unit))
-
+    /** Whether unit ([ux], [uy]) has been seen. Outside the world: no. */
     fun isUnitSeen(ux: Int, uy: Int): Boolean {
         if (ux < 0 || uy < 0 || ux >= width || uy >= height) return false
         val index = ux / 4 + uy * (width / 4)

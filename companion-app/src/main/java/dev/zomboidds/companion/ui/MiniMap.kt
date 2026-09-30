@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -22,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -84,14 +81,11 @@ class MapDisplay(
     val map: WorldMap,
     val placement: MapPlacement,
     val onPlacementChange: (MapPlacement) -> Unit,
-    val showSymbols: Boolean = false,
-    val onShowSymbolsChange: (Boolean) -> Unit = {},
+    val showSymbols: Boolean,
+    val onShowSymbolsChange: (Boolean) -> Unit,
 )
 
-/**
- * The map around the player. Until the game reports where they are (or with an older mod), it
- * looks at Muldraugh's centre without a marker.
- */
+/** The map around the player, once the game has said where they are (the map is only shown then). */
 @Composable
 fun PlayerMiniMap(
     display: MapDisplay,
@@ -99,11 +93,14 @@ fun PlayerMiniMap(
     onPlacementChange: (MapPlacement) -> Unit,
     iconUrl: (String) -> String,
     modifier: Modifier = Modifier,
-) = MiniMap(
-    display.map, state.mapPosition, state.explored, display.placement, onPlacementChange, modifier,
-    symbols = if (display.showSymbols) state.mapSymbols else emptyList(),
-    showSymbols = display.showSymbols, onShowSymbolsChange = display.onShowSymbolsChange, iconUrl = iconUrl,
-)
+) {
+    val position = state.mapPosition ?: return
+    MiniMap(
+        display.map, position, state.explored, display.placement, onPlacementChange, modifier,
+        symbols = if (display.showSymbols) state.mapSymbols else emptyList(),
+        showSymbols = display.showSymbols, onShowSymbolsChange = display.onShowSymbolsChange, iconUrl = iconUrl,
+    )
+}
 
 /** Where the map is looking: a tile position and a zoom in pixels per tile. */
 private data class MapView(val x: Float, val y: Float, val scale: Float)
@@ -114,24 +111,24 @@ private data class MapView(val x: Float, val y: Float, val scale: Float)
  * Follows [position] unless the user drags it; it returns after a few seconds, or with ⌖.
  */
 @Composable
-fun MiniMap(
+private fun MiniMap(
     map: WorldMap,
-    position: MapPosition?,
+    position: MapPosition,
     explored: ExploredAreas?,
     placement: MapPlacement,
     onPlacementChange: (MapPlacement) -> Unit,
-    modifier: Modifier = Modifier,
-    symbols: List<MapSymbol> = emptyList(),
-    showSymbols: Boolean = false,
-    onShowSymbolsChange: ((Boolean) -> Unit)? = null,
-    iconUrl: (String) -> String = { it },
+    modifier: Modifier,
+    symbols: List<MapSymbol>,
+    showSymbols: Boolean,
+    onShowSymbolsChange: (Boolean) -> Unit,
+    iconUrl: (String) -> String,
 ) {
     var scale by remember { mutableFloatStateOf(DEFAULT_SCALE) }
     // Zoom limits in the game's zoom levels, so they cover the same area in any size of view.
     var heightPx by remember { mutableFloatStateOf(0f) }
     fun limited(s: Float): Float =
         if (heightPx <= 0f) s else s.coerceIn(pixelsPerTileAt(MIN_GAME_ZOOM, heightPx), pixelsPerTileAt(MAX_GAME_ZOOM, heightPx))
-    val target = position?.let { Offset(it.x, it.y) } ?: MULDRAUGH
+    val target = Offset(position.x, position.y)
     // The game reports about four times a second: glide between reports instead of jumping.
     // A long way (the first report, a teleport) jumps.
     val glide = remember { Animatable(target, Offset.VectorConverter) }
@@ -142,7 +139,7 @@ fun MiniMap(
     val player = glide.value
     val currentPlayer by rememberUpdatedState(player)
     // The arrow turns the short way round (350 to 10 degrees is 20, not 340).
-    val heading = position?.heading
+    val heading = position.heading
     val turn = remember { Animatable(heading?.toFloat() ?: 0f) }
     LaunchedEffect(heading) {
         if (heading != null) {
@@ -178,17 +175,15 @@ fun MiniMap(
             val view = MapView(center.x, center.y, scale)
             drawMap(map, view, paths)
             if (explored != null && mask != null) drawUnexplored(explored, mask, view)
-            if (position != null) {
-                drawPlayer(Offset(size.width / 2 + (player.x - center.x) * scale, size.height / 2 + (player.y - center.y) * scale),
-                    if (heading != null) turn.value else null)
-            }
+            drawPlayer(Offset(size.width / 2 + (player.x - center.x) * scale, size.height / 2 + (player.y - center.y) * scale),
+                if (heading != null) turn.value else null)
         }
         Symbols(symbols, center, scale, iconUrl)
         PlacementButton(placement, onPlacementChange, Modifier.align(Alignment.TopStart).padding(8.dp))
         Column(Modifier.align(Alignment.TopEnd).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             RoundMapButton("+") { scale = limited(scale * ZOOM_STEP) }
             RoundMapButton("−") { scale = limited(scale / ZOOM_STEP) }
-            if (onShowSymbolsChange != null) SymbolsButton(showSymbols, iconUrl) { onShowSymbolsChange(!showSymbols) }
+            SymbolsButton(showSymbols, iconUrl) { onShowSymbolsChange(!showSymbols) }
             if (looking != null) RoundMapButton("⌖") { looking = null }
         }
     }
@@ -475,9 +470,6 @@ private const val GRID_MIN_UNIT_PX = 8f
 
 /** Symbols this far outside the map (pixels) are skipped. */
 private const val SYMBOL_MARGIN_PX = 200f
-
-/** Until the game reports the player's position. */
-private val MULDRAUGH = Offset(10745f, 9960f)
 
 /** Gliding from one reported position to the next; about the time between reports. */
 private const val GLIDE_MS = 250
