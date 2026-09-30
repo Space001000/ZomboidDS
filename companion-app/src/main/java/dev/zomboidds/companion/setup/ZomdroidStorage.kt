@@ -40,8 +40,14 @@ class ZomdroidStorage(private val resolver: ContentResolver, val tree: Uri) {
 
     fun uri(documentId: String): Uri = DocumentsContract.buildDocumentUriUsingTree(tree, documentId)
 
-    fun readText(documentId: String): String =
-        resolver.openInputStream(uri(documentId))!!.use { it.readBytes().decodeToString() }
+    /** Follows [names] down from [parentId], e.g. `path(instance.id, "game", "media")`. */
+    fun path(parentId: String, vararg names: String): Entry? =
+        names.fold<String, Entry?>(Entry(parentId, "", true)) { dir, name -> dir?.let { child(it.id, name) } }
+
+    fun readBytes(documentId: String): ByteArray =
+        resolver.openInputStream(uri(documentId))!!.use { it.readBytes() }
+
+    fun readText(documentId: String): String = readBytes(documentId).decodeToString()
 
     fun writeText(documentId: String, text: String) {
         resolver.openOutputStream(uri(documentId), "wt")!!.use { it.write(text.encodeToByteArray()) }

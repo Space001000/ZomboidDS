@@ -124,7 +124,7 @@ class SetupController(private val context: Context, private val scope: Coroutine
     }
 
     /** The instance the user picked, or the only/first one. */
-    private fun selectedInstance(storage: ZomdroidStorage): ZomdroidStorage.Entry? {
+    fun selectedInstance(storage: ZomdroidStorage): ZomdroidStorage.Entry? {
         val instances = storage.instances()
         val saved = prefs.getString(KEY_INSTANCE, null)
         return instances.firstOrNull { it.name == saved } ?: instances.firstOrNull()

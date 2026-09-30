@@ -10,6 +10,9 @@ enum class InventoryLayout { GRID, LIST }
 /** SPLIT: your containers on top, the ones around you below. SINGLE: one container at a time. */
 enum class ContainerLayout { SPLIT, SINGLE }
 
+/** Where the map sits: beside the Here/Vehicle tab's content, or on a tab of its own. */
+enum class MapPlacement { LEFT_OF_HERE, RIGHT_OF_HERE, OWN_TAB }
+
 /** The user's display choices, kept across app restarts. */
 class AppSettings(context: Context) {
 
@@ -35,6 +38,16 @@ class AppSettings(context: Context) {
         _containerLayout.value = layout
     }
 
+    private val _mapPlacement = MutableStateFlow(
+        MapPlacement.entries.firstOrNull { it.name == prefs.getString(KEY_MAP_PLACEMENT, null) }
+            ?: MapPlacement.LEFT_OF_HERE)
+    val mapPlacement: StateFlow<MapPlacement> = _mapPlacement.asStateFlow()
+
+    fun setMapPlacement(placement: MapPlacement) {
+        prefs.edit().putString(KEY_MAP_PLACEMENT, placement.name).apply()
+        _mapPlacement.value = placement
+    }
+
     private val _deckCommands = MutableStateFlow(
         prefs.getString(KEY_DECK_COMMANDS, null)?.split(',')?.filter { it.isNotBlank() } ?: DEFAULT_DECK_COMMANDS)
 
@@ -53,5 +66,6 @@ class AppSettings(context: Context) {
         private const val KEY_INVENTORY_LAYOUT = "inventoryLayout"
         private const val KEY_CONTAINER_LAYOUT = "containerLayout"
         private const val KEY_DECK_COMMANDS = "deckCommands"
+        private const val KEY_MAP_PLACEMENT = "mapPlacement"
     }
 }

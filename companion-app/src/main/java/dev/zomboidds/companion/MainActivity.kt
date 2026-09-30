@@ -11,6 +11,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -22,6 +23,8 @@ import dev.zomboidds.companion.setup.SetupController
 import dev.zomboidds.companion.setup.ZomdroidStorage
 import dev.zomboidds.companion.ui.CompanionScreen
 import dev.zomboidds.companion.ui.InventoryDisplay
+import dev.zomboidds.companion.ui.MapDisplay
+import dev.zomboidds.companion.data.WorldMapState
 import dev.zomboidds.companion.ui.SetupActions
 
 class MainActivity : ComponentActivity() {
@@ -69,6 +72,10 @@ class MainActivity : ComponentActivity() {
             val inventoryLayout by container.settings.inventoryLayout.collectAsStateWithLifecycle()
             val containerLayout by container.settings.containerLayout.collectAsStateWithLifecycle()
             val deckCommands by container.settings.deckCommands.collectAsStateWithLifecycle()
+            val worldMap by container.worldMap.state.collectAsStateWithLifecycle()
+            val mapPlacement by container.settings.mapPlacement.collectAsStateWithLifecycle()
+            // The map files are read once, the first time a game is running.
+            LaunchedEffect(state.session?.inGame) { if (state.session?.inGame == true) container.worldMap.load() }
             CompanionScreen(
                 state, connection, report, update, setupActions,
                 iconUrl = gateway::iconUrl,
@@ -83,6 +90,9 @@ class MainActivity : ComponentActivity() {
                 crafting = gateway,
                 deckCommands = deckCommands,
                 onDeckCommandsChange = container.settings::setDeckCommands,
+                map = (worldMap as? WorldMapState.Loaded)?.let {
+                    MapDisplay(it.map, mapPlacement, container.settings::setMapPlacement)
+                },
             )
         }
     }

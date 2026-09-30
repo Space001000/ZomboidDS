@@ -3,6 +3,7 @@ package dev.zomboidds.companion
 import dev.zomboidds.companion.setup.AppUpdater
 import android.content.Context
 import dev.zomboidds.companion.data.WebSocketGameGateway
+import dev.zomboidds.companion.data.WorldMapLoader
 import dev.zomboidds.companion.domain.GameGateway
 import dev.zomboidds.companion.setup.SetupController
 import kotlinx.coroutines.CoroutineScope
@@ -29,4 +30,6 @@ class AppContainer(context: Context) {
     val updater = AppUpdater(context.applicationContext, appScope, httpClient)
 
     val settings = AppSettings(context.applicationContext)
+
+    val worldMap = WorldMapLoader(context.applicationContext, appScope, setup)
 }
