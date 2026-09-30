@@ -92,7 +92,7 @@ internal fun ContainerPane(
     onWornOpenChange: (Boolean) -> Unit = {},
     /**
      * Two slim header rows instead of one (side by side, where a pane is half as wide): the tabs
-     * across the whole pane, then the open container's name and weight with the actions.
+     * with [trailing], then the open container's name and weight with its action.
      */
     stackedHeader: Boolean = false,
 ) {
@@ -107,13 +107,13 @@ internal fun ContainerPane(
             } else {
                 allAction?.takeIf { shown.stacks.isNotEmpty() }?.let { (label, onClick) -> AllButton(label, shown.id, onClick) }
             }
-            trailing?.let {
-                Spacer(Modifier.width(8.dp)) // a little away from the "all" action: no mis-taps
-                it()
-            }
         }
         if (stackedHeader) {
-            Box(Modifier.height(PaneHeader)) { ContainerTabs(tabs, shown, onOpen, iconUrl, nameInTab = false) }
+            // [trailing] (the display buttons) at the end of the tab row: your own containers are few.
+            Row(Modifier.height(PaneHeader), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(Modifier.weight(1f)) { ContainerTabs(tabs, shown, onOpen, iconUrl, nameInTab = false) }
+                trailing?.invoke()
+            }
             Row(Modifier.height(PaneSubHeader), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 // The name takes whatever the actions leave, and only shortens when that isn't enough.
                 Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -128,6 +128,10 @@ internal fun ContainerPane(
             Row(Modifier.height(PaneHeader), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(Modifier.weight(1f)) { ContainerTabs(tabs, shown, onOpen, iconUrl) }
                 actions()
+                trailing?.let {
+                    Spacer(Modifier.width(8.dp)) // a little away from the "all" action: no mis-taps
+                    it()
+                }
             }
         }
         // Dropping a dragged item on the open container's items moves it there, like on its tab.
