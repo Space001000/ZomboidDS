@@ -306,15 +306,21 @@ private fun WeightLabel(view: ContainerView) {
     )
 }
 
-/** A thin fill bar along the bottom of the open tab. */
+/**
+ * A thin gauge along the bottom of the open tab: a faint track the whole width, filled as far as
+ * the container is. Without the track a nearly empty container's few pixels of fill, cut by the
+ * tab's rounded corner, looked like a stray mark.
+ */
 @Composable
 private fun WeightMeter(view: ContainerView) {
     val weight = view.weight ?: return
     val capacity = view.capacity?.takeIf { it > 0f } ?: return
     val fraction = (weight / capacity).coerceIn(0f, 1f)
     val color = if (view.overloaded()) Danger else MaterialTheme.colorScheme.primary
+    val track = LocalContentColor.current.copy(alpha = 0.18f)
     // Drawn rather than a progress indicator: this must not widen the tab (an indicator asks for 240dp).
     Box(Modifier.fillMaxWidth().height(3.dp).drawBehind {
+        drawRect(track)
         drawRect(color, size = Size(size.width * fraction, size.height))
     })
 }
