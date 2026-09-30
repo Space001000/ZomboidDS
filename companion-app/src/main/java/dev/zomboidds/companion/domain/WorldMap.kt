@@ -42,7 +42,8 @@ class MapCell(val x: Int, val y: Int, val features: List<MapFeature>)
 /**
  * Where the player (or the car they're in) is, in tiles. [heading]: degrees clockwise from east,
  * as the map's y axis points down (90 = south); null while unknown. [miniMapAllowed] and
- * [worldMapAllowed]: the save's sandbox Map options.
+ * [worldMapAllowed]: the save's sandbox Map options. [alwaysShow]: the player ticked "Map on every
+ * save" in the game's mod options.
  */
 data class MapPosition(
     val x: Float,
@@ -51,7 +52,14 @@ data class MapPosition(
     val heading: Int?,
     val miniMapAllowed: Boolean,
     val worldMapAllowed: Boolean,
-)
+    val alwaysShow: Boolean = false,
+) {
+    /**
+     * Whether the app shows the map: where the save allows the game's minimap, or everywhere if the
+     * player asked for it. Never on a save without the world map: there the game has no map at all.
+     */
+    val shown: Boolean get() = worldMapAllowed && (miniMapAllowed || alwaysShow)
+}
 
 /**
  * The parts of the world the player has seen, as the game's map remembers them: [width] x [height]

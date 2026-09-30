@@ -75,8 +75,9 @@ class MainActivity : ComponentActivity() {
             val worldMap by container.worldMap.state.collectAsStateWithLifecycle()
             val mapPlacement by container.settings.mapPlacement.collectAsStateWithLifecycle()
             val whatsNewSeen by container.settings.whatsNewSeen.collectAsStateWithLifecycle()
-            // The map files are read once, the first time a game is running.
-            LaunchedEffect(state.session?.inGame) { if (state.session?.inGame == true) container.worldMap.load() }
+            // The map files are read once, the first time a game shows the map.
+            val mapShown = state.mapPosition?.shown == true
+            LaunchedEffect(mapShown) { if (mapShown) container.worldMap.load() }
             CompanionScreen(
                 state, connection, report, update, setupActions,
                 iconUrl = gateway::iconUrl,

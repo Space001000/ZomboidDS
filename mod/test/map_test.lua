@@ -12,6 +12,17 @@ local function check(cond, msg) if not cond then error("FAIL: " .. msg, 2) end p
 local rules = { mini = true, world = true }
 ISMiniMap = { IsAllowed = function() return rules.mini end }
 ISWorldMap = { IsAllowed = function() return rules.world end }
+local ticks = {}
+PZAPI = { ModOptions = {
+  create = function(_, id, name)
+    local o = { id = id, name = name, dict = {} }
+    function o:addTickBox(optionId, _label, value) self.dict[optionId] = { id = optionId, value = value } end
+    function o:getOption(optionId) return self.dict[optionId] end
+    ticks[id] = o
+    return o
+  end,
+  load = function() end,
+} }
 local published = 0
 ZomboidDSBridge = { publishExplored = function() published = published + 1 end }
 
@@ -36,6 +47,10 @@ check(snap.z == 0, "floor level as a whole number")
 check(snap.heading == 90, "facing +y is 90 degrees (south, the map's y points down)")
 check(snap.miniMap == true and snap.worldMap == true, "the save's map rules")
 check(published == 1, "asks the Java side to send the seen areas")
+check(ticks.ZomboidDS ~= nil and ticks.ZomboidDS.name == "ZomboidDS", "a ZomboidDS page in the game's mod options")
+check(snap.alwaysShow == false, "the map shows only where the save allows it, unless the player ticks the option")
+ticks.ZomboidDS.dict.mapOnEverySave.value = true
+check(B42.snapshotMap(player).alwaysShow == true, "ticked: on every save")
 
 player.fx, player.fy = 0.72, -0.69
 check(B42.snapshotMap(player).heading == 315, "north-east, rounded to 5 degrees: " .. tostring(B42.snapshotMap(player).heading))

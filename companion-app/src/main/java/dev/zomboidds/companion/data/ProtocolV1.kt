@@ -189,6 +189,7 @@ object ProtocolV1 {
         val heading: Int? = null,
         val miniMap: Boolean = false,
         val worldMap: Boolean = false,
+        val alwaysShow: Boolean = false,
     )
 
     @Serializable
@@ -552,7 +553,7 @@ object ProtocolV1 {
             }
             "map" -> json.decodeFromJsonElement<MapDto>(data).let { dto ->
                 if (dto.x == null || dto.y == null) state
-                else state.copy(mapPosition = MapPosition(dto.x, dto.y, dto.z, dto.heading, dto.miniMap, dto.worldMap))
+                else state.copy(mapPosition = MapPosition(dto.x, dto.y, dto.z, dto.heading, dto.miniMap, dto.worldMap, dto.alwaysShow))
             }
             "explored" -> json.decodeFromJsonElement<ExploredDto>(data).let { dto ->
                 val bits = runCatching { inflate(dto.bits) }.getOrNull()

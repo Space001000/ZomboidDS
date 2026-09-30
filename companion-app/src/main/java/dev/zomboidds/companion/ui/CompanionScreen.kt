@@ -141,8 +141,10 @@ private fun InGame(
     crafting: Crafting?,
     deckCommands: List<String>,
     onDeckCommandsChange: (List<String>) -> Unit,
-    map: MapDisplay?,
+    readMap: MapDisplay?,
 ) {
+    // The map only where the save allows it (or the player asked for it in the game's mod options).
+    val map = readMap?.takeIf { state.mapPosition?.shown == true }
     val driving = state.vehicle as? Vehicle.Driving
     var editingDeck by rememberSaveable { mutableStateOf(false) }
     // Craft only with a mod that can craft.

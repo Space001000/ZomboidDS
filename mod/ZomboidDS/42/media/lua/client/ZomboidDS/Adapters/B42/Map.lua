@@ -5,6 +5,37 @@ local try, round = Util.try, Util.round
 
 local Map = {}
 
+-- The player's choice in the game's Options > Mods page (PZAPI.ModOptions, B42): show the map on
+-- every save, not only on saves that allow the game's minimap. Created when the game loads the
+-- mod's Lua, so it's in the options before a game starts; the game reads its saved value when it
+-- builds its options screen, and we read it again when a game starts.
+local ALWAYS_SHOW_ID = "mapOnEverySave"
+local options
+if PZAPI and PZAPI.ModOptions then
+    local ok, created = pcall(function() return PZAPI.ModOptions:create("ZomboidDS", "ZomboidDS") end)
+    if ok and created then
+        options = created
+        pcall(function()
+            options:addTickBox(ALWAYS_SHOW_ID, "Map on every save", false,
+                "Show the bottom-screen map even on saves that don't allow the minimap. "
+                    .. "It still only shows what you've explored.")
+        end)
+    end
+end
+
+if Events and Events.OnGameStart then
+    Events.OnGameStart.Add(function()
+        if options then
+            pcall(function() PZAPI.ModOptions:load() end)
+        end
+    end)
+end
+
+local function alwaysShow()
+    local option = options and options.getOption and options:getOption(ALWAYS_SHOW_ID)
+    return option ~= nil and option.value == true
+end
+
 -- While driving, the heading comes from how the car moved: the car's own angles are Euler
 -- angles in a Vector3f, awkward from Lua. Moves shorter than this don't change it.
 local MIN_MOVE = 0.5
@@ -78,6 +109,7 @@ function Map.snapshot(player)
     return {
         miniMap = allow.miniMap,
         worldMap = allow.worldMap,
+        alwaysShow = alwaysShow(),
         x = round(x, 1),
         y = round(y, 1),
         z = math.floor(try(source, "getZ") or 0),
