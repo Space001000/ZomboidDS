@@ -25,6 +25,10 @@ You need your own copy of **Project Zomboid (Build 42)**, running in
 [udarmolota's Zomdroid](https://github.com/udarmolota/zomdroid). ZomboidDS is an unofficial mod,
 not affiliated with or endorsed by The Indie Stone.
 
+**Build 42.21:** the update broke ZombieBuddy for all Java mods, ZomboidDS included. Until
+ZombieBuddy has an official fix, there's a workaround: see
+[Troubleshooting](docs/USER_GUIDE.md#troubleshooting) in the user guide. 42.20 works as before.
+
 ## Support
 
 ZomboidDS is free and stays free: donations never unlock anything. If it makes your runs better and

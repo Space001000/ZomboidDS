@@ -7,6 +7,8 @@ and vehicle on the bottom screen.
 
 - An **AYN Thor** (other dual-screen handhelds may work, but aren't tested).
 - **Your own copy of Project Zomboid** (Build 42): ZomboidDS is a mod, it doesn't include the game.
+  Tested on 42.20. On 42.21, ZombieBuddy needs a fix first, see
+  [Troubleshooting](#troubleshooting).
 - **[Zomdroid](https://github.com/udarmolota/zomdroid)** with **Project Zomboid Build 42** installed
   and working. Use this version of Zomdroid (udarmolota's): it's the one that's still maintained and
   the one ZomboidDS is built and tested with. The original Zomdroid stopped development in 2025.
@@ -132,6 +134,12 @@ the game runs. The **Mr. Purple Turnip** driver, version **T30**, fixes that on 
 - **An orange message in the game says ZomboidDS can't connect.** ZombieBuddy isn't active: check
   the ZombieBuddy step in the checklist, and that ZombieBuddy is switched on in Zomdroid's
   Optimization settings.
+- **On Build 42.21 that message shows even though everything is green.** The 42.21 update broke
+  ZombieBuddy for every Java mod, not just ZomboidDS (ZombieBuddy
+  [issue #53](https://github.com/zed-0xff/ZombieBuddy/issues/53)), and there's no official fix yet.
+  The Zomdroid developer posted a workaround with a community fix from the Workshop:
+  [ZombieBuddy mods on Build 42.21](https://www.reddit.com/r/zomdroid/comments/1wu7a1l/zombiebuddy_mods_on_build_4221_theres_a_fix_and/).
+  On 42.20 ZombieBuddy works as before.
 - **"The game is paused"** when tapping an item or Here: unpause first (Treat has its own
   **Unpause** button). The game doesn't offer these menus while paused, on either screen.
 - **Speed buttons greyed out**: the game's pause menu (Esc/Start) is open. Close it first.
