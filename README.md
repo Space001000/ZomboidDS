@@ -15,15 +15,24 @@ runs on the top screen (through [Zomdroid](https://github.com/udarmolota/zomdroi
 - **Craft**: the recipes you can make with what's in reach, what each needs, and crafting them.
 - **Vehicle**: while you drive, speed, engine and fuel with the car's controls.
 
-## Download
-
-Get `ZomboidDS-<version>.apk` from the [latest release](https://github.com/Space001000/ZomboidDS/releases/latest)
-and follow the [user guide](docs/USER_GUIDE.md): the app's setup checklist installs the mod for you,
-and later tells you when there's a new version.
+## Install
 
 You need your own copy of **Project Zomboid (Build 42)**, running in
 [udarmolota's Zomdroid](https://github.com/udarmolota/zomdroid). ZomboidDS is an unofficial mod,
 not affiliated with or endorsed by The Indie Stone.
+
+1. Download `ZomboidDS-<version>.apk` from the
+   [latest release](https://github.com/Space001000/ZomboidDS/releases/latest) and install it.
+2. Open **ZomboidDS**. Its setup checklist walks you through the rest, and each step turns ✓ when
+   it's done:
+   - **Grant access** to Zomdroid's folder (tap **Use this folder**, then **Allow**).
+   - **ZombieBuddy**: tap **Download**, then **Open Zomdroid**, go to **Optimization →
+     ZombieBuddy** and install the `ZombieBuddy-…-full.zip` from your Downloads.
+   - **Install** the ZomboidDS mod, and **Enable** it for new games.
+3. Start a new game in Zomdroid on the top screen, with ZomboidDS on the bottom screen.
+
+The app tells you when there's a new version. The [user guide](docs/USER_GUIDE.md) has every step in
+detail, launching both screens together with Cocoon, how to use each tab, and troubleshooting.
 
 **Build 42.21:** the update broke ZombieBuddy for all Java mods, ZomboidDS included. Until
 ZombieBuddy has an official fix, there's a workaround: see
