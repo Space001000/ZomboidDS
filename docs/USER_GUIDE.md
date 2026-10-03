@@ -72,13 +72,23 @@ your character:
     half, quarter).
   - Or **hold an item a moment and drag it** onto a container's tab, or onto the other open
     container's items. The places it can go light up green.
+  - **Part of a stack:** in a stack's panel, each place under Move to also has **1** and half (the
+    row itself moves all of it). Or tap the stack's **×5** to unfold it: its items follow one by
+    one, and each can be tapped, picked or dragged on its own. Tap **×5 ▴** to fold it again.
   - **Several at once:** hold an item and let go without moving to pick it; then tap more to add
     or remove them. Or draw a box from empty space over the items. **N selected ›** opens the panel
     for all of them (Move to, the game's menu for the lot), dragging one of them takes them all,
     and **✕** or a tap on empty space lets go.
   - Your worn clothes are folded into one **Worn** tile: tap it to show them, tap again to fold.
   - A thin bar under an item means it's damaged (green, yellow, red); undamaged items have none.
-    Food has a dot: green fresh, yellow stale, red rotten.
+  - Food is named the way the game names it: "Steak (Fresh, Cooked)". In the list the words are
+    coloured (green fresh, yellow stale or uncooked, red rotten or burnt); on a tile a dot shows
+    how fresh and the corner says Cooked, Uncooked or Burnt. While food heats in an oven or on a
+    stove, a bar along its bottom fills while it cooks and turns red once it's burning.
+  - Bottles, pots and other fluid containers show how full they are: "0.3 / 0.6 L" in the list, a
+    bar along the tile's bottom, and in the panel what's in them in the game's colour.
+  - Read books and magazines, watched tapes and heard CDs get the game's tick. Items you set
+    Unwanted in the game (the item's menu, under More) are faded, like the game greys them.
   - **Take all** and **Put all** move everything, so they ask first: tap once (the button turns red
     and asks), tap again within 3 seconds to do it. Take all puts things in the bag you have open in
     your half (your main inventory if none), like the game's Loot all.

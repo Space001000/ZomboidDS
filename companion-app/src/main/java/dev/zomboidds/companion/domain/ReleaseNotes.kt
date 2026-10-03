@@ -8,6 +8,15 @@ data class Release(val version: String, val title: String, val date: String?, va
 
 /** Newest first. Add the next release at the top when releasing. */
 val RELEASES = listOf(
+    Release("1.3.1", "Food, drinks and stacks", "3 Oct 2026", listOf(
+        "**Food** shows its name the way the game writes it, \"Steak (Fresh, Cooked)\". In the list the words are coloured, on a tile the corner says Cooked, Uncooked or Burnt.",
+        "**In the oven:** a bar on the food fills while it cooks and turns red once it starts burning.",
+        "**Bottles and pots** show how full they are: \"0.3 / 0.6 L\" in the list, a bar on the tile, and what's in them.",
+        "**Part of a stack:** in an item's panel, each place under Move to has **1** and half. Or tap a stack's **×5** to unfold it and pick, drag or move single items.",
+        "**Read books** and watched tapes get the game's tick.",
+        "Items you set **Unwanted** in the game are faded, like the game greys them out.",
+        "**Fixed:** with Worn unfolded in the list view, swiping on your clothes didn't scroll.",
+    )),
     Release("1.3.0", "Map", "30 Sep 2026", listOf(
         "**Map:** the game's minimap on the bottom screen, drawn from the game's own map. It follows you (or your car), and only shows what you've explored.",
         "It sits beside **Here**, left or right, or on a tab of its own: the button in the map's corner moves it.",
