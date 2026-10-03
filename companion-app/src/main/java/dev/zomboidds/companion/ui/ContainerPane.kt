@@ -39,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -317,13 +316,7 @@ private fun WeightMeter(view: ContainerView) {
     val weight = view.weight ?: return
     val capacity = view.capacity?.takeIf { it > 0f } ?: return
     val fraction = (weight / capacity).coerceIn(0f, 1f)
-    val color = if (view.overloaded()) Danger else MaterialTheme.colorScheme.primary
-    val track = LocalContentColor.current.copy(alpha = 0.18f)
-    // Drawn rather than a progress indicator: this must not widen the tab (an indicator asks for 240dp).
-    Box(Modifier.fillMaxWidth().height(3.dp).drawBehind {
-        drawRect(track)
-        drawRect(color, size = Size(size.width * fraction, size.height))
-    })
+    FillMeter(fraction, if (view.overloaded()) Danger else MaterialTheme.colorScheme.primary)
 }
 
 @Composable

@@ -135,7 +135,7 @@ private fun Header(stack: ItemStack, iconUrl: (String) -> String, onClose: () ->
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         ItemIcon(item, iconUrl, 48.dp)
         Column(Modifier.weight(1f)) {
-            Text(item.name, style = MaterialTheme.typography.titleMedium)
+            Text(itemNameText(item), style = MaterialTheme.typography.titleMedium)
             val details = listOfNotNull(
                 equippedLabel(item.equipped),
                 item.category,
@@ -145,8 +145,26 @@ private fun Header(stack: ItemStack, iconUrl: (String) -> String, onClose: () ->
             )
             Text(details.joinToString(" · "), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // While it heats: the game's cooking bar. A fluid container: the game's tooltip lines.
+            item.cooking?.progress?.let { progress ->
+                MeterLine(if (item.cooking.burning) "Burning" else "Cooking", progress, if (item.cooking.burning) Danger else Good, null)
+            }
+            item.fluid?.let { fluid ->
+                val color = fluid.color?.let { (r, g, b) -> Color(r, g, b) } ?: MaterialTheme.colorScheme.primary
+                MeterLine(if (fluid.mixture) "Mixture" else fluid.name ?: "Empty", fluid.fraction, color, fluid.amountText())
+            }
         }
         TextButton(onClick = onClose) { Text("Close") }
+    }
+}
+
+/** "Water ▬▬▬── 0.3 / 0.6 L": a label, a meter and an optional value, in the panel's header. */
+@Composable
+private fun MeterLine(label: String, fraction: Float, color: Color, value: String?) {
+    Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FillMeter(fraction, color, Modifier.width(120.dp))
+        value?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 

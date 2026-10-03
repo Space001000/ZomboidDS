@@ -70,8 +70,19 @@ Inventory item:
 - `id` is the per-instance item id (`InventoryItem:getID()`), **not** the type. Two bandages have two ids.
 - `category`: as the game's inventory list shows it, translated ("Cooking", not `CookingWeapon`).
 - `condition` is 0–1, omitted for items without meaningful condition.
-- `freshness`: `fresh`, `stale` or `rotten` for food that goes off, as the game names it ("Stale
-  Bread"); omitted otherwise.
+- `name`: as the game's inventory list shows it (`item:getName(player)`, mod 0.24+): food with its
+  state in brackets, "Steak (Fresh, Cooked)", fluid containers with what's in them, "Water Bottle
+  (Water)", "Empty Water Bottle". `shortName`: the plain name ("Steak") when it differs, for tiles.
+- `freshness`: `fresh`, `stale` or `rotten` for food that goes off, as the game names it ("Bread
+  (Stale)"); omitted otherwise. `freshnessText`: that word as it appears in `name` (omitted for
+  burnt food, whose name says only "Burnt").
+- `cooking` (food, mod 0.24+): `state` `cooked`, `uncooked` or `burnt` and `text`, the word the
+  name uses ("Cooked", "Grilled", "Toasted", "Uncooked", "Burnt"; both omitted where the game's name
+  leaves it out). While it heats (cookable, not frozen, heat > 1.6), `progress` 0–1 as the game's
+  inventory bar draws it: cooking up to done, then with `burning: true` up to burnt.
+- `fluid` (B42 fluid containers, mod 0.24+): `amount` and `capacity` in litres; when not empty the
+  main fluid's `name` (translated) or `mixture: true`, and `color` `[r, g, b]` (0–1), the colour
+  the game's tooltip draws it in.
 - `equipped` is one of `primary`, `secondary`, `both`, `worn`, or omitted.
 - `actions` lists what the app may offer for this item, decided by the game-side adapter (the app
   doesn't guess from categories): `equip.primary`, `equip.secondary`, `equip.both`, `wear`,

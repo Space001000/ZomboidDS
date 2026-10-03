@@ -145,9 +145,53 @@ data class InventoryItem(
     val actions: List<ItemAction> = emptyList(),
     /** Food that goes off: how fresh, as the game names it; null for everything else. */
     val freshness: Freshness? = null,
+    /** The name without the game's bracketed state ("Steak" for "Steak (Fresh, Cooked)"), when they differ. */
+    val shortName: String? = null,
+    /** The freshness word as it appears in [name] ("Stale"). */
+    val freshnessText: String? = null,
+    val cooking: Cooking? = null,
+    val fluid: FluidFill? = null,
 )
 
+/** The name for a tile, where only a few letters fit. */
+val InventoryItem.tileName: String get() = shortName ?: name
+
 enum class Freshness { FRESH, STALE, ROTTEN }
+
+enum class CookState { COOKED, UNCOOKED, BURNT }
+
+/**
+ * Food's cooking: its [state] with the word the game's name uses ([text]: Cooked, Grilled,
+ * Uncooked, Burnt...), and while it heats how far along it is: cooking up to done, then
+ * [burning] up to burnt ([progress] 0..1, null when it isn't heating).
+ */
+data class Cooking(val state: CookState?, val text: String?, val progress: Float? = null, val burning: Boolean = false)
+
+/**
+ * A fluid container: [amount] and [capacity] in litres, the main fluid's [name] (or a [mixture]),
+ * and the colour the game draws it in (0..1 rgb).
+ */
+data class FluidFill(
+    val amount: Float,
+    val capacity: Float,
+    val name: String? = null,
+    val mixture: Boolean = false,
+    val color: Triple<Float, Float, Float>? = null,
+) {
+    val fraction: Float get() = if (capacity > 0f) (amount / capacity).coerceIn(0f, 1f) else 0f
+
+    /** "0.3 / 0.6 L", as the game's tooltip writes it (FluidUtil.getFractionFormatted). */
+    fun amountText(): String {
+        val format = java.text.DecimalFormat(
+            when {
+                maxOf(amount, capacity) >= 1000f -> "#"
+                maxOf(amount, capacity) >= 10f -> "#.#"
+                else -> "#.##"
+            },
+        )
+        return "${format.format(amount.toDouble())} / ${format.format(capacity.toDouble())} L"
+    }
+}
 
 enum class EquipSlot { PRIMARY, SECONDARY, BOTH, WORN }
 

@@ -11,7 +11,10 @@
         {"id": 11, "type": "Base.Pen", "name": "Pen", "category": "Junk", "icon": "Item_Pen", "weight": 0.1, "actions": []}
       ]},
       {"id": "c4", "kind": "nearby", "name": "Crate", "icon": "lock", "weight": 5, "capacity": 50, "locked": true},
-      {"id": "c5", "kind": "floor", "name": "Floor", "icon": "Container_Floor", "weight": 2, "capacity": 50, "items": []}
+      {"id": "c5", "kind": "floor", "name": "Floor", "icon": "Container_Floor", "weight": 2, "capacity": 50, "items": []},
+      {"id": "c6", "kind": "nearby", "name": "Oven", "icon": "Container_Oven", "weight": 0.3, "capacity": 15, "items": [
+        {"id": 12, "type": "Base.Steak", "name": "Steak (Fresh, Cooked)", "shortName": "Steak", "category": "Food", "icon": "Item_Steak", "weight": 0.3, "actions": [], "freshness": "fresh", "freshnessText": "Fresh", "cooking": {"state": "cooked", "text": "Cooked", "progress": 0.35, "burning": true}}
+      ]}
     ]
   }
 }

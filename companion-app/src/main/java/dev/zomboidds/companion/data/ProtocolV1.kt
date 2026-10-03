@@ -5,8 +5,11 @@ import dev.zomboidds.companion.domain.BridgeInfo
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.Container
 import dev.zomboidds.companion.domain.ContainerKind
+import dev.zomboidds.companion.domain.CookState
+import dev.zomboidds.companion.domain.Cooking
 import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.ExploredAreas
+import dev.zomboidds.companion.domain.FluidFill
 import dev.zomboidds.companion.domain.Freshness
 import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameSpeed
@@ -110,6 +113,22 @@ object ProtocolV1 {
         val equipped: String? = null,
         val actions: List<String> = emptyList(),
         val freshness: String? = null,
+        val shortName: String? = null,
+        val freshnessText: String? = null,
+        val cooking: CookingDto? = null,
+        val fluid: FluidDto? = null,
+    )
+
+    @Serializable
+    private data class CookingDto(val state: String? = null, val text: String? = null, val progress: Float? = null, val burning: Boolean = false)
+
+    @Serializable
+    private data class FluidDto(
+        val amount: Float = 0f,
+        val capacity: Float = 0f,
+        val name: String? = null,
+        val mixture: Boolean = false,
+        val color: List<Float>? = null,
     )
 
     @Serializable
@@ -636,6 +655,24 @@ object ProtocolV1 {
             else -> null // absent, or a value from a newer mod: treat as not equipped
         },
         actions = actions.mapNotNull(::itemAction), // unknown (newer) actions are skipped
+        shortName = shortName?.takeIf { it.isNotEmpty() && it != name },
+        freshnessText = freshnessText,
+        cooking = cooking?.let { c ->
+            Cooking(
+                state = when (c.state) {
+                    "cooked" -> CookState.COOKED
+                    "uncooked" -> CookState.UNCOOKED
+                    "burnt" -> CookState.BURNT
+                    else -> null
+                },
+                text = c.text,
+                progress = c.progress?.coerceIn(0f, 1f),
+                burning = c.burning,
+            )
+        },
+        fluid = fluid?.takeIf { it.capacity > 0f }?.let { f ->
+            FluidFill(f.amount, f.capacity, f.name, f.mixture, f.color?.takeIf { it.size >= 3 }?.let { Triple(it[0], it[1], it[2]) })
+        },
     )
 
     private fun itemAction(wire: String) = when (wire) {

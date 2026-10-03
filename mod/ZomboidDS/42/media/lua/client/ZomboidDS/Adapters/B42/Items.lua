@@ -1,4 +1,4 @@
---- Items as the app shows them: name, icon, category, condition, freshness, what it may offer.
+--- Items as the app shows them: name, icon, category, condition, freshness, cooking, fluids, what it may offer.
 local Util = require("ZomboidDS/Adapters/B42/Util")
 local try, round = Util.try, Util.round
 
@@ -99,16 +99,95 @@ local function freshness(item)
     return nil
 end
 
+--- The words the game puts in a food's name for its freshness ("Bread (Stale)"). Burnt food's
+--- name says only "Burnt" (Food:getName), so then there's none.
+local function freshnessText(item, freshness)
+    if freshness == nil or try(item, "isBurnt") == true then return nil end
+    if freshness == "rotten" then return try(item, "getOffString") end
+    return getText(freshness == "fresh" and "Tooltip_food_Fresh" or "Tooltip_food_Stale")
+end
+
+local function tagged(item, name)
+    local tag = ItemTag ~= nil and ItemTag[name] or nil
+    return tag ~= nil and try(item, "hasTag", tag) == true
+end
+
+--- Cooked, uncooked or burnt, with the word the game's name uses (Food:getName in 42.20: Grilled
+--- and Toasted are kinds of cooked; HIDE_COOKED / HIDE_UNCOOKED leave the word out). While it heats,
+--- how far along, as the game's inventory draws it (ISInventoryPane:drawItemDetails): cooking up to
+--- minutesToCook, then burning up to minutesToBurn.
+local function cooking(item)
+    if not instanceof(item, "Food") then return nil end
+    local state, text
+    if try(item, "isBurnt") == true then
+        state, text = "burnt", try(item, "getBurntString")
+    elseif try(item, "isCooked") == true then
+        if not tagged(item, "HIDE_COOKED") then
+            state = "cooked"
+            if tagged(item, "GRILLED") then text = getText("Tooltip_food_Grilled")
+            elseif tagged(item, "TOASTABLE") then text = getText("Tooltip_food_Toasted")
+            else text = try(item, "getCookedString") end
+        end
+    elseif try(item, "isIsCookable") == true and not tagged(item, "HIDE_COOKED") and not tagged(item, "HIDE_UNCOOKED") then
+        state, text = "uncooked", try(item, "getUnCookedString")
+    end
+    local progress, burning
+    if try(item, "isIsCookable") == true and try(item, "isFrozen") ~= true and (try(item, "getHeat") or 0) > 1.6
+        and state ~= "burnt" then
+        local time, toCook, toBurn = try(item, "getCookingTime"), try(item, "getMinutesToCook"), try(item, "getMinutesToBurn")
+        if time and toCook and toBurn and toCook > 0 then
+            if time > toCook and toBurn > toCook then
+                burning, progress = true, (time - toCook) / (toBurn - toCook)
+            else
+                progress = time / toCook
+            end
+            progress = round(math.min(math.max(progress, 0), 1), 2)
+        end
+    end
+    if state == nil and progress == nil then return nil end
+    return { state = state, text = text, progress = progress, burning = burning }
+end
+
+--- How full a bottle, pot or bucket is (B42 fluid containers), in litres, and what's in it: the
+--- main fluid's name, or a mixture; the colour the game's tooltip draws its bar in.
+local function fluid(item)
+    local container = try(item, "getFluidContainer")
+    local capacity = try(container, "getCapacity")
+    if not capacity or capacity <= 0 then return nil end
+    local amount = try(container, "getAmount") or 0
+    local result = { amount = round(amount, 3), capacity = round(capacity, 3) }
+    if amount > 0 then
+        if try(container, "isMixture") == true then
+            result.mixture = true
+        else
+            result.name = try(try(container, "getPrimaryFluid"), "getTranslatedName")
+        end
+        local color = try(container, "getColor")
+        if color then
+            result.color = { round(try(color, "getRedFloat"), 3), round(try(color, "getGreenFloat"), 3), round(try(color, "getBlueFloat"), 3) }
+        end
+    end
+    return result
+end
+
 --- An item as the app shows it. `inInventory`: whether it's in the player's main inventory, the
 --- only place the quick actions (equip, wear, drop) apply; elsewhere the app moves it first.
 function Items.describe(player, item, inInventory)
     local equipped = equippedSlot(player, item)
+    local plainName = try(item, "getDisplayName")
+    -- The name as the game's inventory list shows it: "Steak (Fresh, Cooked)", "Water Bottle (Water)".
+    local name = try(item, "getName", player) or plainName
+    local fresh = freshness(item)
     return {
         id = item:getID(),
         type = try(item, "getFullType"),
-        name = try(item, "getDisplayName"),
+        name = name,
+        shortName = name ~= plainName and plainName or nil,
         category = categoryName(item),
-        freshness = freshness(item),
+        freshness = fresh,
+        freshnessText = freshnessText(item, fresh),
+        cooking = cooking(item),
+        fluid = fluid(item),
         icon = iconName(item),
         weight = round(try(item, "getActualWeight"), 2),
         condition = condition(item),

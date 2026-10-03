@@ -2,7 +2,11 @@ package dev.zomboidds.companion.data
 
 import dev.zomboidds.companion.domain.HealthLine
 import dev.zomboidds.companion.domain.MenuPill
+import dev.zomboidds.companion.domain.CookState
+import dev.zomboidds.companion.domain.Cooking
+import dev.zomboidds.companion.domain.FluidFill
 import dev.zomboidds.companion.domain.Freshness
+import dev.zomboidds.companion.domain.tileName
 import dev.zomboidds.companion.domain.HealthTone
 import dev.zomboidds.companion.domain.MoodleTone
 import dev.zomboidds.companion.domain.HereState
@@ -161,9 +165,9 @@ class ProtocolV1Test {
     @Test
     fun `containers list what the game's windows show`() {
         val containers = applyAll("containers.json").containers!!
-        assertEquals(listOf("Inventory", "School Bag", "Shelves", "Crate", "Floor"), containers.map { it.name })
+        assertEquals(listOf("Inventory", "School Bag", "Shelves", "Crate", "Floor", "Oven"), containers.map { it.name })
         assertEquals(
-            listOf(ContainerKind.INVENTORY, ContainerKind.BAG, ContainerKind.NEARBY, ContainerKind.NEARBY, ContainerKind.FLOOR),
+            listOf(ContainerKind.INVENTORY, ContainerKind.BAG, ContainerKind.NEARBY, ContainerKind.NEARBY, ContainerKind.FLOOR, ContainerKind.NEARBY),
             containers.map { it.kind },
         )
         assertNull("the inventory's items are in the inventory message", containers[0].items)
@@ -257,9 +261,48 @@ class ProtocolV1Test {
     @Test
     fun `food carries its freshness, other items none`() {
         val items = applyAll("inventory_full.json").inventory!!.items
-        assertEquals(Freshness.STALE, items.first { it.name == "Bread" }.freshness)
-        assertEquals(Freshness.ROTTEN, items.first { it.name == "Banana" }.freshness)
+        assertEquals(Freshness.STALE, items.first { it.tileName == "Bread" }.freshness)
+        assertEquals(Freshness.ROTTEN, items.first { it.tileName == "Banana" }.freshness)
         assertEquals(null, items.first { it.name == "Axe" }.freshness)
+    }
+
+    @Test
+    fun `food and drinks carry the game's name, cooking and fill`() {
+        val items = applyAll("inventory_full.json").inventory!!.items
+        val chicken = items.first { it.tileName == "Chicken" }
+        assertEquals("Chicken (Fresh, Uncooked)", chicken.name)
+        assertEquals("Fresh", chicken.freshnessText)
+        assertEquals(Cooking(CookState.UNCOOKED, "Uncooked", progress = 0.62f), chicken.cooking)
+        assertEquals(CookState.BURNT, items.first { it.tileName == "Bacon" }.cooking?.state)
+        val water = items.first { it.name == "Water Bottle (Water)" }.fluid!!
+        assertEquals(0.5f, water.fraction, 0.001f)
+        assertEquals("Water", water.name)
+        assertEquals(Triple(0.4f, 0.6f, 0.85f), water.color)
+        val empty = items.first { it.name == "Empty Water Bottle" }
+        assertEquals(0f, empty.fluid!!.fraction, 0f)
+        assertNull(empty.fluid!!.name)
+        val axe = items.first { it.name == "Axe" }
+        assertNull(axe.shortName)
+        assertNull(axe.cooking)
+        assertNull(axe.fluid)
+        assertEquals("Axe", axe.tileName)
+        val burning = applyAll("containers.json").containers!!.flatMap { it.items.orEmpty() }.first { it.tileName == "Steak" }.cooking!!
+        assertTrue(burning.burning)
+        assertEquals(0.35f, burning.progress!!, 0.001f)
+    }
+
+    @Test
+    fun `fluid amounts read like the game's tooltip`() {
+        val locale = java.util.Locale.getDefault()
+        java.util.Locale.setDefault(java.util.Locale.US)
+        try {
+            assertEquals("0.3 / 0.6 L", FluidFill(0.3f, 0.6f).amountText())
+            assertEquals("0 / 0.6 L", FluidFill(0f, 0.6f).amountText())
+            assertEquals("2.5 / 5 L", FluidFill(2.5f, 5f).amountText())
+            assertEquals("12.5 / 20 L", FluidFill(12.5f, 20f).amountText())
+        } finally {
+            java.util.Locale.setDefault(locale)
+        }
     }
 
     @Test
