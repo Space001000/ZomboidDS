@@ -102,4 +102,17 @@ check(w.amount == 0.3 and w.capacity == 0.6 and w.name == "Water" and w.color[3]
 check(byName["Pop Bottle"].fluid.mixture == true and byName["Pop Bottle"].fluid.name == nil, "a mixture")
 check(byName["Empty Bottle"].fluid.amount == 0 and byName["Empty Bottle"].fluid.name == nil, "empty: only the capacity")
 check(byName.Steak.fluid == nil, "no fluid container: no fluid")
+
+-- Read / watched and unwanted (mod 0.24): the game's tick and grey.
+ISInventoryPane = { isLiteratureRead = function(_, _, it) return it._read == true end }
+local book = item(21, "Book", "Literature", "Literature"); book._read = true
+local tape = item(22, "VHS", "Entertainment", "InventoryItem"); tape.hasBeenSeen = function() return true end
+local magazine = item(23, "Magazine", "Literature", "Literature")
+local junk = item(24, "Spiffo", "Junk", "InventoryItem"); junk.isUnwanted = function() return true end
+items = { book, tape, magazine, junk }
+byName = {}
+for _, it in ipairs(B42.snapshotInventory(player).items) do byName[it.name] = it end
+check(byName.Book.read == true and byName.VHS.read == true, "a read book and a watched tape are done")
+check(byName.Magazine.read == nil and byName.Magazine.unwanted == nil, "an unread magazine: neither")
+check(byName.Spiffo.unwanted == true, "set unwanted in the game")
 print("ALL LUA CHECKS PASSED")

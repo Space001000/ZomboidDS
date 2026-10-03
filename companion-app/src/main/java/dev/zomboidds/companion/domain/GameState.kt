@@ -151,6 +151,10 @@ data class InventoryItem(
     val freshnessText: String? = null,
     val cooking: Cooking? = null,
     val fluid: FluidFill? = null,
+    /** Read, watched or heard already (the game ticks it). */
+    val read: Boolean = false,
+    /** Set Unwanted in the game (it greys these out). */
+    val unwanted: Boolean = false,
 )
 
 /** The name for a tile, where only a few letters fit. */

@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -76,12 +77,16 @@ internal fun GridTile(
         Box(Modifier.fillMaxSize().padding(3.dp)) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Box(Modifier.fillMaxWidth().height(38.dp), contentAlignment = Alignment.Center) {
-                    ItemIcon(item, iconUrl, 36.dp)
+                    Box(Modifier.alpha(if (item.unwanted) UnwantedAlpha else 1f)) {
+                        ItemIcon(item, iconUrl, 36.dp)
+                        if (item.read) ReadTick(iconUrl, Modifier.align(Alignment.BottomStart))
+                    }
                     if (stack.count > 1) StackBadge(stack.count, fold, onFold, Modifier.align(Alignment.BottomEnd), 9.sp)
                 }
                 Text(
                     if (item.isKeyRing) "Keys" else item.tileName,
                     style = MaterialTheme.typography.labelSmall,
+                    color = if (item.unwanted) LocalContentColor.current.copy(alpha = UnwantedAlpha) else Color.Unspecified,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -255,10 +260,14 @@ internal fun ListRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (picked) PickedCheck(Modifier)
-            ItemIcon(item, iconUrl, 32.dp)
+            Box(Modifier.alpha(if (item.unwanted) UnwantedAlpha else 1f)) {
+                ItemIcon(item, iconUrl, 32.dp)
+                if (item.read) ReadTick(iconUrl, Modifier.align(Alignment.BottomStart))
+            }
             Column(Modifier.weight(1f)) {
                 // The game's own name: its words say how fresh and how cooked, in colour.
-                Text(itemNameText(item), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(itemNameText(item), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    color = if (item.unwanted) LocalContentColor.current.copy(alpha = UnwantedAlpha) else Color.Unspecified)
                 val heating = item.cooking?.progress
                 val details = listOfNotNull(
                     equippedLabel(item.equipped),
@@ -356,6 +365,20 @@ private fun CornerLabel(text: String, modifier: Modifier, color: Color? = null) 
         color = color ?: MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
         fontSize = 8.sp,
         maxLines = 1,
+    )
+}
+
+/** How far an item set Unwanted fades, like the game's grey for it. */
+private const val UnwantedAlpha = 0.5f
+
+/** Read, watched or heard already: the game's own tick, on the icon's corner. */
+@Composable
+private fun ReadTick(iconUrl: (String) -> String, modifier: Modifier) {
+    AsyncImage(
+        model = iconUrl("Tick_Mark-10"),
+        contentDescription = "read",
+        filterQuality = FilterQuality.None,
+        modifier = modifier.size(14.dp),
     )
 }
 

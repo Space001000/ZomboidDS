@@ -80,6 +80,8 @@ Inventory item:
   name uses ("Cooked", "Grilled", "Toasted", "Uncooked", "Burnt"; both omitted where the game's name
   leaves it out). While it heats (cookable, not frozen, heat > 1.6), `progress` 0–1 as the game's
   inventory bar draws it: cooking up to done, then with `burning: true` up to burnt.
+- `read: true` (mod 0.24+): read, watched, heard or (a map) read already, where the game's inventory
+  puts its tick. `unwanted: true`: the player set the item type Unwanted (the game greys it out).
 - `fluid` (B42 fluid containers, mod 0.24+): `amount` and `capacity` in litres; when not empty the
   main fluid's `name` (translated) or `mixture: true`, and `color` `[r, g, b]` (0–1), the colour
   the game's tooltip draws it in.

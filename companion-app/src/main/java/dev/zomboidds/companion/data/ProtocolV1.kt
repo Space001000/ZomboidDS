@@ -117,6 +117,8 @@ object ProtocolV1 {
         val freshnessText: String? = null,
         val cooking: CookingDto? = null,
         val fluid: FluidDto? = null,
+        val read: Boolean = false,
+        val unwanted: Boolean = false,
     )
 
     @Serializable
@@ -670,6 +672,8 @@ object ProtocolV1 {
                 burning = c.burning,
             )
         },
+        read = read,
+        unwanted = unwanted,
         fluid = fluid?.takeIf { it.capacity > 0f }?.let { f ->
             FluidFill(f.amount, f.capacity, f.name, f.mixture, f.color?.takeIf { it.size >= 3 }?.let { Triple(it[0], it[1], it[2]) })
         },

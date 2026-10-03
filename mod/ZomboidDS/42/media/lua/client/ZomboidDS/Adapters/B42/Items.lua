@@ -170,6 +170,18 @@ local function fluid(item)
     return result
 end
 
+--- Read, watched or heard already: the game's inventory puts a tick on it (ISInventoryPane render:
+--- isLiteratureRead, hasBeenSeen, hasBeenHeard, hasReadMap).
+local function done(player, item)
+    local pane = ISInventoryPane
+    if pane ~= nil and pane.isLiteratureRead ~= nil then
+        local ok, read = pcall(pane.isLiteratureRead, pane, player, item)
+        if ok and read == true then return true end
+    end
+    return try(item, "hasBeenSeen", player) == true or try(item, "hasBeenHeard", player) == true
+        or try(player, "hasReadMap", item) == true
+end
+
 --- An item as the app shows it. `inInventory`: whether it's in the player's main inventory, the
 --- only place the quick actions (equip, wear, drop) apply; elsewhere the app moves it first.
 function Items.describe(player, item, inInventory)
@@ -188,6 +200,9 @@ function Items.describe(player, item, inInventory)
         freshnessText = freshnessText(item, fresh),
         cooking = cooking(item),
         fluid = fluid(item),
+        read = done(player, item) or nil,
+        -- "Set Unwanted" in the game's menu (More): its inventory greys these out.
+        unwanted = try(item, "isUnwanted", player) == true or nil,
         icon = iconName(item),
         weight = round(try(item, "getActualWeight"), 2),
         condition = condition(item),

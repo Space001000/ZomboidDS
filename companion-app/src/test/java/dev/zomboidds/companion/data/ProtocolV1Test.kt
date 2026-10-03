@@ -292,6 +292,15 @@ class ProtocolV1Test {
     }
 
     @Test
+    fun `read and unwanted items are marked`() {
+        val items = applyAll("inventory_full.json").inventory!!.items
+        assertTrue(items.first { it.name == "Book" }.read)
+        assertTrue(items.first { it.name == "Newspaper" }.unwanted)
+        assertFalse(items.first { it.name == "Magazine" }.read)
+        assertFalse(items.first { it.name == "Magazine" }.unwanted)
+    }
+
+    @Test
     fun `fluid amounts read like the game's tooltip`() {
         val locale = java.util.Locale.getDefault()
         java.util.Locale.setDefault(java.util.Locale.US)
