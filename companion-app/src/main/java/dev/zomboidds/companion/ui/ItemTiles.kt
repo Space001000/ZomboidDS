@@ -2,6 +2,7 @@ package dev.zomboidds.companion.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,15 +59,25 @@ import dev.zomboidds.companion.domain.tileName
  * worn clothes. [picked]: one of several picked to act on together (a check in the corner).
  */
 @Composable
-internal fun GridTile(stack: ItemStack, iconUrl: (String) -> String, selected: Boolean, worn: Boolean, onClick: () -> Unit, picked: Boolean = false) {
+internal fun GridTile(
+    stack: ItemStack,
+    iconUrl: (String) -> String,
+    selected: Boolean,
+    worn: Boolean,
+    onClick: () -> Unit,
+    picked: Boolean = false,
+    fold: StackFold = StackFold.NONE,
+    onFold: (() -> Unit)? = null,
+) {
     val item = stack.first
-    Card(onClick = onClick, border = selectedBorder(selected || picked) ?: wornBorder(worn), modifier = Modifier.height(TileHeight)) {
+    Card(onClick = onClick, border = selectedBorder(selected || picked) ?: wornBorder(worn) ?: foldBorder(fold),
+        colors = foldColors(fold), modifier = Modifier.height(TileHeight)) {
         Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().padding(3.dp)) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Box(Modifier.fillMaxWidth().height(38.dp), contentAlignment = Alignment.Center) {
                     ItemIcon(item, iconUrl, 36.dp)
-                    if (stack.count > 1) Badge("×${stack.count}", Modifier.align(Alignment.BottomEnd))
+                    if (stack.count > 1) StackBadge(stack.count, fold, onFold, Modifier.align(Alignment.BottomEnd), 9.sp)
                 }
                 Text(
                     if (item.isKeyRing) "Keys" else item.tileName,
@@ -178,6 +189,41 @@ internal fun WornTile(entry: PaneEntry.Worn, iconUrl: (String) -> String, list: 
 @Composable
 private fun wornBorder(worn: Boolean) = if (worn) BorderStroke(1.dp, Caution.copy(alpha = 0.5f)) else null
 
+/** A stack unfolded like the game's inventory does: the stack ([OPEN]) and each of its items ([PART]). */
+internal enum class StackFold { NONE, OPEN, PART }
+
+/** The open stack is outlined like the open Worn tile; its items sit a shade darker, like the worn clothes. */
+@Composable
+private fun foldBorder(fold: StackFold) = when (fold) {
+    StackFold.OPEN -> BorderStroke(1.dp, Caution)
+    StackFold.PART -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    StackFold.NONE -> null
+}
+
+@Composable
+private fun foldColors(fold: StackFold) =
+    if (fold == StackFold.PART) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) else CardDefaults.cardColors()
+
+/**
+ * "×5": how many are stacked. A tap on it unfolds the stack into its items, and folds it again
+ * ("×5 ▴"); the area around it is a finger's size.
+ */
+@Composable
+private fun StackBadge(count: Int, fold: StackFold, onFold: (() -> Unit)?, modifier: Modifier, fontSize: TextUnit) {
+    val text = if (fold == StackFold.OPEN) "×$count ▴" else "×$count"
+    if (onFold == null) {
+        Badge(text, modifier, fontSize = fontSize)
+        return
+    }
+    Box(
+        modifier.size(34.dp).clickable(interactionSource = null, indication = null, onClick = onFold)
+            .semantics { contentDescription = if (fold == StackFold.OPEN) "Fold the stack" else "Unfold the stack" },
+        contentAlignment = Alignment.BottomEnd,
+    ) {
+        Badge(text, Modifier, fontSize = fontSize)
+    }
+}
+
 /** Only damaged items get a bar: green, yellow below 60 %, red below 30 %. */
 private fun damage(condition: Float?): Pair<Float, Color>? {
     if (condition == null || condition >= 0.995f) return null
@@ -190,9 +236,19 @@ private fun damage(condition: Float?): Pair<Float, Color>? {
 
 /** List row: readable names plus where the item is and what it weighs. */
 @Composable
-internal fun ListRow(stack: ItemStack, iconUrl: (String) -> String, selected: Boolean, worn: Boolean, onClick: () -> Unit, picked: Boolean = false) {
+internal fun ListRow(
+    stack: ItemStack,
+    iconUrl: (String) -> String,
+    selected: Boolean,
+    worn: Boolean,
+    onClick: () -> Unit,
+    picked: Boolean = false,
+    fold: StackFold = StackFold.NONE,
+    onFold: (() -> Unit)? = null,
+) {
     val item = stack.first
-    Card(onClick = onClick, border = selectedBorder(selected || picked) ?: wornBorder(worn), modifier = Modifier.height(RowHeight)) {
+    Card(onClick = onClick, border = selectedBorder(selected || picked) ?: wornBorder(worn) ?: foldBorder(fold),
+        colors = foldColors(fold), modifier = Modifier.height(RowHeight)) {
         Row(
             Modifier.fillMaxSize().padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -221,7 +277,7 @@ internal fun ListRow(stack: ItemStack, iconUrl: (String) -> String, selected: Bo
                     }
                 }
             }
-            if (stack.count > 1) Badge("×${stack.count}", Modifier, fontSize = 12.sp)
+            if (stack.count > 1) StackBadge(stack.count, fold, onFold, Modifier, 12.sp)
         }
     }
 }

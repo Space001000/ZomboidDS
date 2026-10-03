@@ -50,7 +50,7 @@ import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemStack
 import dev.zomboidds.companion.domain.PickedItems
 import dev.zomboidds.companion.domain.ShownPicks
-import dev.zomboidds.companion.domain.foldWorn
+import dev.zomboidds.companion.domain.paneEntries
 import dev.zomboidds.companion.domain.labels
 import dev.zomboidds.companion.domain.stacks
 import dev.zomboidds.companion.domain.toggle
@@ -126,6 +126,10 @@ fun InventoryScreen(
     var picked by remember { mutableStateOf<PickedItems?>(null) }
     var pickedOpen by remember { mutableStateOf(false) }
     var wornOpen by rememberSaveable { mutableStateOf(false) }
+    // Stacks shown item by item (ItemStack.key), in any container.
+    var unfolded by remember { mutableStateOf(emptySet<String>()) }
+    // The tapped item on its own (from an unfolded stack), not its whole stack.
+    var selectedOne by remember { mutableStateOf(false) }
     var failure by remember { mutableStateOf<String?>(null) }
 
     // The open tab of each pane, by container id. A container that went out of reach falls back to the first.
@@ -175,12 +179,18 @@ fun InventoryScreen(
         picked = picked.toggle(stack, from)
     }
     fun tap(stack: ItemStack, from: String) {
-        if (shownPicks.tapPicks(from)) pick(stack, from) else selectedId = stack.first.id
+        if (shownPicks.tapPicks(from)) {
+            pick(stack, from)
+        } else {
+            selectedId = stack.first.id
+            selectedOne = stack.count == 1
+        }
     }
 
     // Follow the selected item through updates, wherever it is now; it's gone once used up or out of reach.
     val selection = views.firstNotNullOfOrNull { view ->
-        view.stacks.firstOrNull { stack -> stack.items.any { it.id == selectedId } }?.let { view to it }
+        view.stacks.firstOrNull { stack -> stack.items.any { it.id == selectedId } }
+            ?.let { stack -> view to if (selectedOne) ItemStack(stack.items.filter { it.id == selectedId }) else stack }
     }
 
     LaunchedEffect(failure) {
@@ -257,6 +267,7 @@ fun InventoryScreen(
                 onClearPicked = { picked = null },
                 onPickSet = { ids -> picked = PickedItems.of(shown.id, ids) },
                 wornOpen = wornOpen, onWornOpenChange = { wornOpen = it },
+                unfolded = unfolded, onUnfoldedChange = { unfolded = it },
                 stackedHeader = sideBySide,
             )
             if (sideBySide) {
@@ -287,7 +298,7 @@ fun InventoryScreen(
                 // Neither half keeps rows it has nothing for: the other one gets them.
                 val columns = ((maxWidth + Gap) / ((if (display.items == InventoryLayout.GRID) 64.dp else 200.dp) + Gap)).toInt().coerceAtLeast(1)
                 // With the worn clothes as shown: unfolded, they need their rows too (2 per row in the list).
-                fun rowsFor(view: ContainerView?) = ((view?.stacks?.foldWorn(open = wornOpen)?.size ?: 0) + columns - 1) / columns
+                fun rowsFor(view: ContainerView?) = ((view?.stacks?.paneEntries(wornOpen, unfolded)?.size ?: 0) + columns - 1) / columns
                 val mineNeed = rowsFor(mineShown).coerceAtLeast(1)
                 val aroundNeed = rowsFor(aroundShown).coerceAtLeast(1)
                 var mineRows = (rows * mineShare).roundToInt().coerceIn(1, rows - 1)
@@ -363,7 +374,10 @@ fun InventoryScreen(
                     }
                 },
                 targets = targets,
-                onMoveTo = { target -> moveStacks(stacks, target) },
+                onMoveTo = { target, count ->
+                    // Part of one stack: its first [count] items.
+                    moveStacks(if (count == null) stacks else listOf(ItemStack(stacks.single().items.take(count))), target)
+                },
                 onMenuOption = { menuId, optionId -> run(name) { actions.selectMenuOption(menuId, optionId) } },
                 onClose = { if (group) pickedOpen = false else selectedId = null },
                 onUnpick = if (group) { stack -> pick(stack, view.id) } else null,

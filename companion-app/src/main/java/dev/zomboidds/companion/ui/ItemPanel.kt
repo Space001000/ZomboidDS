@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -34,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.zomboidds.companion.domain.EquipSlot
@@ -82,7 +87,8 @@ internal fun BoxScope.ItemPanel(
     appActions: List<ItemAction>,
     onAction: (ItemAction) -> Unit,
     targets: MoveTargets,
-    onMoveTo: (ContainerView) -> Unit,
+    /** Move there: all of it, or for one stack [count] of its items (null: all). */
+    onMoveTo: (target: ContainerView, count: Int?) -> Unit,
     onMenuOption: (menuId: String, optionId: String) -> Unit,
     onClose: () -> Unit,
     /** For picked items: leave one out. */
@@ -90,6 +96,8 @@ internal fun BoxScope.ItemPanel(
 ) {
     val item = stacks.first().first
     val key = stacks.map { it.first.id }
+    // One stack of several: each target also offers one and half, like the game's Grab one / Grab half.
+    val stackSize = stacks.singleOrNull()?.count ?: 0
     Box(
         Modifier.fillMaxSize()
             .background(Color.Black.copy(alpha = 0.4f))
@@ -106,7 +114,7 @@ internal fun BoxScope.ItemPanel(
                         if (!targets.isEmpty) {
                             Column(Modifier.weight(0.42f).fillMaxHeight().verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                MoveColumn(targets, iconUrl, onMoveTo)
+                                MoveColumn(targets, iconUrl, stackSize, onMoveTo)
                             }
                             VerticalDivider()
                         }
@@ -118,7 +126,7 @@ internal fun BoxScope.ItemPanel(
                     }
                 } else {
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (!targets.isEmpty) MoveColumn(targets, iconUrl, onMoveTo)
+                        if (!targets.isEmpty) MoveColumn(targets, iconUrl, stackSize, onMoveTo)
                         HorizontalDivider()
                         Actions(item, key, loadMenu, appActions, onAction, onMenuOption)
                         onUnpick?.let { PickedList(stacks, iconUrl, it) }
@@ -202,19 +210,37 @@ private fun ColumnScope.PickedList(stacks: List<ItemStack>, iconUrl: (String) ->
 
 /** "Move to": your containers, a divider, then the ones around you (the open one outlined). */
 @Composable
-private fun ColumnScope.MoveColumn(targets: MoveTargets, iconUrl: (String) -> String, onMoveTo: (ContainerView) -> Unit) {
+private fun ColumnScope.MoveColumn(
+    targets: MoveTargets,
+    iconUrl: (String) -> String,
+    stackSize: Int,
+    onMoveTo: (ContainerView, Int?) -> Unit,
+) {
     Text("Move to", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    targets.yours.forEach { TargetButton(it, iconUrl, outlined = false, onMoveTo) }
+    targets.yours.forEach { TargetButton(it, iconUrl, outlined = false, stackSize, onMoveTo) }
     if (targets.yours.isNotEmpty() && targets.around.isNotEmpty()) {
         HorizontalDivider(Modifier.padding(vertical = 2.dp))
     }
-    targets.around.forEach { TargetButton(it, iconUrl, outlined = it.id == targets.open?.id, onMoveTo) }
+    targets.around.forEach { TargetButton(it, iconUrl, outlined = it.id == targets.open?.id, stackSize, onMoveTo) }
 }
 
+/**
+ * The part amounts a stack of [size] can move besides all of it (the row itself): 1, and half
+ * (rounded down, like the game's Grab half) when that's more than 1.
+ */
+internal fun moveAmounts(size: Int): List<Int> =
+    if (size < 2) emptyList() else listOf(1, size / 2).distinct().filter { it in 1 until size }
+
 @Composable
-private fun TargetButton(target: ContainerView, iconUrl: (String) -> String, outlined: Boolean, onMoveTo: (ContainerView) -> Unit) {
+private fun TargetButton(
+    target: ContainerView,
+    iconUrl: (String) -> String,
+    outlined: Boolean,
+    stackSize: Int,
+    onMoveTo: (ContainerView, Int?) -> Unit,
+) {
     Surface(
-        onClick = { onMoveTo(target) },
+        onClick = { onMoveTo(target, null) },
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = if (outlined) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null,
@@ -223,7 +249,27 @@ private fun TargetButton(target: ContainerView, iconUrl: (String) -> String, out
         Row(Modifier.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             ContainerIcon(target.container, iconUrl, 24.dp)
             Spacer(Modifier.width(8.dp))
-            Text(target.label, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(target.label, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f))
+            // For a stack: one tap moves that many there; the row moves all of it. A 36dp touch area
+            // each (not Material's 48) leaves the container's name room to be read.
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 36.dp) {
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                moveAmounts(stackSize).forEach { count ->
+                    Surface(
+                        onClick = { onMoveTo(target, count) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.Transparent,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        modifier = Modifier.height(26.dp).widthIn(min = 32.dp).semantics { contentDescription = "Move $count to ${target.label}" },
+                    ) {
+                        Box(Modifier.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                            Text("$count", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+            }
+            }
         }
     }
 }

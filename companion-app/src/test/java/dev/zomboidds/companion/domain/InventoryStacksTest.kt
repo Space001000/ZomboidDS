@@ -50,4 +50,17 @@ class InventoryStacksTest {
         assertEquals(true, ring.isKeyRing)
         assertEquals(false, ring.copy(type = "Base.Key1").isKeyRing)
     }
+
+    @Test
+    fun `an unfolded stack is followed by its items one by one`() {
+        fun item(id: Long) = InventoryItem(id, "Base.Bandage", "Bandage", "First Aid", null, 0.1f, null, null)
+        val bandages = ItemStack(listOf(item(1), item(2), item(3)))
+        val pen = ItemStack(listOf(InventoryItem(9, "Base.Pen", "Pen", "Junk", null, 0.1f, null, null)))
+        val stacks = listOf(bandages, pen)
+        assertEquals(listOf(PaneEntry.Stack(bandages), PaneEntry.Stack(pen)), stacks.paneEntries(wornOpen = false, unfolded = emptySet()))
+        val open = stacks.paneEntries(wornOpen = false, unfolded = setOf(bandages.key, pen.key))
+        assertEquals(PaneEntry.Stack(bandages, unfolded = true), open[0])
+        assertEquals((1L..3L).map { PaneEntry.Stack(ItemStack(listOf(item(it))), part = true) }, open.subList(1, 4))
+        assertEquals("a single item doesn't unfold", PaneEntry.Stack(pen), open[4])
+    }
 }

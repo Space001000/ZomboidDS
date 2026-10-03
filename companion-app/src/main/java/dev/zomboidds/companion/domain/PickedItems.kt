@@ -6,8 +6,9 @@ data class PickedItems(val containerId: String, val ids: Set<Long>) {
     /** The ids picked in [containerId]: none when the picks are in another container. */
     fun idsIn(containerId: String): Set<Long> = if (containerId == this.containerId) ids else emptySet()
 
-    /** Which of [stacks] are picked: any of their items counts. */
-    fun stacksIn(stacks: List<ItemStack>): List<ItemStack> = stacks.filter { stack -> stack.items.any { it.id in ids } }
+    /** What's picked of [stacks]: whole stacks, or the items picked from an unfolded one. */
+    fun stacksIn(stacks: List<ItemStack>): List<ItemStack> =
+        stacks.mapNotNull { stack -> stack.items.filter { it.id in ids }.takeIf { it.isNotEmpty() }?.let(::ItemStack) }
 
     companion object {
         /** [ids] picked in [containerId]; null when there are none. */
@@ -34,11 +35,13 @@ class ShownPicks(val containerId: String?, val stacks: List<ItemStack>) {
     /** While something is picked in [from], a tap there picks too (instead of opening the item). */
     fun tapPicks(from: String): Boolean = containerId == from && stacks.isNotEmpty()
 
-    /** What a drag of [stack] from [from] carries: everything picked with it (it first), or just it. */
-    fun carried(stack: ItemStack, from: String): List<ItemStack> =
-        if (containerId == from && stacks.any { it.first.id == stack.first.id }) {
-            listOf(stack) + stacks.filter { it.first.id != stack.first.id }
-        } else {
-            listOf(stack)
-        }
+    /**
+     * What a drag of [stack] from [from] carries: everything picked, when it's part of that (what's
+     * picked of its own stack first), or just it.
+     */
+    fun carried(stack: ItemStack, from: String): List<ItemStack> {
+        val ids = stack.items.map { it.id }.toSet()
+        val (own, others) = stacks.partition { picked -> picked.items.any { it.id in ids } }
+        return if (containerId == from && own.isNotEmpty()) own + others else listOf(stack)
+    }
 }

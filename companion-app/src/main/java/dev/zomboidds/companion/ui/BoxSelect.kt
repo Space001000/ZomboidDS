@@ -34,17 +34,16 @@ import kotlin.math.min
  * box, in the pane's own coordinates, is drawn while the finger moves.
  */
 internal class BoxSelect {
-    val tiles = mutableMapOf<Long, Pair<ItemStack, Rect>>()
+    val tiles = mutableMapOf<Any, Pair<ItemStack, Rect>>()
     /** Items it can't pick (your worn clothes): no box starts on them either, so they scroll. */
     val solid = mutableMapOf<Any, Rect>()
     var from by mutableStateOf<Offset?>(null)
     var to by mutableStateOf<Offset?>(null)
 }
 
-/** A tile the box can pick, while it's on screen. */
+/** A tile the box can pick, while it's on screen; [key] tells apart a stack and its first item unfolded. */
 @Composable
-internal fun Modifier.boxTile(select: BoxSelect, stack: ItemStack): Modifier {
-    val key = stack.first.id
+internal fun Modifier.boxTile(select: BoxSelect, stack: ItemStack, key: Any = stack.first.id): Modifier {
     DisposableEffect(select, key) { onDispose { select.tiles.remove(key) } }
     return this.onGloballyPositioned { select.tiles[key] = stack to it.boundsInRoot() }
 }

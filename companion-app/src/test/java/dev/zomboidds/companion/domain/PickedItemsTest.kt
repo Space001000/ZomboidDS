@@ -36,8 +36,25 @@ class PickedItemsTest {
     }
 
     @Test
-    fun `picked stacks are the ones with a picked item`() {
-        assertEquals(listOf(bandages, beans), PickedItems("inventory", setOf(2L, 4L)).stacksIn(stacks))
+    fun `picked stacks are whole stacks, or what is picked of an unfolded one`() {
+        assertEquals(listOf(bandages, beans), PickedItems("inventory", setOf(1L, 2L, 4L)).stacksIn(stacks))
+        assertEquals(listOf(ItemStack(listOf(bandages.items[1])), beans), PickedItems("inventory", setOf(2L, 4L)).stacksIn(stacks))
+    }
+
+    @Test
+    fun `one item of an unfolded stack is picked on its own`() {
+        val one = ItemStack(listOf(bandages.items[0]))
+        assertEquals(PickedItems("inventory", setOf(1L)), none.toggle(one, "inventory"))
+    }
+
+    @Test
+    fun `a drag of one picked item carries what's picked, not its whole stack`() {
+        val one = ItemStack(listOf(bandages.items[0]))
+        val shown = ShownPicks("inventory", listOf(knife, one))
+        assertEquals(listOf(one, knife), shown.carried(one, "inventory"))
+        // The other bandage isn't picked: a drag of it carries only it.
+        val other = ItemStack(listOf(bandages.items[1]))
+        assertEquals(listOf(other), shown.carried(other, "inventory"))
     }
 
     @Test

@@ -25,9 +25,16 @@ fun List<InventoryItem>.stacks(): List<ItemStack> {
     return handsFirst + grouped
 }
 
+/** Identical items stack under this key; an unfolded stack is remembered by it. */
+val ItemStack.key: String get() = "${first.type}|${first.name}"
+
 /** What a container's grid shows: item stacks, and your worn clothes folded into one tile. */
 sealed interface PaneEntry {
-    data class Stack(val stack: ItemStack, val worn: Boolean = false) : PaneEntry
+    /**
+     * [worn]: one of your unfolded worn clothes. [unfolded]: a stack shown item by item after it;
+     * [part]: one of those items, on its own.
+     */
+    data class Stack(val stack: ItemStack, val worn: Boolean = false, val unfolded: Boolean = false, val part: Boolean = false) : PaneEntry
     /** "Worn ×6": tap to show them right after it ([open]), tap again to fold them away. */
     data class Worn(val stacks: List<ItemStack>, val open: Boolean) : PaneEntry
 }
@@ -43,6 +50,19 @@ fun List<ItemStack>.foldWorn(open: Boolean): List<PaneEntry> {
     val fold = listOf(PaneEntry.Worn(worn, open)) + if (open) worn.map { PaneEntry.Stack(it, worn = true) } else emptyList()
     return hands.map { PaneEntry.Stack(it) } + fold + loose.map { PaneEntry.Stack(it) }
 }
+
+/**
+ * The grid's entries: worn clothes folded unless [wornOpen], and each stack in [unfolded] (by
+ * [key]) followed by its items one by one, like the game's inventory unfolds a stack.
+ */
+fun List<ItemStack>.paneEntries(wornOpen: Boolean, unfolded: Set<String>): List<PaneEntry> =
+    foldWorn(wornOpen).flatMap { entry ->
+        if (entry is PaneEntry.Stack && entry.stack.count > 1 && entry.stack.key in unfolded) {
+            listOf(entry.copy(unfolded = true)) + entry.stack.items.map { PaneEntry.Stack(ItemStack(listOf(it)), part = true) }
+        } else {
+            listOf(entry)
+        }
+    }
 
 /** A key ring is named after its owner ("Hortense Scroggins's Key Ring"): too long for a tile. */
 val InventoryItem.isKeyRing: Boolean get() = type.substringAfter('.').startsWith("KeyRing")

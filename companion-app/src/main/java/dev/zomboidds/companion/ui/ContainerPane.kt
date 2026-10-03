@@ -60,7 +60,8 @@ import dev.zomboidds.companion.InventoryLayout
 import dev.zomboidds.companion.domain.Container
 import dev.zomboidds.companion.domain.ItemStack
 import dev.zomboidds.companion.domain.PaneEntry
-import dev.zomboidds.companion.domain.foldWorn
+import dev.zomboidds.companion.domain.key
+import dev.zomboidds.companion.domain.paneEntries
 import dev.zomboidds.companion.domain.stacks
 import kotlinx.coroutines.delay
 
@@ -88,13 +89,17 @@ internal fun ContainerPane(
     /** Your worn clothes unfolded (held by the screen: the split layout sizes its panes by it). */
     wornOpen: Boolean = false,
     onWornOpenChange: (Boolean) -> Unit = {},
+    /** Stacks shown item by item, by [ItemStack.key] (held by the screen, like [wornOpen]). */
+    unfolded: Set<String> = emptySet(),
+    onUnfoldedChange: (Set<String>) -> Unit = {},
     /**
      * Two slim header rows instead of one (side by side, where a pane is half as wide): the tabs
      * with [trailing], then the open container's name and weight with its action.
      */
     stackedHeader: Boolean = false,
 ) {
-    val pickedCount = shown.stacks.count { stack -> stack.items.any { it.id in picked } }
+    // A whole stack counts once; from an unfolded one, each item picked.
+    val pickedCount = shown.stacks.sumOf { stack -> stack.items.count { it.id in picked }.let { if (it == stack.count) 1 else it } }
     val boxSelect = remember(shown.id) { BoxSelect() }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(PaneSpacing)) {
         val actions = @Composable {
@@ -148,7 +153,7 @@ internal fun ContainerPane(
                     // Whole rows only: the grid is cut to the rows that fit.
                     val itemHeight = if (layout == InventoryLayout.GRID) TileHeight else RowHeight
                     val rows = ((maxHeight + Gap) / (itemHeight + Gap)).toInt().coerceAtLeast(1)
-                    val entries = remember(shown.stacks, wornOpen) { shown.stacks.foldWorn(wornOpen) }
+                    val entries = remember(shown.stacks, wornOpen, unfolded) { shown.stacks.paneEntries(wornOpen, unfolded) }
                     LazyVerticalGrid(
                         // Compact grid: ~7 columns on the Thor's bottom screen. List: 2 columns of rows.
                         columns = GridCells.Adaptive(minSize = if (layout == InventoryLayout.GRID) 64.dp else 200.dp),
@@ -158,7 +163,7 @@ internal fun ContainerPane(
                     ) {
                         items(entries, key = { entry ->
                             when (entry) {
-                                is PaneEntry.Stack -> entry.stack.first.id
+                                is PaneEntry.Stack -> if (entry.part) "part${entry.stack.first.id}" else entry.stack.first.id
                                 is PaneEntry.Worn -> "worn"
                             }
                         }) { entry ->
@@ -167,15 +172,25 @@ internal fun ContainerPane(
                                 // and let go to pick it (worn clothes stay put).
                                 is PaneEntry.Stack -> Box(
                                     if (entry.worn) Modifier.boxSolid(boxSelect, entry.stack.first.id)
-                                    else Modifier.draggableItem(entry.stack, shown.id) { onHold(entry.stack) }.boxTile(boxSelect, entry.stack),
+                                    else Modifier.draggableItem(entry.stack, shown.id) { onHold(entry.stack) }.boxTile(boxSelect, entry.stack, if (entry.part) "part${entry.stack.first.id}" else entry.stack.first.id),
                                 ) {
-                                    val isPicked = entry.stack.items.any { it.id in picked }
+                                    // An unfolded stack is picked once all of it is; its items show their own picks.
+                                    val isPicked = if (entry.unfolded) entry.stack.items.all { it.id in picked } else entry.stack.items.any { it.id in picked }
                                     // Worn clothes can't be picked: while picking, a tap on them does nothing.
                                     val onClick = { if (!(entry.worn && pickedCount > 0)) onItem(entry.stack) }
+                                    val fold = when {
+                                        entry.part -> StackFold.PART
+                                        entry.unfolded -> StackFold.OPEN
+                                        else -> StackFold.NONE
+                                    }
+                                    val key = entry.stack.key
+                                    val onFold = { onUnfoldedChange(if (key in unfolded) unfolded - key else unfolded + key) }.takeIf { !entry.worn }
                                     if (layout == InventoryLayout.GRID) {
-                                        GridTile(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = onClick, picked = isPicked)
+                                        GridTile(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = onClick, picked = isPicked,
+                                            fold = fold, onFold = onFold)
                                     } else {
-                                        ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = onClick, picked = isPicked)
+                                        ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = onClick, picked = isPicked,
+                                            fold = fold, onFold = onFold)
                                     }
                                 }
                                 is PaneEntry.Worn -> Box(Modifier.boxSolid(boxSelect, "worn")) {
