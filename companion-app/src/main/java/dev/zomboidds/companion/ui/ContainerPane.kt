@@ -167,7 +167,7 @@ internal fun ContainerPane(
                                 // Hold and drag onto a container tab or the other open container to move it; hold
                                 // and let go to pick it (worn clothes stay put).
                                 is PaneEntry.Stack -> Box(
-                                    if (entry.worn) Modifier
+                                    if (entry.worn) Modifier.boxSolid(boxSelect, entry.stack.first.id)
                                     else Modifier.draggableItem(entry.stack, shown.id) { onHold(entry.stack) }.boxTile(boxSelect, entry.stack),
                                 ) {
                                     val isPicked = entry.stack.items.any { it.id in picked }
@@ -179,7 +179,9 @@ internal fun ContainerPane(
                                         ListRow(entry.stack, iconUrl, selected = entry.stack == selected, worn = entry.worn, onClick = onClick, picked = isPicked)
                                     }
                                 }
-                                is PaneEntry.Worn -> WornTile(entry, iconUrl, list = layout == InventoryLayout.LIST, onClick = { onWornOpenChange(!wornOpen) })
+                                is PaneEntry.Worn -> Box(Modifier.boxSolid(boxSelect, "worn")) {
+                                    WornTile(entry, iconUrl, list = layout == InventoryLayout.LIST, onClick = { onWornOpenChange(!wornOpen) })
+                                }
                             }
                         }
                     }

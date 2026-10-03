@@ -35,6 +35,8 @@ import kotlin.math.min
  */
 internal class BoxSelect {
     val tiles = mutableMapOf<Long, Pair<ItemStack, Rect>>()
+    /** Items it can't pick (your worn clothes): no box starts on them either, so they scroll. */
+    val solid = mutableMapOf<Any, Rect>()
     var from by mutableStateOf<Offset?>(null)
     var to by mutableStateOf<Offset?>(null)
 }
@@ -45,6 +47,13 @@ internal fun Modifier.boxTile(select: BoxSelect, stack: ItemStack): Modifier {
     val key = stack.first.id
     DisposableEffect(select, key) { onDispose { select.tiles.remove(key) } }
     return this.onGloballyPositioned { select.tiles[key] = stack to it.boundsInRoot() }
+}
+
+/** A tile the box can't pick but mustn't start on: a swipe there scrolls the grid. */
+@Composable
+internal fun Modifier.boxSolid(select: BoxSelect, key: Any): Modifier {
+    DisposableEffect(select, key) { onDispose { select.solid.remove(key) } }
+    return this.onGloballyPositioned { select.solid[key] = it.boundsInRoot() }
 }
 
 /**
@@ -72,6 +81,7 @@ internal fun Modifier.boxSelect(
                 val area = coordinates ?: return@awaitEachGesture
                 val start = area.localToRoot(down.position)
                 if (select.tiles.values.any { (_, bounds) -> bounds.contains(start) }) return@awaitEachGesture
+                if (select.solid.values.any { it.contains(start) }) return@awaitEachGesture
                 val base = alreadyPicked
                 var boxing = false
                 var released = false
