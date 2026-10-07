@@ -1,4 +1,10 @@
 <p align="center"><img src="docs/logo.svg" width="128" alt="ZomboidDS logo"></p>
+<p align="center">
+  <a href="https://github.com/Space001000/ZomboidDS/releases/latest"><img src="https://img.shields.io/github/v/release/Space001000/ZomboidDS?color=8b0000" alt="Latest release"></a>
+  <a href="https://github.com/Space001000/ZomboidDS/releases"><img src="https://img.shields.io/github/downloads/Space001000/ZomboidDS/total" alt="Downloads"></a>
+  <img src="https://img.shields.io/badge/Project%20Zomboid-Build%2042-5a6b3c" alt="Project Zomboid Build 42">
+  <a href="https://ko-fi.com/space000"><img src="https://img.shields.io/badge/Ko--fi-support-ff5e5b?logo=ko-fi&logoColor=white" alt="Support on Ko-fi"></a>
+</p>
 
 # ZomboidDS
 
