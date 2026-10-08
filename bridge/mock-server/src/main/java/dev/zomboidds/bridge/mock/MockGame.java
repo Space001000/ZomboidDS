@@ -88,6 +88,34 @@ final class MockGame {
         return byId;
     }
 
+    /** The fake build window: the list, and each recipe's details by id (see PROTOCOL.md "Building"). */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> building() {
+        Map<String, Object> list = (Map<String, Object>) fixtureData("build_list_result.json").get("data");
+        Map<String, Object> byId = new LinkedHashMap<>();
+        byId.put("list", list);
+        for (Object entry : (List<Object>) list.get("recipes")) {
+            Map<String, Object> recipe = (Map<String, Object>) entry;
+            boolean can = Boolean.TRUE.equals(recipe.get("canBuild"));
+            Map<String, Object> details = new LinkedHashMap<>(recipe);
+            details.put("seconds", 50);
+            details.put("inputs", List.of(
+                    Map.of("name", "Hammer", "icon", "Item_Hammer", "need", 1, "have", 1, "ok", true, "keep", true, "others", 4),
+                    Map.of("name", "Plank", "icon", "Item_Plank", "need", 4, "have", can ? 38 : 2, "ok", can),
+                    Map.of("name", "Nails", "icon", "Item_Nails", "need", 4, "have", 212, "ok", true)));
+            Object skill = recipe.get("skill");
+            if (skill instanceof Map<?, ?> need) {
+                details.put("skills", List.of(Map.of("name", need.get("name"), "level", need.get("level"), "have", can ? need.get("level") : 3)));
+            } else {
+                details.put("skills", List.of());
+            }
+            byId.put((String) recipe.get("id"), details);
+        }
+        Map<String, Object> door = (Map<String, Object>) fixtureData("build_recipe_result.json").get("data");
+        byId.put((String) door.get("id"), door);
+        return byId;
+    }
+
     void start() {
         gameThread.execute(() -> {
             bridge.state().publish("session", fixtureData("session.json"));
@@ -261,6 +289,39 @@ final class MockGame {
                 if (!(details instanceof Map<?, ?> recipe) || !Boolean.TRUE.equals(recipe.get("canCraft"))) {
                     yield "You can't make that right now";
                 }
+                yield null;
+            }
+            case "build_list" -> {
+                data[0] = building().get("list");
+                yield null;
+            }
+            case "build_recipe" -> {
+                Object details = building().get(String.valueOf(command.args().get("recipe")));
+                if (details == null) {
+                    yield "That recipe isn't available";
+                }
+                data[0] = details;
+                yield null;
+            }
+            case "build_place" -> {
+                Object details = building().get(String.valueOf(command.args().get("recipe")));
+                if (!(details instanceof Map<?, ?> recipe)) {
+                    yield "That recipe isn't available";
+                }
+                // Like the game: the cursor comes up, blocked when something is short.
+                Map<String, Object> placing = new LinkedHashMap<>();
+                placing.put("id", recipe.get("id"));
+                placing.put("name", recipe.get("name"));
+                placing.put("icon", recipe.get("icon"));
+                if (!Boolean.TRUE.equals(recipe.get("canBuild"))) {
+                    placing.put("blocked", true);
+                    placing.put("missing", List.of("Plank"));
+                }
+                bridge.state().publish("building", Map.of("placing", placing));
+                yield null;
+            }
+            case "build_stop" -> {
+                bridge.state().publish("building", List.of()); // an empty Lua table
                 yield null;
             }
             case "set_speed" -> {

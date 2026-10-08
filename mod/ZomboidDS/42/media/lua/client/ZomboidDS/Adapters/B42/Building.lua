@@ -260,8 +260,8 @@ function Building.stop(player)
     return true
 end
 
---- What the player is placing, for the app's strip: { placing = { id, name, icon, missing[] } },
---- or {} when nothing. `missing` names what's short when the cursor is blocked.
+--- What the player is placing, for the app's strip: { placing = { id, name, icon, blocked, missing[] } },
+--- or {} when nothing. `blocked`: the game won't place it now; `missing` names what's short.
 function Building.snapshot(player)
     local state = current(player)
     if state == nil then
@@ -281,7 +281,8 @@ function Building.snapshot(player)
         for _, skill in ipairs(shared.describeSkills(player, recipe)) do
             if (skill.have or 0) < (skill.level or 0) then missing[#missing + 1] = skill.name end
         end
-        entry.missing = missing
+        entry.blocked = true
+        entry.missing = #missing > 0 and missing or nil
     end
     return { placing = entry }
 end

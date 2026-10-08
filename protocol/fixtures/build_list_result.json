@@ -1,0 +1,2181 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 40,
+ "data": {
+  "id": "c-50",
+  "ok": true,
+  "data": {
+   "recipes": [
+    {
+     "id": "Base.BarricadeMetalBar",
+     "name": "Metal Bar Barricade",
+     "icon": "Build_BarricadeWindow_Bars",
+     "category": "Barricades",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.BarricadeMetalSheet",
+     "name": "Metal Sheet Barricade",
+     "icon": "Build_BarricadeWindow_Sheet",
+     "category": "Barricades",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.BarricadePlanks",
+     "name": "Planks Barricade",
+     "icon": "Build_BarricadeWindow_Plank",
+     "category": "Barricades",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Advanced_Forge",
+     "name": "Advanced Forge",
+     "icon": "Build_ForgeAdvanced",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Blast_Furnace",
+     "name": "Blast Furnace",
+     "icon": "Build_FurnaceAdvanced",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Charcoal_Burner_MetalDrum",
+     "name": "Charcoal Burner",
+     "icon": "Build_CharcoalDrum",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Charcoal_Burner_OrangeBarrel",
+     "name": "Charcoal Burner",
+     "icon": "Build_CharcoalDrum",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Charcoal_Burner_DarkGreenBarrel",
+     "name": "Charcoal Burner",
+     "icon": "Build_CharcoalDrum",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Charcoal_Burner_LightGreenBarrel",
+     "name": "Charcoal Burner",
+     "icon": "Build_CharcoalDrum",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Charcoal_Pit",
+     "name": "Charcoal Burning Pit",
+     "icon": "Build_Coalpit",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Forge",
+     "name": "Forge",
+     "icon": "Build_SmeltingFurnace",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Grindstone",
+     "name": "Grindstone",
+     "icon": "Build_Grindstone",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Forge_Primitive_Forge",
+     "name": "Primitive Forge",
+     "icon": "Item_Anvil_Stone",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Primitive_Furnace",
+     "name": "Primitive Furnace",
+     "icon": "Build_PrimitiveFurnace",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Smelting_Furnace",
+     "name": "Smelting Furnace",
+     "icon": "Build_SmeltingFurnace",
+     "category": "Blacksmithing",
+     "canBuild": false
+    },
+    {
+     "id": "Base.DoubleDoor",
+     "name": "Double Door",
+     "icon": "Build_DoubleWoodGate",
+     "category": "Carpentry",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 4
+     }
+    },
+    {
+     "id": "Base.LogDoorFrameLvl1",
+     "name": "Log Door Frame (Poor)",
+     "icon": "Build_DoorframeLogs",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "LogDoorFrame",
+     "level": 1,
+     "version": "Poor",
+     "groupName": "Log Door Frame"
+    },
+    {
+     "id": "Base.LogFence",
+     "name": "Log Fence",
+     "icon": "Build_FenceLogs",
+     "category": "Carpentry",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Log_Stairs",
+     "name": "Log Stairs",
+     "icon": "Build_StairsLogs",
+     "category": "Carpentry",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.LogWall",
+     "name": "Log Wall",
+     "icon": "Build_WallLogs",
+     "category": "Carpentry",
+     "canBuild": true
+    },
+    {
+     "id": "Base.LogWindowFrameLvl1",
+     "name": "Log Window Frame (Poor)",
+     "icon": "Build_WindowframeLogs",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "LogWindowFrame",
+     "level": 1,
+     "version": "Poor",
+     "groupName": "Log Window Frame"
+    },
+    {
+     "id": "Base.StickFence",
+     "name": "Stick Fence",
+     "icon": "Build_FenceStakes",
+     "category": "Carpentry",
+     "canBuild": true
+    },
+    {
+     "id": "Base.LogGate",
+     "name": "Wide Log Gate",
+     "icon": "Build_FenceOpenLogs",
+     "category": "Carpentry",
+     "canBuild": true
+    },
+    {
+     "id": "Base.WoodenDoorLvl3",
+     "name": "Wood Door (Good)",
+     "icon": "Build_DoorWood",
+     "category": "Carpentry",
+     "canBuild": false,
+     "group": "WoodenDoor",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wood Door",
+     "skill": {
+      "name": "Carpentry",
+      "level": 7
+     }
+    },
+    {
+     "id": "Base.WoodenDoorLvl2",
+     "name": "Wood Door (Poor)",
+     "icon": "Build_DoorWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodenDoor",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Wood Door",
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.WoodenDoorLvl1",
+     "name": "Wood Door (Shoddy)",
+     "icon": "Build_DoorWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodenDoor",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Door",
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.WoodDoorFrameLvl3",
+     "name": "Wood Door Frame (Good)",
+     "icon": "Build_DoorframeWood",
+     "category": "Carpentry",
+     "canBuild": false,
+     "group": "WoodDoorFrame",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wood Door Frame",
+     "skill": {
+      "name": "Carpentry",
+      "level": 6
+     }
+    },
+    {
+     "id": "Base.WoodDoorFrameLvl2",
+     "name": "Wood Door Frame (Poor)",
+     "icon": "Build_DoorframeWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodDoorFrame",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Wood Door Frame",
+     "skill": {
+      "name": "Carpentry",
+      "level": 4
+     }
+    },
+    {
+     "id": "Base.WoodDoorFrameLvl1",
+     "name": "Wood Door Frame (Shoddy)",
+     "icon": "Build_DoorframeWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodDoorFrame",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Door Frame",
+     "skill": {
+      "name": "Carpentry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.WoodFenceLvl3",
+     "name": "Wood Fence (Good)",
+     "icon": "Build_FenceWood",
+     "category": "Carpentry",
+     "canBuild": false,
+     "group": "WoodFence",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wood Fence",
+     "skill": {
+      "name": "Carpentry",
+      "level": 7
+     }
+    },
+    {
+     "id": "Base.WoodFenceLvl2",
+     "name": "Wood Fence (Poor)",
+     "icon": "Build_FenceWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodFence",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Wood Fence",
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.WoodFenceLvl1",
+     "name": "Wood Fence (Shoddy)",
+     "icon": "Build_FenceWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodFence",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Fence",
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.WoodFenceGate",
+     "name": "Wood Fence Gate",
+     "icon": "Build_DoorFenceWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.WoodFloorLvl3",
+     "name": "Wood Floor (Good)",
+     "icon": "Build_FloorTileWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodFloor",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wood Floor",
+     "skill": {
+      "name": "Carpentry",
+      "level": 4
+     }
+    },
+    {
+     "id": "Base.WoodFloorLvl2",
+     "name": "Wood Floor (Poor)",
+     "icon": "Build_FloorTileWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodFloor",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Wood Floor",
+     "skill": {
+      "name": "Carpentry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.WoodFloorLvl1",
+     "name": "Wood Floor (Shoddy)",
+     "icon": "Build_FloorTileWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodFloor",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Floor",
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.WoodenPole",
+     "name": "Wood Pole",
+     "icon": "Build_WoodPole_Tall",
+     "category": "Carpentry",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.WoodenWallLvl1",
+     "name": "Wood Wall (Shoddy)",
+     "icon": "Build_WallWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodenWall",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Wall",
+     "skill": {
+      "name": "Carpentry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.WoodenWallFrame",
+     "name": "Wood Wall Frame",
+     "icon": "Build_WallframeWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.WoodenWindowFrameLvl3",
+     "name": "Wood Window Frame (Good)",
+     "icon": "Build_WindowframeWood",
+     "category": "Carpentry",
+     "canBuild": false,
+     "group": "WoodenWindowFrame",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wood Window Frame",
+     "skill": {
+      "name": "Carpentry",
+      "level": 6
+     }
+    },
+    {
+     "id": "Base.WoodenWindowFrameLvl2",
+     "name": "Wood Window Frame (Poor)",
+     "icon": "Build_WindowframeWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodenWindowFrame",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Wood Window Frame",
+     "skill": {
+      "name": "Carpentry",
+      "level": 4
+     }
+    },
+    {
+     "id": "Base.WoodenWindowFrameLvl1",
+     "name": "Wood Window Frame (Shoddy)",
+     "icon": "Build_WindowframeWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodenWindowFrame",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Window Frame",
+     "skill": {
+      "name": "Carpentry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.Wood_Stairs",
+     "name": "Wooden Stairs",
+     "icon": "Build_StairsWood",
+     "category": "Carpentry",
+     "canBuild": false,
+     "skill": {
+      "name": "Carpentry",
+      "level": 6
+     }
+    },
+    {
+     "id": "Base.WoodenWallLvl3",
+     "name": "Wooden Wall (Good)",
+     "icon": "Build_WallWood",
+     "category": "Carpentry",
+     "canBuild": false,
+     "group": "WoodenWall",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wooden Wall",
+     "skill": {
+      "name": "Carpentry",
+      "level": 6
+     }
+    },
+    {
+     "id": "Base.WoodenWallLvl2",
+     "name": "Wooden Wall (Poor)",
+     "icon": "Build_WallWood",
+     "category": "Carpentry",
+     "canBuild": true,
+     "group": "WoodenWall",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Wooden Wall",
+     "skill": {
+      "name": "Carpentry",
+      "level": 4
+     }
+    },
+    {
+     "id": "Base.ButcherHook",
+     "name": "Butcher Hook",
+     "icon": "Build_ButcherHook",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.ChickenHutch",
+     "name": "Chicken Coop 1",
+     "icon": "Build_Coop",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.ChickenHutch2",
+     "name": "Chicken Coop 2",
+     "icon": "Build_Coop2",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.ChurnBucket",
+     "name": "Churn Bucket",
+     "icon": "Build_ButterChurn",
+     "category": "Farming",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Composter",
+     "name": "Composter",
+     "icon": "Build_Composter",
+     "category": "Farming",
+     "canBuild": false,
+     "skill": {
+      "name": "Carpentry",
+      "level": 6
+     }
+    },
+    {
+     "id": "Base.ComposterShoddy",
+     "name": "Composter (Shoddy)",
+     "icon": "Build_Composter",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.HeckleComb",
+     "name": "Heckle Comb",
+     "icon": "Build_HeckleComb",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.DryingRackLarge",
+     "name": "Large Drying Rack",
+     "icon": "Build_DryingFrameLarge",
+     "category": "Farming",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Drying_Rack",
+     "name": "LargePlantDryingRack",
+     "icon": "Build_HerbDryerLarge",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.FeedingTroughDouble",
+     "name": "Long Wood Feeding Trough",
+     "icon": "Build_TroughWoodLong",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.DryingRackMedium",
+     "name": "Medium Drying Rack",
+     "icon": "Build_DryingFrameSmall",
+     "category": "Farming",
+     "canBuild": true
+    },
+    {
+     "id": "Base.FeedingTroughDoubleMetal",
+     "name": "Metal Feeding Trough",
+     "icon": "Build_TroughMetal",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.RippleComb",
+     "name": "Ripple Comb",
+     "icon": "Build_RippleComb",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.ScutchingBoard",
+     "name": "Scutching Board",
+     "icon": "Build_ScutchingBoard",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.FeedingTroughSimple",
+     "name": "Short Wood Feeding Trough",
+     "icon": "Build_TroughWoodShort",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.SimpleLoom",
+     "name": "Simple Loom",
+     "icon": "Build_LoomSimple",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Simple_Drying_Rack",
+     "name": "SimpleLargePlantDryingRack",
+     "icon": "Build_HerbDryerLarge",
+     "category": "Farming",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Simple_Herb_Drying_Rack",
+     "name": "SimpleSmallPlantDryingRack",
+     "icon": "Build_HerbDryerSmall",
+     "category": "Farming",
+     "canBuild": true
+    },
+    {
+     "id": "Base.DryingRackSmall",
+     "name": "Small Drying Rack",
+     "icon": "Build_DryingFrameSmall",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.Herb_Drying_Rack",
+     "name": "SmallPlantDryingRack",
+     "icon": "Build_HerbDryerSmall",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.SofteningBeam",
+     "name": "Softening Beam",
+     "icon": "Build_SofteningBeam",
+     "category": "Farming",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Spinning_Wheel",
+     "name": "Spinning Wheel",
+     "icon": "Build_SpinningWheel",
+     "category": "Farming",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.TanninBarrel",
+     "name": "Tannin Barrel",
+     "icon": "Build_TanningBarrel",
+     "category": "Farming",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Wood_Bed",
+     "name": "Bed",
+     "icon": "Build_Bed",
+     "category": "Furniture",
+     "canBuild": false,
+     "skill": {
+      "name": "Carpentry",
+      "level": 4
+     }
+    },
+    {
+     "id": "Base.Metal_LockerBig_Lvl2",
+     "name": "Big Metal Locker",
+     "icon": "Build_CabinetMetal",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Metal_LockerBig",
+     "level": 2,
+     "skill": {
+      "name": "Welding",
+      "level": 10
+     }
+    },
+    {
+     "id": "Base.Metal_LockerBig_Lvl1",
+     "name": "Big Metal Locker (Shoddy)",
+     "icon": "Build_CabinetMetal",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Metal_LockerBig",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Big Metal Locker",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Log_Bench",
+     "name": "Log Bench",
+     "icon": "Build_LogBench",
+     "category": "Furniture",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Log_Stool",
+     "name": "Log Stool 1",
+     "icon": "Build_LogSeat",
+     "category": "Furniture",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Other_Log_Stool",
+     "name": "Log Stool 2",
+     "icon": "Build_LogStool",
+     "category": "Furniture",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Log_Table",
+     "name": "Log Table",
+     "icon": "Build_LogTable",
+     "category": "Furniture",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Metal_Counter_Lvl2",
+     "name": "Metal Counter",
+     "icon": "Build_MetalCounter",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Metal_Counter",
+     "level": 2,
+     "skill": {
+      "name": "Welding",
+      "level": 8
+     }
+    },
+    {
+     "id": "Base.Metal_Counter_Lvl1",
+     "name": "Metal Counter (Shoddy)",
+     "icon": "Build_MetalCounter",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Metal_Counter",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Metal Counter",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Metal_CounterCorner_Lvl2",
+     "name": "Metal Counter Corner",
+     "icon": "Build_MetalCounterCorner",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Metal_CounterCorner",
+     "level": 2,
+     "skill": {
+      "name": "Welding",
+      "level": 8
+     }
+    },
+    {
+     "id": "Base.Metal_CounterCorner_Lvl1",
+     "name": "Metal Counter Corner (Shoddy)",
+     "icon": "Build_MetalCounterCorner",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Metal_CounterCorner",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Metal Counter Corner",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Metal_Crate_Lvl2",
+     "name": "Metal Crate",
+     "icon": "Build_CrateMetal",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Metal_Crate",
+     "level": 2,
+     "skill": {
+      "name": "Welding",
+      "level": 7
+     }
+    },
+    {
+     "id": "Base.Metal_Crate_Lvl1",
+     "name": "Metal Crate (Shoddy)",
+     "icon": "Build_CrateMetal",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Metal_Crate",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Metal Crate",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Metal_Shelves_Lvl2",
+     "name": "Metal Shelves",
+     "icon": "Build_ShelvesMetal",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Metal_Shelves",
+     "level": 2,
+     "skill": {
+      "name": "Welding",
+      "level": 9
+     }
+    },
+    {
+     "id": "Base.Metal_Shelves_Lvl1",
+     "name": "Metal Shelves (Shoddy)",
+     "icon": "Build_ShelvesMetal",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Metal_Shelves",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Metal Shelves",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Rugged_Stool",
+     "name": "Rugged Stool",
+     "icon": "Build_LogSeat2",
+     "category": "Furniture",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.Rugged_Table",
+     "name": "Rugged Table",
+     "icon": "Build_LogTable2",
+     "category": "Furniture",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.Metal_LockerSmall_Lvl2",
+     "name": "Small Metal Locker",
+     "icon": "Build_GunLocker",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Metal_LockerSmall",
+     "level": 2,
+     "skill": {
+      "name": "Welding",
+      "level": 9
+     }
+    },
+    {
+     "id": "Base.Metal_LockerSmall_Lvl1",
+     "name": "Small Metal Locker (Shoddy)",
+     "icon": "Build_GunLocker",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Metal_LockerSmall",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Small Metal Locker",
+     "skill": {
+      "name": "Welding",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.Wood_TableSmall_Lvl3",
+     "name": "Small Wood Table (Good)",
+     "icon": "Build_TableSmallWood",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_TableSmall",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Small Wood Table",
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.Wood_TableSmall_Lvl2",
+     "name": "Small Wood Table (Poor)",
+     "icon": "Build_TableSmallWood",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_TableSmall",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Small Wood Table",
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Wood_TableSmall_Lvl1",
+     "name": "Small Wood Table (Shoddy)",
+     "icon": "Build_TableSmallWood",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_TableSmall",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Small Wood Table",
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.Stick_Bookcase",
+     "name": "Stick Bookcase",
+     "icon": "Build_StickBookcase",
+     "category": "Furniture",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Stick_BookcaseSmall_Lvl1",
+     "name": "Stick Small Bookcase",
+     "icon": "Build_StickBookcaseSmall",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Stick_BookcaseSmall",
+     "level": 1
+    },
+    {
+     "id": "Base.Wood_BarElement_Lvl3",
+     "name": "Wood Bar Element (Good)",
+     "icon": "Build_WoodCounter",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Wood_BarElement",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wood Bar Element",
+     "skill": {
+      "name": "Carpentry",
+      "level": 7
+     }
+    },
+    {
+     "id": "Base.Wood_BarElement_Lvl2",
+     "name": "Wood Bar Element (Poor)",
+     "icon": "Build_WoodCounter",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_BarElement",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Wood Bar Element",
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.Wood_BarElement_Lvl1",
+     "name": "Wood Bar Element (Shoddy)",
+     "icon": "Build_WoodCounter",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_BarElement",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Bar Element",
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Wood_BarElementCorner_Lvl3",
+     "name": "Wood Bar Element Corner (Good)",
+     "icon": "Build_WoodCounterCorner",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Wood_BarElementCorner",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wood Bar Element Corner",
+     "skill": {
+      "name": "Carpentry",
+      "level": 7
+     }
+    },
+    {
+     "id": "Base.Wood_BarElementCorner_Lvl2",
+     "name": "Wood Bar Element Corner (Poor)",
+     "icon": "Build_WoodCounterCorner",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_BarElementCorner",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Wood Bar Element Corner",
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.Wood_BarElementCorner_Lvl1",
+     "name": "Wood Bar Element Corner (Shoddy)",
+     "icon": "Build_WoodCounterCorner",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_BarElementCorner",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Bar Element Corner",
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Wood_Bookcase_Lvl2",
+     "name": "Wood Bookcase",
+     "icon": "Build_Bookcase",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_Bookcase",
+     "level": 2,
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.Wood_Bookcase_Lvl1",
+     "name": "Wood Bookcase (Shoddy)",
+     "icon": "Build_Bookcase",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_Bookcase",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Bookcase",
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Wood_Chair_Lvl3",
+     "name": "Wood Chair (Good)",
+     "icon": "Build_Chair",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Wood_Chair",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wood Chair",
+     "skill": {
+      "name": "Carpentry",
+      "level": 6
+     }
+    },
+    {
+     "id": "Base.Wood_Chair_Lvl2",
+     "name": "Wood Chair (Poor)",
+     "icon": "Build_Chair",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_Chair",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Wood Chair",
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Wood_Chair_Lvl1",
+     "name": "Wood Chair (Shoddy)",
+     "icon": "Build_Chair",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_Chair",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Chair",
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.Wood_Crate_Lvl2",
+     "name": "Wood Crate",
+     "icon": "Build_CrateWood",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Wood_Crate",
+     "level": 2,
+     "skill": {
+      "name": "Carpentry",
+      "level": 7
+     }
+    },
+    {
+     "id": "Base.Wood_Crate_Lvl1",
+     "name": "Wood Crate (Shoddy)",
+     "icon": "Build_CrateWood",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_Crate",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Crate",
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Wood_ShelvesDouble_Lvl1",
+     "name": "Wood Double Shelves (Shoddy)",
+     "icon": "Build_ShelvesWood",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_ShelvesDouble",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Double Shelves",
+     "skill": {
+      "name": "Carpentry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.Wood_Shelves_Lvl2",
+     "name": "Wood Shelves",
+     "icon": "Build_ShelfWood",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_Shelves",
+     "level": 2,
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.Wood_Shelves_Lvl1",
+     "name": "Wood Shelves (Shoddy)",
+     "icon": "Build_ShelfWood",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_Shelves",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Shelves",
+     "skill": {
+      "name": "Carpentry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.Wood_BookcaseSmall_Lvl2",
+     "name": "Wood Small Bookcase",
+     "icon": "Build_BookcaseShort",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_BookcaseSmall",
+     "level": 2,
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.Wood_BookcaseSmall_Lvl1",
+     "name": "Wood Small Bookcase (Shoddy)",
+     "icon": "Build_BookcaseShort",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_BookcaseSmall",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Small Bookcase",
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Wood_TableLvl3",
+     "name": "Wood Table (Good)",
+     "icon": "Build_TableLargeWood",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_Table",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wood Table",
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.Wood_TableLvl2",
+     "name": "Wood Table (Poor)",
+     "icon": "Build_TableLargeWood",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_Table",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Wood Table",
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.Wood_TableLvl1",
+     "name": "Wood Table (Shoddy)",
+     "icon": "Build_TableLargeWood",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_Table",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Table",
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.Wood_TableDrawerLvl2",
+     "name": "Wood Table with Drawer",
+     "icon": "Build_Sidetable",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_TableDrawer",
+     "level": 2,
+     "skill": {
+      "name": "Carpentry",
+      "level": 4
+     }
+    },
+    {
+     "id": "Base.Wood_TableDrawerLvl3",
+     "name": "Wood Table with Drawer (Good)",
+     "icon": "Build_Sidetable",
+     "category": "Furniture",
+     "canBuild": false,
+     "group": "Wood_TableDrawer",
+     "level": 3,
+     "version": "Good",
+     "groupName": "Wood Table with Drawer",
+     "skill": {
+      "name": "Carpentry",
+      "level": 6
+     }
+    },
+    {
+     "id": "Base.Wood_TableDrawerLvl1",
+     "name": "Wood Table with Drawer (Shoddy)",
+     "icon": "Build_Sidetable",
+     "category": "Furniture",
+     "canBuild": true,
+     "group": "Wood_TableDrawer",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Wood Table with Drawer",
+     "skill": {
+      "name": "Carpentry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.Wooden_Windows",
+     "name": "Wooden Windows",
+     "icon": "Build_WindowBlack",
+     "category": "Furniture",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.BrickDoorFrameLvl2",
+     "name": "Brick Door Frame (Good)",
+     "icon": "Build_DoorframeBrick",
+     "category": "Masonry",
+     "canBuild": false,
+     "group": "BrickDoorFrame",
+     "level": 2,
+     "version": "Good",
+     "groupName": "Brick Door Frame",
+     "skill": {
+      "name": "Masonry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.BrickDoorFrameLvl1",
+     "name": "Brick Door Frame (Poor)",
+     "icon": "Build_DoorframeBrick",
+     "category": "Masonry",
+     "canBuild": false,
+     "group": "BrickDoorFrame",
+     "level": 1,
+     "version": "Poor",
+     "groupName": "Brick Door Frame",
+     "skill": {
+      "name": "Masonry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.BrickFenceLvl2",
+     "name": "Brick Fence (Good)",
+     "icon": "Build_FenceBrick",
+     "category": "Masonry",
+     "canBuild": false,
+     "group": "BrickFence",
+     "level": 2,
+     "version": "Good",
+     "groupName": "Brick Fence",
+     "skill": {
+      "name": "Masonry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.BrickWallLvl2",
+     "name": "Brick Wall (Good)",
+     "icon": "Build_WallBrick",
+     "category": "Masonry",
+     "canBuild": false,
+     "group": "BrickWall",
+     "level": 2,
+     "version": "Good",
+     "groupName": "Brick Wall",
+     "skill": {
+      "name": "Masonry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.BrickWallLvl1",
+     "name": "Brick Wall (Poor)",
+     "icon": "Build_WallBrick",
+     "category": "Masonry",
+     "canBuild": false,
+     "group": "BrickWall",
+     "level": 1,
+     "version": "Poor",
+     "groupName": "Brick Wall",
+     "skill": {
+      "name": "Masonry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.BrickWindowFrameLvl2",
+     "name": "Brick Window Frame",
+     "icon": "Build_WindowframeBrick",
+     "category": "Masonry",
+     "canBuild": false,
+     "group": "BrickWindowFrame",
+     "level": 2,
+     "skill": {
+      "name": "Masonry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.BrickWindowFrameLvl1",
+     "name": "Brick Window Frame (Poor)",
+     "icon": "Build_WindowframeBrick",
+     "category": "Masonry",
+     "canBuild": false,
+     "group": "BrickWindowFrame",
+     "level": 1,
+     "version": "Poor",
+     "groupName": "Brick Window Frame",
+     "skill": {
+      "name": "Masonry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.Cooking_Pit",
+     "name": "Cooking Pit",
+     "icon": "Build_CookingPit",
+     "category": "Masonry",
+     "canBuild": false,
+     "skill": {
+      "name": "Masonry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.Simple_Cooking_Pit",
+     "name": "Simple Cooking Pit",
+     "icon": "Build_CookingPitSimple",
+     "category": "Masonry",
+     "canBuild": false,
+     "skill": {
+      "name": "Masonry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.Stone_Cabinet",
+     "name": "Stone Cabinet",
+     "icon": "Build_CabinetStone",
+     "category": "Masonry",
+     "canBuild": false
+    },
+    {
+     "id": "Base.StoneDoorFrame",
+     "name": "Stone Door Frame",
+     "icon": "Build_DoorframeStone",
+     "category": "Masonry",
+     "canBuild": false,
+     "skill": {
+      "name": "Masonry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.StoneWall",
+     "name": "Stone Wall",
+     "icon": "Build_WallStone",
+     "category": "Masonry",
+     "canBuild": false,
+     "skill": {
+      "name": "Masonry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.StoneWindowFrame",
+     "name": "Stone Window Frame",
+     "icon": "Build_WindowframeStone",
+     "category": "Masonry",
+     "canBuild": false,
+     "skill": {
+      "name": "Masonry",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.BrickFloorLvl1",
+     "name": "Tile Floor",
+     "icon": "Build_FloorTilePorcelain",
+     "category": "Masonry",
+     "canBuild": false,
+     "group": "BrickFloor",
+     "level": 1
+    },
+    {
+     "id": "Base.SkullPoleAntlers",
+     "name": "Antlers Pole",
+     "icon": "Build_Stake_Antlers",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.SkullPoleBull",
+     "name": "Bull Skull Pole",
+     "icon": "Build_Stake_SkullBull",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.StoneCairn",
+     "name": "Cairn",
+     "icon": "Build_Cairn",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.SkullPoleCow",
+     "name": "Cow Skull Pole",
+     "icon": "Build_Stake_SkullCow",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.SkullPoleDeer",
+     "name": "Deer Skull Pole",
+     "icon": "Build_Stake_SkullStag",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.SkullPoleDeerDoe",
+     "name": "Doe Skull Pole",
+     "icon": "Build_Stake_SkullDoe",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.SkullPolePig",
+     "name": "Pig Skull Pole",
+     "icon": "Build_Stake_SkullPig",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.RuggedCross",
+     "name": "Rugged Cross",
+     "icon": "Build_CrossSimple",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.SkullPoleSheep",
+     "name": "Sheep Skull Pole",
+     "icon": "Build_Stake_SkullSheep",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.WoodCross",
+     "name": "Wood Cross",
+     "icon": "Build_Cross",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.WoodPicket",
+     "name": "Wood Picket",
+     "icon": "Build_WoodPicket",
+     "category": "Miscellaneous",
+     "canBuild": true
+    },
+    {
+     "id": "Base.WoodSign",
+     "name": "Wood Sign",
+     "icon": "Build_WoodSign",
+     "category": "Miscellaneous",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 1
+     }
+    },
+    {
+     "id": "Base.BarbedWireFence",
+     "name": "Barbed Wire Fence",
+     "icon": "Build_FenceWire",
+     "category": "Outdoors",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.Campfire",
+     "name": "Campfire",
+     "icon": "Build_Campfire",
+     "category": "Outdoors",
+     "canBuild": true
+    },
+    {
+     "id": "Base.DirtFloor",
+     "name": "Dirt Floor",
+     "icon": "Build_FloorDirt",
+     "category": "Outdoors",
+     "canBuild": true
+    },
+    {
+     "id": "Base.GravelFloor",
+     "name": "Gravel Floor",
+     "icon": "Build_FloorGravel",
+     "category": "Outdoors",
+     "canBuild": true
+    },
+    {
+     "id": "Base.LeanTo_Shelter",
+     "name": "Lean-To Shelter",
+     "icon": "Build_LeanToShelterSticks",
+     "category": "Outdoors",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Leather_Shelter",
+     "name": "Leather Shelter",
+     "icon": "Build_LeanToShelterLeather",
+     "category": "Outdoors",
+     "canBuild": true
+    },
+    {
+     "id": "Base.RainCollectorRound",
+     "name": "Rain Collector Barrel",
+     "icon": "Build_RainCollectorBarrel2",
+     "category": "Outdoors",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.RainCollectorRound_Tarp",
+     "name": "Rain Collector Barrel Tarp",
+     "icon": "Build_RainCollectorBarrel",
+     "category": "Outdoors",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.RainCollector",
+     "name": "Rain Collector Crate",
+     "icon": "Build_RainCollectorCrate2",
+     "category": "Outdoors",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.RainCollector_Tarp",
+     "name": "Rain Collector Crate Tarp",
+     "icon": "Build_RainCollectorCrate",
+     "category": "Outdoors",
+     "canBuild": true,
+     "skill": {
+      "name": "Carpentry",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.SandFloor",
+     "name": "Sand Floor",
+     "icon": "Build_FloorSand",
+     "category": "Outdoors",
+     "canBuild": true
+    },
+    {
+     "id": "Base.SandbagWall",
+     "name": "Sandbag Wall",
+     "icon": "Build_SandbagWall",
+     "category": "Outdoors",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Tarp_Shelter",
+     "name": "Tarp Shelter",
+     "icon": "Build_LeanToShelterTarp",
+     "category": "Outdoors",
+     "canBuild": true
+    },
+    {
+     "id": "Base.WoodStake",
+     "name": "Wooden Stake",
+     "icon": "Item_Handle",
+     "category": "Outdoors",
+     "canBuild": true
+    },
+    {
+     "id": "Base.Amphora",
+     "name": "Amphora",
+     "icon": "Build_Amphora",
+     "category": "Pottery",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Paint_SignArrowDown",
+     "name": "PaintSign_ArrowDown",
+     "icon": "Build_WoodSign_Down",
+     "category": "WallCoverings",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Paint_SignArrowLeft",
+     "name": "PaintSign_ArrowLeft",
+     "icon": "Build_WoodSign_Left",
+     "category": "WallCoverings",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Paint_SignArrowRight",
+     "name": "PaintSign_ArrowRight",
+     "icon": "Build_WoodSign_Right",
+     "category": "WallCoverings",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Paint_SignArrowUp",
+     "name": "PaintSign_ArrowUp",
+     "icon": "Build_WoodSign_Up",
+     "category": "WallCoverings",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Paint_SignSkull",
+     "name": "PaintSign_Skull",
+     "icon": "Build_WoodSign_Skull",
+     "category": "WallCoverings",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Paint_Wall",
+     "name": "PaintWall",
+     "icon": "Build_Wall_Paint",
+     "category": "WallCoverings",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Paper_Wall",
+     "name": "PaperWall",
+     "icon": "Build_Wall_Wallpaper",
+     "category": "WallCoverings",
+     "canBuild": false
+    },
+    {
+     "id": "Base.Plaster_Wall",
+     "name": "PlasterWall",
+     "icon": "Build_Wall_Plaster",
+     "category": "WallCoverings",
+     "canBuild": false,
+     "skill": {
+      "name": "Carpentry",
+      "level": 6
+     }
+    },
+    {
+     "id": "Base.DoubleFenceGate",
+     "name": "Big Double Pole Gate",
+     "icon": "Build_DoublePoleGate",
+     "category": "Welding",
+     "canBuild": false,
+     "skill": {
+      "name": "Welding",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.DoubleWireGate",
+     "name": "Big Double Wire Gate",
+     "icon": "Build_DoubleWireGate",
+     "category": "Welding",
+     "canBuild": false,
+     "skill": {
+      "name": "Welding",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.MetalBigMetalFence",
+     "name": "Big Metal Pole Fence",
+     "icon": "Build_FenceHighMetalPosts",
+     "category": "Welding",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalBigWireFence",
+     "name": "Big Metal Wire Fence",
+     "icon": "Build_DoubleWireFence",
+     "category": "Welding",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalPoleFenceGate",
+     "name": "Big Pole Fence Gate",
+     "icon": "Build_PoleGate",
+     "category": "Welding",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalWireFenceGate",
+     "name": "Big Wire Fence Gate",
+     "icon": "Build_TallWireGate",
+     "category": "Welding",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.BarrelOven",
+     "name": "Metal Barrel Oven",
+     "icon": "Build_BarrelOven",
+     "category": "Welding",
+     "canBuild": false,
+     "skill": {
+      "name": "Welding",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.MetalDoorLvl2",
+     "name": "Metal Door (Poor)",
+     "icon": "Build_DoorMetal",
+     "category": "Welding",
+     "canBuild": true,
+     "group": "MetalDoor",
+     "level": 2,
+     "version": "Poor",
+     "groupName": "Metal Door",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalDoorLvl1",
+     "name": "Metal Door (Shoddy)",
+     "icon": "Build_DoorWeldedMetal",
+     "category": "Welding",
+     "canBuild": true,
+     "group": "MetalDoor",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Metal Door",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalDoorFrameLvl2",
+     "name": "Metal Door Frame (Good)",
+     "icon": "Build_DoorframeMetal",
+     "category": "Welding",
+     "canBuild": false,
+     "group": "MetalDoorFrame",
+     "level": 2,
+     "version": "Good",
+     "groupName": "Metal Door Frame",
+     "skill": {
+      "name": "Welding",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.MetalDoorFrameLvl1",
+     "name": "Metal Door Frame (Poor)",
+     "icon": "Build_DoorframeMetal",
+     "category": "Welding",
+     "canBuild": true,
+     "group": "MetalDoorFrame",
+     "level": 1,
+     "version": "Poor",
+     "groupName": "Metal Door Frame",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalFenceLvl2",
+     "name": "Metal Fence (Good)",
+     "icon": "Build_FenceMetal",
+     "category": "Welding",
+     "canBuild": false,
+     "group": "MetalFence",
+     "level": 2,
+     "version": "Good",
+     "groupName": "Metal Fence",
+     "skill": {
+      "name": "Welding",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.MetalFenceLvl1",
+     "name": "Metal Fence (Shoddy)",
+     "icon": "Build_FenceMetal",
+     "category": "Welding",
+     "canBuild": true,
+     "group": "MetalFence",
+     "level": 1,
+     "version": "Shoddy",
+     "groupName": "Metal Fence",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalFloorLvl1",
+     "name": "Metal Floor",
+     "icon": "Build_FloorTileMetal",
+     "category": "Welding",
+     "canBuild": true,
+     "group": "MetalFloor",
+     "level": 1
+    },
+    {
+     "id": "Base.Metal_Stairs",
+     "name": "Metal Stairs",
+     "icon": "Build_StairsMetal",
+     "category": "Welding",
+     "canBuild": false,
+     "skill": {
+      "name": "Welding",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.MetalWallLvl2",
+     "name": "Metal Wall (Good)",
+     "icon": "Build_WallMetal",
+     "category": "Welding",
+     "canBuild": false,
+     "group": "MetalWall",
+     "level": 2,
+     "version": "Good",
+     "groupName": "Metal Wall",
+     "skill": {
+      "name": "Welding",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.MetalWallLvl1",
+     "name": "Metal Wall (Poor)",
+     "icon": "Build_WallMetal",
+     "category": "Welding",
+     "canBuild": true,
+     "group": "MetalWall",
+     "level": 1,
+     "version": "Poor",
+     "groupName": "Metal Wall",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalWallFrame",
+     "name": "Metal Wall Frame",
+     "icon": "Build_WallframeMetal",
+     "category": "Welding",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 2
+     }
+    },
+    {
+     "id": "Base.MetalWindowFrameLvl2",
+     "name": "Metal Window Frame",
+     "icon": "Build_WindowframeMetal",
+     "category": "Welding",
+     "canBuild": false,
+     "group": "MetalWindowFrame",
+     "level": 2,
+     "skill": {
+      "name": "Welding",
+      "level": 5
+     }
+    },
+    {
+     "id": "Base.MetalWindowFrameLvl1",
+     "name": "Metal Window Frame (Poor)",
+     "icon": "Build_WindowframeMetal",
+     "category": "Welding",
+     "canBuild": true,
+     "group": "MetalWindowFrame",
+     "level": 1,
+     "version": "Poor",
+     "groupName": "Metal Window Frame",
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalSmallPoleFence",
+     "name": "Small Metal Pole Fence (Poor)",
+     "icon": "Build_FenceMetalPosts",
+     "category": "Welding",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalSmallWireFence",
+     "name": "Small Metal Wire Fence",
+     "icon": "Build_ShortWireFence",
+     "category": "Welding",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalPoleFenceGateSmall",
+     "name": "Small Pole Fence Gate",
+     "icon": "Build_FenceMetalPosts",
+     "category": "Welding",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    },
+    {
+     "id": "Base.MetalWireFenceGateSmall",
+     "name": "Small Wire Fence Gate",
+     "icon": "Build_ShortWireGate",
+     "category": "Welding",
+     "canBuild": true,
+     "skill": {
+      "name": "Welding",
+      "level": 3
+     }
+    }
+   ],
+   "categories": [
+    {
+     "id": "Barricades",
+     "name": "Barricades"
+    },
+    {
+     "id": "Blacksmithing",
+     "name": "Blacksmithing"
+    },
+    {
+     "id": "Carpentry",
+     "name": "Carpentry"
+    },
+    {
+     "id": "Farming",
+     "name": "Farming"
+    },
+    {
+     "id": "Furniture",
+     "name": "Furniture"
+    },
+    {
+     "id": "Masonry",
+     "name": "Masonry"
+    },
+    {
+     "id": "Miscellaneous",
+     "name": "Miscellaneous"
+    },
+    {
+     "id": "Outdoors",
+     "name": "Outdoors"
+    },
+    {
+     "id": "Pottery",
+     "name": "Pottery"
+    },
+    {
+     "id": "WallCoverings",
+     "name": "Wall Coverings"
+    },
+    {
+     "id": "Welding",
+     "name": "Welding"
+    }
+   ]
+  }
+ }
+}

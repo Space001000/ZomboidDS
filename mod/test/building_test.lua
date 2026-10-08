@@ -101,7 +101,7 @@ check(cursor.dragNilAfterPlace == false and cursor.blockAfterPlace == true and c
   "it stays up after placing, like the build window's")
 check(cursor.secondItem == "Base.Hammer", "with the tool in hand the window would pick")
 local placing = B42.snapshotBuilding(player).placing
-check(placing.name == "Wood Chair (Shoddy)" and placing.missing == nil, "the building message says what's being placed")
+check(placing.name == "Wood Chair (Shoddy)" and placing.missing == nil and placing.blocked == nil, "the building message says what's being placed")
 
 -- After a placement the game blocks the cursor until the panel re-checks; we re-check too.
 cursor.blockBuild = true
@@ -110,7 +110,7 @@ check(cursor.blockBuild == false and drag[0] == cursor, "after a placement: re-c
 
 check(B42.commands.build_place(player, { recipe = "Base.Log_Bench" }) and drag[0].blockBuild == true, "not enough: the cursor comes up blocked")
 local short = B42.snapshotBuilding(player).placing
-check(short.missing and short.missing[1] == "Plank", "and the message names what's short")
+check(short.blocked and short.missing and short.missing[1] == "Plank", "and the message says it's blocked and names what's short")
 
 check(B42.commands.build_stop(player) and drag[0] == nil and next(B42.snapshotBuilding(player)) == nil, "stop puts the cursor away")
 B42.commands.build_place(player, { recipe = "Base.Wood_Chair_Lvl1" })

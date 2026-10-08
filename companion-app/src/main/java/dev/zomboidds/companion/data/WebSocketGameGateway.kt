@@ -10,6 +10,7 @@ import dev.zomboidds.companion.domain.GameSpeed
 import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenuResult
+import dev.zomboidds.companion.domain.BuildList
 import dev.zomboidds.companion.domain.RecipeDetails
 import dev.zomboidds.companion.domain.RecipeList
 import java.util.concurrent.ConcurrentHashMap
@@ -127,6 +128,16 @@ class WebSocketGameGateway(
         fetched(send(ProtocolV1.craftRecipeRequest(id)), "The game's recipe couldn't be read", ProtocolV1::recipeDetails)
 
     override suspend fun craft(id: String, count: Int): CommandResult = send(ProtocolV1.craftRequest(id, count)).result
+
+    override suspend fun buildRecipes(): Fetched<BuildList> =
+        fetched(send(ProtocolV1.buildListRequest()), "The game's build recipes couldn't be read", ProtocolV1::buildList)
+
+    override suspend fun buildRecipe(id: String): Fetched<RecipeDetails> =
+        fetched(send(ProtocolV1.buildRecipeRequest(id)), "The game's recipe couldn't be read", ProtocolV1::buildRecipeDetails)
+
+    override suspend fun place(id: String): CommandResult = send(ProtocolV1.buildPlaceRequest(id)).result
+
+    override suspend fun stopPlacing(): CommandResult = send(ProtocolV1.buildStopRequest()).result
 
     private fun <T> fetched(reply: ProtocolV1.ServerMessage.Reply, unreadable: String, parse: (JsonElement?) -> T): Fetched<T> =
         when (val result = reply.result) {

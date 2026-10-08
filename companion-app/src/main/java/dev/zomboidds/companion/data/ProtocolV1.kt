@@ -37,6 +37,9 @@ import dev.zomboidds.companion.domain.Moodle
 import dev.zomboidds.companion.domain.MoodleTone
 import dev.zomboidds.companion.domain.Moodles
 import dev.zomboidds.companion.domain.PlayerStatus
+import dev.zomboidds.companion.domain.BuildList
+import dev.zomboidds.companion.domain.BuildRecipe
+import dev.zomboidds.companion.domain.Placing
 import dev.zomboidds.companion.domain.RecipeCategory
 import dev.zomboidds.companion.domain.RecipeDetails
 import dev.zomboidds.companion.domain.RecipeInput
@@ -44,6 +47,7 @@ import dev.zomboidds.companion.domain.RecipeList
 import dev.zomboidds.companion.domain.RecipeOutput
 import dev.zomboidds.companion.domain.RecipeSkill
 import dev.zomboidds.companion.domain.RecipeSummary
+import dev.zomboidds.companion.domain.SkillNeed
 import dev.zomboidds.companion.domain.SessionInfo
 import dev.zomboidds.companion.domain.TimeState
 import dev.zomboidds.companion.domain.Vehicle
@@ -201,6 +205,18 @@ object ProtocolV1 {
         val icon: String? = null,
         val available: Boolean = true,
         val on: Boolean? = null,
+    )
+
+    @Serializable
+    private data class BuildingDto(val placing: PlacingDto? = null)
+
+    @Serializable
+    private data class PlacingDto(
+        val id: String,
+        val name: String = "",
+        val icon: String? = null,
+        val blocked: Boolean = false,
+        val missing: List<String> = emptyList(),
     )
 
     @Serializable
@@ -417,6 +433,8 @@ object ProtocolV1 {
         val category: String? = null,
         val seconds: Float? = null,
         val canCraft: Boolean = false,
+        /** `build_recipe` says canBuild. */
+        val canBuild: Boolean = false,
         val max: Int = 0,
         val inputs: List<RecipeInputDto> = emptyList(),
         val outputs: List<RecipeOutputDto> = emptyList(),
@@ -461,13 +479,59 @@ object ProtocolV1 {
             icon = dto.icon,
             category = dto.category,
             seconds = dto.seconds?.toInt(),
-            canCraft = dto.canCraft,
+            canCraft = dto.canCraft || dto.canBuild,
             max = dto.max,
             inputs = dto.inputs.map { RecipeInput(it.name ?: "?", it.icon, it.need, it.have, it.ok, it.keep, it.others, it.unit) },
             outputs = dto.outputs.map { RecipeOutput(it.name ?: "?", it.icon, it.amount, it.unit) },
             skills = dto.skills.map { RecipeSkill(it.name ?: "?", it.level, it.have) },
         )
     }
+
+    fun buildListRequest() = Request("build_list", buildJsonObject { })
+
+    fun buildRecipeRequest(id: String) = Request("build_recipe", buildJsonObject { put("recipe", id) })
+
+    fun buildPlaceRequest(id: String) = Request("build_place", buildJsonObject { put("recipe", id) })
+
+    fun buildStopRequest() = Request("build_stop", buildJsonObject { })
+
+    @Serializable
+    private data class BuildListDto(val recipes: List<BuildRecipeDto> = emptyList(), val categories: List<RecipeCategoryDto> = emptyList())
+
+    @Serializable
+    private data class BuildRecipeDto(
+        val id: String,
+        val name: String = "",
+        val icon: String? = null,
+        val category: String? = null,
+        val canBuild: Boolean = false,
+        val group: String? = null,
+        val level: Int? = null,
+        val version: String? = null,
+        val groupName: String? = null,
+        val skill: SkillNeedDto? = null,
+    )
+
+    @Serializable
+    private data class SkillNeedDto(val name: String? = null, val level: Int = 0)
+
+    /** The `data` of a `build_list` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun buildList(data: JsonElement?): BuildList {
+        requireNotNull(data) { "the game sent no recipes" }
+        val dto = json.decodeFromJsonElement<BuildListDto>(lenient(data))
+        return BuildList(
+            dto.recipes.map {
+                BuildRecipe(it.id, it.name.ifEmpty { it.id }, it.icon, it.category, it.canBuild, it.group, it.level,
+                    it.version?.takeIf(String::isNotBlank), it.groupName?.takeIf(String::isNotBlank),
+                    it.skill?.name?.let { name -> SkillNeed(name, it.skill.level) })
+            },
+            dto.categories.map { RecipeCategory(it.id, it.name.ifEmpty { it.id }) },
+        )
+    }
+
+    /** The `data` of a `build_recipe` reply: like a craft recipe's, made once, with nothing it makes. */
+    fun buildRecipeDetails(data: JsonElement?): RecipeDetails =
+        recipeDetails(data).let { it.copy(max = if (it.canCraft) 1 else 0) }
 
     fun setSpeedRequest(speed: GameSpeed) = Request("set_speed", buildJsonObject { put("speed", speed.ordinal) })
 
@@ -592,6 +656,10 @@ object ProtocolV1 {
                         if (a.hour == null || a.minute == null) null else AlarmClock(a.name ?: "Watch", a.hour, a.minute, a.on)
                     },
                 ))
+            }
+            // An empty Lua table ({} = not placing) can arrive as [].
+            "building" -> if (data !is JsonObject) state.copy(placing = null) else json.decodeFromJsonElement<BuildingDto>(data).let { dto ->
+                state.copy(placing = dto.placing?.let { Placing(it.id, it.name.ifEmpty { it.id }, it.icon, it.blocked, it.missing) })
             }
             "map" -> json.decodeFromJsonElement<MapDto>(data).let { dto ->
                 if (dto.x == null || dto.y == null) state

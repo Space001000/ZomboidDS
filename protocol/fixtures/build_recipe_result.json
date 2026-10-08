@@ -1,0 +1,63 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 41,
+ "data": {
+  "id": "c-51",
+  "ok": true,
+  "data": {
+   "id": "Base.WoodenDoorLvl2",
+   "name": "Wood Door (Poor)",
+   "icon": "Build_DoorWood",
+   "category": "Carpentry",
+   "seconds": 60,
+   "canBuild": true,
+   "inputs": [
+    {
+     "name": "Hammer",
+     "icon": "Item_Hammer",
+     "need": 1,
+     "have": 1,
+     "ok": true,
+     "keep": true,
+     "others": 4
+    },
+    {
+     "name": "Plank",
+     "icon": "Item_Plank",
+     "need": 4,
+     "have": 38,
+     "ok": true
+    },
+    {
+     "name": "Nails",
+     "icon": "Item_Nails",
+     "need": 4,
+     "have": 212,
+     "ok": true
+    },
+    {
+     "name": "Door Hinge",
+     "icon": "Item_Doorhinge",
+     "need": 2,
+     "have": 4,
+     "ok": true
+    },
+    {
+     "name": "Doorknob",
+     "icon": "Item_DoorKnob",
+     "need": 1,
+     "have": 2,
+     "ok": true
+    }
+   ],
+   "skills": [
+    {
+     "name": "Carpentry",
+     "level": 5,
+     "have": 5
+    }
+   ]
+  }
+ }
+}

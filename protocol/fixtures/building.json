@@ -1,0 +1,16 @@
+{
+ "v": 1,
+ "type": "building",
+ "seq": 42,
+ "data": {
+  "placing": {
+   "id": "Base.Log_Bench",
+   "name": "Log Bench",
+   "icon": "Build_LogBench",
+   "blocked": true,
+   "missing": [
+    "Log"
+   ]
+  }
+ }
+}

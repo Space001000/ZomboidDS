@@ -26,6 +26,8 @@ data class GameState(
     val explored: ExploredAreas? = null,
     /** The symbols and notes the player put on their map; empty until the game reported them. */
     val mapSymbols: List<MapSymbol> = emptyList(),
+    /** What the player is placing with the game's build cursor; null when nothing. */
+    val placing: Placing? = null,
 )
 
 /** What the game's moodle column shows, most urgent first, and the images to draw them with. */

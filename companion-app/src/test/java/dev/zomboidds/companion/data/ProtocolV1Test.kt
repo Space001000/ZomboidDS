@@ -331,6 +331,40 @@ class ProtocolV1Test {
     }
 
     @Test
+    fun `build replies group a thing's versions`() {
+        val list = (ProtocolV1.decode(fixture("build_list_result.json")) as ProtocolV1.ServerMessage.Reply)
+            .let { ProtocolV1.buildList(it.data) }
+        assertEquals(190, list.recipes.size)
+        val chair = list.groups.single { it.key == "Wood_Chair" }
+        assertEquals("Wood Chair", chair.name)
+        assertEquals(listOf("Shoddy", "Poor", "Good"), chair.versions.map { it.version })
+        assertEquals(listOf(1, 3, 6), chair.versions.map { it.skill?.level })
+        assertEquals("the best version you can build", "Base.Wood_Chair_Lvl2", chair.preferred.id)
+        val crate = list.groups.single { it.key == "Wood_Crate" }
+        assertEquals("a version without brackets keeps its name", listOf("Shoddy", null), crate.versions.map { it.version })
+        val bench = list.groups.single { it.key == "Base.Log_Bench" }
+        assertEquals("one version: its own name", "Log Bench", bench.name)
+        assertTrue(list.groups.size < list.recipes.size)
+
+        val door = (ProtocolV1.decode(fixture("build_recipe_result.json")) as ProtocolV1.ServerMessage.Reply)
+            .let { ProtocolV1.buildRecipeDetails(it.data) }
+        assertTrue("canBuild reads as can make", door.canCraft)
+        assertEquals(1, door.max)
+        assertTrue(door.inputs[0].keep)
+    }
+
+    @Test
+    fun `building says what's being placed, and nothing as an empty table`() {
+        val placing = applyAll("building.json").placing!!
+        assertEquals("Log Bench", placing.name)
+        assertTrue(placing.blocked)
+        assertEquals(listOf("Log"), placing.missing)
+        val placed = GameState(placing = placing)
+        assertNull(ProtocolV1.apply(placed, """{"v":1,"type":"building","data":{}}""").placing)
+        assertNull("an empty Lua table can come as a list", ProtocolV1.apply(placed, """{"v":1,"type":"building","data":[]}""").placing)
+    }
+
+    @Test
     fun `moodles come with the game's texts, colours and images`() {
         val moodles = applyAll("moodles.json").moodles!!
         assertEquals(listOf("Bleeding", "Peckish", "Drowsy"), moodles.list.map { it.name })
