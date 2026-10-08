@@ -113,34 +113,101 @@ final class MockItemMenu {
 
     private boolean doorOpen;
 
+    /** Steps of a walk through a kitchen: the objects around you (in the game's order) and the one in front. */
+    private static final String[][] WALK = {
+        {"window", "sink", "|window"},
+        {"window", "sink", "oven", "|oven"},
+        {"microwave", "oven", "sink", "window", "|microwave"},
+        {"microwave", "oven", "sink", "window", "|oven"},
+        {"door", "window", "microwave", "|door"},
+    };
+
+    /** Which step of [WALK] the mock is at: the back door (with the door the tests use) until MockGame walks on. */
+    int walkStep = WALK.length - 1;
+
     /**
      * The world menu for where the player stands ("Here"), shaped like the game's: objects with a
-     * submenu of actions, a greyed-out action with the game's reason, and a loose action at the end.
+     * submenu of actions (keyed by where they are, one in front), a greyed-out action with the
+     * game's reason, Disassemble as a list of objects, and a loose action at the end.
      */
     Map<String, Object> openWorld() {
         Map<String, Supplier<String>> actions = new LinkedHashMap<>();
         List<Object> options = new ArrayList<>();
-        List<Object> window = new ArrayList<>();
-        for (String[] w : new String[][] {{"1.1", "Open Window"}, {"1.2", "Smash Window"}, {"1.3", "Open Curtains"}, {"1.4", "Remove Curtains"}}) {
-            window.add(option(w[0], w[1], true, null, null));
-            actions.put(w[0], () -> null);
+        String[] step = WALK[walkStep % WALK.length];
+        String front = step[step.length - 1].substring(1);
+        int n = 0;
+        for (int i = 0; i < step.length - 1; i++) {
+            String id = String.valueOf(++n);
+            List<Object> children = new ArrayList<>();
+            Map<String, Object> card = switch (step[i]) {
+                case "window" -> {
+                    for (String a : new String[] {"Open Window", "Smash Window", "Close Curtains", "Remove Curtains", "Climb through"}) {
+                        children.add(option(id + "." + (children.size() + 1), a, true, null, null));
+                    }
+                    yield withIcon(option(id, "Window", true, null, children), "fixtures_windows_01_17_Icon");
+                }
+                case "sink" -> {
+                    children.add(option(id + ".1", "Drink", true, null, null));
+                    children.add(option(id + ".2", "Fill", true, null, List.of(
+                        option(id + ".2.1", "Water Bottle", true, null, null), option(id + ".2.2", "Cooking Pot", true, null, null))));
+                    yield withIcon(option(id, "Chrome Sink", true, null, children), "fixtures_sinks_01_11_Icon");
+                }
+                case "oven" -> {
+                    children.add(option(id + ".1", ovenOn ? "Turn off" : "Turn on", true, null, null));
+                    actions.put(id + ".1", () -> {
+                        ovenOn = !ovenOn;
+                        return null;
+                    });
+                    children.add(option(id + ".2", "Settings", true, null, null));
+                    yield withIcon(option(id, "Green Oven", true, null, children), "appliances_cooking_01_0_Icon");
+                }
+                case "microwave" -> {
+                    children.add(option(id + ".1", "Turn on", false, "There's no power", null));
+                    children.add(option(id + ".2", "Settings", true, null, null));
+                    yield withIcon(option(id, "Chrome Microwave", true, null, children), "appliances_cooking_01_28_Icon");
+                }
+                default -> {
+                    children.add(option(id + ".1", doorOpen ? "Close Door" : "Open Door", true, null, null));
+                    actions.put(id + ".1", () -> {
+                        doorOpen = !doorOpen;
+                        return null;
+                    });
+                    children.add(option(id + ".2", "Lock Door", false, "You need the key", null));
+                    yield withIcon(option(id, "Door", true, null, children), "fixtures_doors_01_28_Icon");
+                }
+            };
+            for (Object child : children) {
+                @SuppressWarnings("unchecked") Map<String, Object> c = (Map<String, Object>) child;
+                if (Boolean.TRUE.equals(c.get("enabled")) && c.get("children") == null) {
+                    actions.putIfAbsent((String) c.get("id"), () -> null);
+                }
+            }
+            card.put("key", step[i]);
+            if (step[i].equals(front)) {
+                card.put("front", true);
+            }
+            options.add(card);
         }
-        options.add(withIcon(option("1", "Window", true, null, window), "fixtures_windows_01_17_Icon"));
-        List<Object> door = new ArrayList<>();
-        door.add(option("2.1", doorOpen ? "Close Door" : "Open Door", true, null, null));
-        actions.put("2.1", () -> {
-            doorOpen = !doorOpen;
-            return null;
-        });
-        door.add(option("2.2", "Lock Door", false, "You need the key", null));
-        options.add(withIcon(option("2", "Door", true, null, door), "fixtures_sinks_01_11_Icon"));
-        List<Object> light = new ArrayList<>();
-        light.add(option("3.1", "Turn on", false, "There's no power", null));
-        light.add(option("3.2", "Remove Light Bulb", true, null, null));
-        actions.put("3.2", () -> null);
-        options.add(withIcon(option("3", "Fluorescent Wall Light", true, null, light), "appliances_cooking_01_30_Icon"));
-        options.add(option("4", "Sit on ground", true, null, null));
-        actions.put("4", () -> null);
+        String id = String.valueOf(++n);
+        List<Object> parts = new ArrayList<>();
+        String[] scrap = {"Green Oven", "Air Conditioner", "Rough Wooden Corner Counter", "Chrome Toaster", "Coffee X-press"};
+        for (String name : scrap) {
+            boolean can = name.equals("Chrome Toaster");
+            String partId = id + "." + (parts.size() + 1);
+            parts.add(option(partId, name, can, can ? null : "Needs a screwdriver", null));
+            if (can) {
+                actions.put(partId, () -> null);
+            }
+        }
+        Map<String, Object> disassemble = withIcon(option(id, "Disassemble", true, null, parts), "Item_Hammer");
+        disassemble.put("key", "list:Disassemble");
+        disassemble.put("tray", true);
+        options.add(disassemble);
+        String sit = String.valueOf(++n);
+        Map<String, Object> sitOption = option(sit, "Sit on ground", true, null, null);
+        sitOption.put("key", "name:Sit on ground");
+        options.add(sitOption);
+        actions.put(sit, () -> null);
         currentId = "m" + (++nextId);
         currentActions = actions;
         Map<String, Object> menu = new LinkedHashMap<>();
@@ -148,6 +215,8 @@ final class MockItemMenu {
         menu.put("options", options);
         return menu;
     }
+
+    private boolean ovenOn;
 
     /** The treatment menu for a body part: one option, one greyed out with the game's reason. */
     Map<String, Object> openHealth() {

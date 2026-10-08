@@ -57,6 +57,9 @@ final class MockGame {
     private boolean timeDirty = true;
     private boolean watchingHere;
     private boolean hereDirty;
+    private int lastWalk;
+    /** Walk through the kitchen ({@code walk=on}); off for tests, which want a menu that holds still. */
+    boolean walking;
     /** The Command deck (deck.json); modes flip when run. */
     private final Map<String, Object> deck = fixtureData("deck.json");
     private boolean deckDirty = true;
@@ -177,6 +180,13 @@ final class MockGame {
             if (containersDirty) {
                 bridge.state().publish("containers", Map.of("containers", containerSnapshot()));
                 containersDirty = false;
+            }
+            // Walk on through the kitchen every few seconds, so "Here" changes as in the game.
+            int walk = (int) (System.currentTimeMillis() / 4000);
+            if (walking && watchingHere && walk != lastWalk) {
+                lastWalk = walk;
+                menu.walkStep++;
+                hereDirty = true;
             }
             if (hereDirty) {
                 Map<String, Object> here = new LinkedHashMap<>();

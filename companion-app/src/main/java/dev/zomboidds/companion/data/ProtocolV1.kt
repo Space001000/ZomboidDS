@@ -346,6 +346,9 @@ object ProtocolV1 {
         val children: List<MenuOptionDto> = emptyList(),
         val icon: String? = null,
         val pill: String? = null,
+        val key: String? = null,
+        val tray: Boolean = false,
+        val front: Boolean = false,
     )
 
     /** Throws [IllegalArgumentException] for malformed messages. */
@@ -408,6 +411,7 @@ object ProtocolV1 {
                 "drop" -> MenuPill.DROP
                 else -> MenuPill.ACTION
             },
+            key = key, tray = tray, front = front,
         )
 
     fun craftListRequest() = Request("craft_list", buildJsonObject { })

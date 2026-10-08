@@ -2,5 +2,8 @@
   "v": 1, "type": "here", "seq": 15,
   "data": { "watching": true, "menuId": "m9", "options": [
     { "id": "1", "name": "Sit on chair", "enabled": true },
-    { "id": "2", "name": "Open door", "enabled": true } ] }
+    { "id": "2", "name": "Door", "enabled": true, "key": "9,20,0#4", "front": true, "children": [
+      { "id": "2.1", "name": "Open Door", "enabled": true } ] },
+    { "id": "3", "name": "Disassemble", "enabled": true, "key": "list:Disassemble", "tray": true, "children": [
+      { "id": "3.1", "name": "Chrome Toaster", "enabled": true } ] } ] }
 }

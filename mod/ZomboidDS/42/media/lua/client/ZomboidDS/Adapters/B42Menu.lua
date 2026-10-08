@@ -150,7 +150,8 @@ end
 --- Walks the menu (and its submenus) into plain tables for the app, storing each runnable option's
 --- call data in `calls` under its id ("3", "3.2", ...). Options whose function is in `skip` are left
 --- out, and so is a submenu left with nothing else. Top-level options in `pills` get `pill` = kind.
-local function snapshot(menu, calls, prefix, depth, skip, pills)
+--- `all`, if given, gets the call data of every option, greyed ones too.
+local function snapshot(menu, calls, prefix, depth, skip, pills, all)
     local list = {}
     for index, option in ipairs(menu.options) do
         if option ~= nil and option.name ~= nil and not (skip and option.onSelect and skip[option.onSelect]) then
@@ -165,17 +166,21 @@ local function snapshot(menu, calls, prefix, depth, skip, pills)
             local subMenu = option.subOption ~= nil and depth < MAX_DEPTH and menu:getSubMenu(option.subOption) or nil
             local dropped = false
             if subMenu ~= nil then
-                entry.children = snapshot(subMenu, calls, id .. ".", depth + 1, skip)
+                entry.children = snapshot(subMenu, calls, id .. ".", depth + 1, skip, nil, all)
                 entry.enabled = #entry.children > 0
                 dropped = skip ~= nil and #entry.children == 0 and #(subMenu.options or {}) > 0
             else
                 entry.enabled = option.onSelect ~= nil and not option.notAvailable and not option.isDisabled
+                local call = {
+                    fn = option.onSelect, target = option.target,
+                    option.param1, option.param2, option.param3, option.param4, option.param5,
+                    option.param6, option.param7, option.param8, option.param9, option.param10,
+                }
                 if entry.enabled then
-                    calls[id] = {
-                        fn = option.onSelect, target = option.target,
-                        option.param1, option.param2, option.param3, option.param4, option.param5,
-                        option.param6, option.param7, option.param8, option.param9, option.param10,
-                    }
+                    calls[id] = call
+                end
+                if all ~= nil then
+                    all[id] = call
                 end
             end
             if not dropped then
@@ -257,6 +262,99 @@ end
 --- controller's interact button opens (42.20 ISButtonPrompt:interact). The objects come from the
 --- prompt's own getInteractOptionsButtonObjects (the player's tile and the three tiles they face,
 --- not through walls), and the menu is built at the player's screen position like there.
+--- The world object a call acts on: its target or a parameter that is one, or the `object` of a
+--- table parameter (Disassemble passes { object = ..., square = ... }). nil for none.
+local function worldObjectOf(values, count)
+    for i = 0, count do
+        local v = values[i]
+        if v ~= nil then
+            if type(v) == "table" and not instanceof(v, "IsoObject") then
+                v = v.object
+            end
+            if v ~= nil and instanceof(v, "IsoObject") then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+--- Where an object is: its square and its place among the square's objects. Survives rebuilds,
+--- walking away and coming back, and the object changing (a door opening swaps its sprite).
+local function objectKey(object)
+    local square = Util.try(object, "getSquare")
+    local index = Util.try(object, "getObjectIndex")
+    if square == nil or index == nil then
+        return nil
+    end
+    return square:getX() .. "," .. square:getY() .. "," .. square:getZ() .. "#" .. index
+end
+
+--- The calls under an option (itself, or every option below it, greyed ones too), in menu order.
+local function callsUnder(entry, calls, out)
+    if calls[entry.id] ~= nil then
+        out[#out + 1] = calls[entry.id]
+    end
+    for _, child in ipairs(entry.children or {}) do
+        callsUnder(child, calls, out)
+    end
+    return out
+end
+
+--- What the game's interact button would act on (its prompt, bottom right): the prompt's own
+--- object (a stove, a light), or for a door or window, which the prompt names without passing it,
+--- the one the game picks the same way (ISButtonPrompt.getBestAButtonAction). nil without a prompt.
+local function promptObject(player, prompts)
+    if prompts.aPrompt == nil then
+        return nil
+    end
+    local params = prompts.aParams or {}
+    local object = worldObjectOf({ [0] = params[1], params[2], params[3], params[4] }, 3)
+    return object or Util.try(player, "getContextDoorOrWindowOrWindowFrame", player:getDir())
+end
+
+--- Gives the world menu's top-level options what the app needs to keep them in place:
+---   key   the object an option belongs to (its first call's object), so a card keeps its place
+---         however the game orders its menu; options without an object get their name
+---   tray  a list of objects under one action (Disassemble > each object): the same function for
+---         every entry, each on its own object (or Disassemble itself, even with one object). The
+---         app shows these apart from the objects.
+---   front the option for what the interact button would act on.
+local function markWorld(player, prompts, options, calls)
+    local front = promptObject(player, prompts)
+    local frontKey = front and objectKey(front)
+    local used = {}
+    for _, entry in ipairs(options) do
+        local list = callsUnder(entry, calls, {})
+        local keys, firstKey = {}, nil
+        for _, call in ipairs(list) do
+            local object = worldObjectOf({ [0] = call.target, call[1], call[2], call[3], call[4], call[5],
+                call[6], call[7], call[8], call[9], call[10] }, 10)
+            local key = object and objectKey(object)
+            if key ~= nil then
+                keys[key] = true
+                firstKey = firstKey or key
+            end
+        end
+        local children = entry.children or {}
+        local sameFunction, objects = #children > 0, 0
+        for _, child in ipairs(children) do
+            local call = calls[child.id]
+            if #(child.children or {}) > 0 or (call ~= nil and list[1] ~= nil and call.fn ~= list[1].fn) then
+                sameFunction = false
+            end
+        end
+        for _ in pairs(keys) do objects = objects + 1 end
+        local disassemble = ISDisassembleMenu and ISDisassembleMenu.disassemble
+        entry.tray = (sameFunction and ((objects >= 2 and objects >= #list)
+            or (disassemble ~= nil and list[1] ~= nil and list[1].fn == disassemble))) or nil
+        local key = entry.tray and ("list:" .. entry.name) or firstKey or ("name:" .. entry.name)
+        used[key] = (used[key] or 0) + 1
+        entry.key = used[key] == 1 and key or (key .. "|" .. used[key])
+        entry.front = (frontKey ~= nil and not entry.tray and keys[frontKey]) or nil
+    end
+end
+
 --- Returns true, nil, { menuId, options } or false, reason.
 function B42Menu.openWorld(player)
     local playerNum = player:getPlayerNum()
@@ -284,10 +382,15 @@ function B42Menu.openWorld(player)
         return false, "Nothing to do here"
     end
     local calls = {}
-    local ok, options = pcall(snapshot, menu, calls, "", 1)
+    local all = {}
+    local ok, options = pcall(snapshot, menu, calls, "", 1, nil, nil, all)
     menu:hideAndChildren() -- same tick as createWorldMenu, so it never shows on the top screen
     if not ok then
         return false, "Could not read the game's menu: " .. tostring(options)
+    end
+    local marked, err = pcall(markWorld, player, prompts, options, all)
+    if not marked then
+        print("[ZomboidDS] Here: could not mark the world menu: " .. tostring(err))
     end
 
     -- Same options as the last world menu (standing still): keep its id, so the app sees no change.

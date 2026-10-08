@@ -15,6 +15,15 @@ data class MenuOption(
     val icon: String? = null,
     /** One of the item's main uses, shown as a button above the rest; null for the rest. */
     val pill: MenuPill? = null,
+    /**
+     * World menu ("Here") only, top level: the object this option belongs to, the same however the
+     * game orders its menu; null elsewhere (use [id]).
+     */
+    val key: String? = null,
+    /** World menu only: a list of objects under one action (Disassemble), shown apart from the objects. */
+    val tray: Boolean = false,
+    /** World menu only: what the game's interact button would act on right now. */
+    val front: Boolean = false,
 )
 
 /** How a pill is drawn: a main use, or Drop (quieter). */

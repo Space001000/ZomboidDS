@@ -14,6 +14,7 @@ val RELEASES = listOf(
     Release("1.3.2", "Fixes", null, listOf(
         "**Build:** tap **Craft ▾** and pick Build for the game's build menu. Wood Chair (Shoddy, Poor, Good) is one tile; pick the version in its panel. **Place** brings up the game's cursor on the top screen: d-pad moves, LB/RB turn, A builds, B stops.",
         "**Tailor:** **Craft ▾** → Tailor shows your clothes, worn and in your bags, with their holes and patches, and your needle, thread and fabric. Tap one to see each body part it covers, then tap a part to patch a hole, add padding or remove a patch, as in the game's Inspect window. **Inspect** in an item's panel opens it too.",
+        "**Here** holds still: each object keeps its place as you move. What's in front of you goes on top once you've faced it for a second, and the one before stays right under it. **Disassemble** and loose actions sit in a row at the bottom, and lists open over the cards. While you touch the screen, nothing moves.",
         "**Fixed:** Android could say ZomboidDS isn't responding when you pressed controller buttons while the game wasn't running.",
         "**Fixed:** opening a car's trunk opened the game's loot window on the top screen. It opens on the bottom screen now, like Loot.",
         "**Fixed:** a container that appeared or went away nearby (like an opened or closed trunk) showed up in the app only after you moved or turned.",

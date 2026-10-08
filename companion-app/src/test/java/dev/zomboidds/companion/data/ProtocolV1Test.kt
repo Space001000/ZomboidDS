@@ -382,7 +382,11 @@ class ProtocolV1Test {
     fun `here carries the world menu while watched`() {
         val here = applyAll("here.json").here!!
         assertEquals("m9", here.menu!!.menuId)
-        assertEquals(listOf("Sit on chair", "Open door"), here.menu!!.options.map { it.name })
+        assertEquals(listOf("Sit on chair", "Door", "Disassemble"), here.menu!!.options.map { it.name })
+        val (sit, door, disassemble) = here.menu!!.options
+        assertEquals(listOf(null, "9,20,0#4", "list:Disassemble"), listOf(sit.key, door.key, disassemble.key))
+        assertEquals("only the door is in front", listOf(false, true, false), listOf(sit.front, door.front, disassemble.front))
+        assertEquals("only Disassemble is a list of objects", listOf(false, false, true), listOf(sit.tray, door.tray, disassemble.tray))
         val paused = ProtocolV1.apply(GameState(), """{"v":1,"type":"here","data":{"watching":true,"unavailable":"The game is paused"}}""")
         assertEquals(HereState(null, "The game is paused"), paused.here)
         assertNull(ProtocolV1.apply(GameState(), """{"v":1,"type":"here","data":{"watching":false}}""").here)

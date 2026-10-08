@@ -20,7 +20,8 @@ import java.util.stream.Stream;
  * A {@link GameAdapter} backed by {@link MockGame} instead of Project Zomboid.
  *
  * <p>Options: {@code gameDir=<Project Zomboid folder>} serves the real item icons from the game's
- * texture packs (otherwise placeholders); {@code inventory=full} starts with a large inventory.
+ * texture packs (otherwise placeholders); {@code inventory=full} starts with a large inventory;
+ * {@code walk=on} walks through a kitchen, so "Here" changes every few seconds.
  */
 final class MockGameAdapter implements GameAdapter {
 
@@ -62,6 +63,7 @@ final class MockGameAdapter implements GameAdapter {
     @Override
     public void attach(GameEnvironment env, BridgeContext context) {
         game = new MockGame(context, "full".equals(env.option("inventory", "")) ? "inventory_full.json" : "inventory.json");
+        game.walking = "on".equals(env.option("walk", ""));
         game.start();
     }
 }

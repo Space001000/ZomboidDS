@@ -278,6 +278,14 @@ the objects on the player's tile and the three tiles they face (not through wall
 other mods add. None while paused or in a vehicle. An option only runs while the player still stands
 and faces the same way as when the menu was built; otherwise `ok: false`.
 
+Its top-level options carry three optional fields, so the app can keep its own order:
+- `key`: the object the option's actions act on (`"x,y,z#index"`: its square and its place among
+  the square's objects), the same however the game orders its menu; `"list:<name>"` for a `tray`
+  option, `"name:<name>"` for one without an object. A repeated key gets `"|2"`, `"|3"`, ...
+- `tray: true`: one action over several objects (Disassemble > each object), not an object's card.
+- `front: true`: the option for what the interact button would act on now (the prompt's object, or
+  the door or window the game picks the same way). At most one.
+
 While watched, the mod sends `here` by itself: rebuilt when the player steps onto another tile or
 turns, when their action finishes, shortly after a `menu_select`, and every few seconds, but never
 while the game's own context menu is open on the game's screen (the game has one per player, so
