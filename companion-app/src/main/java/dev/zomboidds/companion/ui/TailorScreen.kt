@@ -30,7 +30,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -381,46 +380,53 @@ private fun Tag(text: String, background: Color, color: Color) {
 }
 
 /**
- * The window's menu for a part as pills: Patch Hole / Add Padding (opening its fabrics; already open
- * when it's the only option), Remove Patch, or the greyed Tailoring. Below them the game's tooltips: why one is greyed, or what each
- * fabric adds at your Tailoring level.
+ * The window's menu for a part, laid open: every button does something. A submenu (Patch Hole, Add
+ * Padding) is a plain heading over its choices (each fabric, Patch all Holes using ...), so there's
+ * no button that only folds or unfolds. Options without a submenu (Remove Patch, the greyed
+ * Tailoring) are buttons of their own. Under each group the game's tooltips: what each fabric adds
+ * at your Tailoring level, or why an option is greyed.
  */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun PartMenu(menu: ItemMenu, onSelect: (optionId: String) -> Unit) {
-    // A lone submenu (Patch Hole with its fabrics) opens right away: one tap less.
-    var open by remember(menu.menuId) { mutableStateOf(menu.options.singleOrNull()?.takeIf { it.enabled && it.children.isNotEmpty() }) }
-    // The panel scrolls: keep the menu, and the choices it opens, in view.
+    // The panel scrolls: keep the menu in view when it opens.
     val inView = remember { BringIntoViewRequester() }
-    LaunchedEffect(menu.menuId, open) { inView.bringIntoView() }
+    LaunchedEffect(menu.menuId) { inView.bringIntoView() }
+    val (groups, actions) = menu.options.partition { it.children.isNotEmpty() }
     Surface(Modifier.bringIntoViewRequester(inView), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
-        Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                menu.options.forEach { option ->
-                    val submenu = option.children.isNotEmpty()
-                    val isOpen = open?.id == option.id
-                    Button(
-                        enabled = option.enabled,
-                        onClick = { if (submenu) open = if (isOpen) null else option else onSelect(option.id) },
-                    ) { Text(option.name + if (!submenu) "" else if (isOpen) " ▾" else " ›") }
-                }
+        Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            groups.forEach { group ->
+                Text(group.name, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                ActionButtons(group.children, onSelect)
+                Tooltips(group.children, withNames = true)
             }
-            val choices = open?.children.orEmpty()
-            if (choices.isNotEmpty()) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    choices.forEach { choice ->
-                        OutlinedButton(enabled = choice.enabled && choice.children.isEmpty(), onClick = { onSelect(choice.id) }) {
-                            Text(choice.name)
-                        }
-                    }
-                }
+            if (actions.isNotEmpty()) {
+                ActionButtons(actions, onSelect)
+                Tooltips(actions.filter { !it.enabled }, withNames = false)
             }
-            val notes = (choices.ifEmpty { menu.options.filter { !it.enabled } })
-                .mapNotNull { option -> option.tooltip?.let { tip -> option.name to tip.replace("\n", " · ") } }
-            notes.forEach { (name, tip) ->
-                Text(if (choices.isEmpty()) tip else "$name: $tip", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ActionButtons(options: List<MenuOption>, onSelect: (optionId: String) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        options.forEach { option ->
+            // A deeper submenu doesn't happen in this menu (42.20); shown greyed rather than guessed at.
+            Button(enabled = option.enabled && option.children.isEmpty(), onClick = { onSelect(option.id) }) { Text(option.name) }
+        }
+    }
+}
+
+/** The game's tooltips, one line each ("Rag: Tailoring :4 · Scratch Defense +2 · ..."). */
+@Composable
+private fun Tooltips(options: List<MenuOption>, withNames: Boolean) {
+    options.forEach { option ->
+        option.tooltip?.let { tip ->
+            val text = tip.replace("\n", " · ")
+            Text(if (withNames) "${option.name}: $text" else text, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
