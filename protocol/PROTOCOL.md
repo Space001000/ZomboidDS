@@ -285,8 +285,8 @@ Its top-level options carry three optional fields, so the app can keep its own o
 - `tray: true`: one action over several objects (Disassemble > each object), not an object's card.
 - `front: true`: the option for what the interact button would act on now (the prompt's object, or
   the door or window the game picks the same way). When the prompt acts on nothing in the menu (a
-  sink has no one-button action), the first option for something on the square the player faces.
-  At most one.
+  sink has no one-button action), the first option for something on the square the player faces,
+  other than a door or window (the game's own check already passed those over). At most one.
 
 While watched, the mod sends `here` by itself: rebuilt when the player steps onto another tile or
 turns, when their action finishes, shortly after a `menu_select`, and every few seconds, but never

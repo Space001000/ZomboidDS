@@ -8,14 +8,15 @@ function getTimestampMs() return 0 end
 UIManager = { getSpeedControls = function() return { getCurrentGameSpeed = function() return 1 end } end }
 local function check(cond, msg) if not cond then error("FAIL: " .. msg, 2) end print("ok   " .. msg) end
 
--- World objects: on a square, at an index among its objects.
-local function object(x, y, index)
+-- World objects: on a square, at an index among its objects; `class` for a door, window or curtain.
+local function object(x, y, index, class)
   local square = { getX = function() return x end, getY = function() return y end, getZ = function() return 0 end }
-  return { iso = true, getSquare = function() return square end, getObjectIndex = function() return index end }
+  return { iso = true, class = class, getSquare = function() return square end, getObjectIndex = function() return index end }
 end
-function instanceof(o, class) return type(o) == "table" and o.iso == true and class == "IsoObject" end
+function instanceof(o, class) return type(o) == "table" and o.iso == true and (class == "IsoObject" or o.class == class) end
 
-local window, curtain, oven, door = object(10, 19, 2), object(10, 19, 3), object(11, 20, 1), object(9, 20, 4)
+local window, curtain = object(10, 19, 2, "IsoWindow"), object(10, 19, 3, "IsoCurtain")
+local oven, door = object(11, 20, 1), object(9, 20, 4, "IsoDoor")
 local counter, toaster, sink = object(11, 20, 2), object(11, 20, 3), object(10, 21, 1)
 
 local function at(x, y) return { getX = function() return x end, getY = function() return y end, getZ = function() return 0 end } end
@@ -109,9 +110,21 @@ local o5 = byName(data5.options)
 check(o5["Green Oven"].front and not o5["Disassemble"].front,
   "the first card on the faced square, never Disassemble's list (its objects are there too)")
 prompt.aPrompt, prompt.aParams = "Enter vehicle", { object(30, 30, 1) }
-facing = "N"
+facing = "S"
 local _, _, data6 = B42Menu.openWorld(player)
-check(byName(data6.options)["Window"].front, "a prompt for something without a card: the faced square too")
+check(byName(data6.options)["Chrome Sink"].front, "a prompt for something without a card: the faced square too")
+prompt.aPrompt = nil
+facing = "N"
+local _, _, data6b = B42Menu.openWorld(player)
+local anyFront = false
+for _, x in ipairs(data6b.options) do anyFront = anyFront or x.front end
+check(not anyFront, "a window on the faced square isn't in front unless the game's door/window check says so")
+window, curtain = object(10, 21, 2, "IsoWindow"), object(10, 21, 3, "IsoCurtain")
+facing = "S"
+local _, _, data6c = B42Menu.openWorld(player)
+local o6c = byName(data6c.options)
+check(o6c["Chrome Sink"].front and not o6c["Window"].front,
+  "a sink under a window (the window first in the menu): the sink is in front")
 
 -- One object to disassemble is still Disassemble's list.
 ISContextManager = { getInstance = function() return { createWorldMenu = function()

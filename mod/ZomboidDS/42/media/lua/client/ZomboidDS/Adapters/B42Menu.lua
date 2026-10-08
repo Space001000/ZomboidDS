@@ -299,6 +299,17 @@ local function objectKey(object)
     return squarePrefix(square) .. index
 end
 
+--- A door, window, window frame or curtain: what the game's own door/window check decides on.
+local function isOpening(object)
+    for _, class in ipairs({ "IsoDoor", "IsoWindow", "IsoWindowFrame", "IsoCurtain" }) do
+        if instanceof(object, class) then
+            return true
+        end
+    end
+    return instanceof(object, "IsoThumpable")
+        and (Util.try(object, "isDoor") == true or Util.try(object, "isWindow") == true)
+end
+
 --- The calls under an option (itself, or every option below it, greyed ones too), in menu order.
 local function callsUnder(entry, calls, out)
     if calls[entry.id] ~= nil then
@@ -353,13 +364,14 @@ end
 ---         however the game orders its menu; options without an object get their name
 ---   tray  a list of objects under one action (see isObjectList); the app shows these apart
 ---   front the option for what the interact button would act on; when it acts on nothing here
----         (the game has no one-button action for a sink), the first option for something on
----         the square the player faces
+---         (the game has no one-button action for a sink), the first option whose object is on
+---         the square the player faces, leaving out doors and windows (the game's own check
+---         above already decided against them: a window on the far wall of a sink's square)
 --- `calls`: the call data of every option, greyed ones too.
 local function markWorld(player, prompts, options, calls)
     local front = promptObject(player, prompts)
     local frontKey = front and objectKey(front)
-    local used, keysOf = {}, {}
+    local used, firstObjects = {}, {}
     for _, entry in ipairs(options) do
         local list = callsUnder(entry, calls, {})
         local keys, firstKey, objects = {}, nil, 0
@@ -369,7 +381,9 @@ local function markWorld(player, prompts, options, calls)
             if key ~= nil and not keys[key] then
                 keys[key] = true
                 objects = objects + 1
-                firstKey = firstKey or key
+                if firstKey == nil then
+                    firstKey, firstObjects[entry] = key, object
+                end
             end
         end
         entry.tray = isObjectList(entry, list, objects) or nil
@@ -377,7 +391,6 @@ local function markWorld(player, prompts, options, calls)
         used[key] = (used[key] or 0) + 1
         entry.key = used[key] == 1 and key or (key .. "|" .. used[key])
         entry.front = (frontKey ~= nil and not entry.tray and keys[frontKey]) or nil
-        keysOf[entry] = keys
     end
     for _, entry in ipairs(options) do
         if entry.front then
@@ -387,11 +400,11 @@ local function markWorld(player, prompts, options, calls)
     local square = Util.try(player:getCurrentSquare(), "getAdjacentSquare", player:getDir())
     local prefix = square and squarePrefix(square)
     for _, entry in ipairs(options) do
-        for key in pairs(keysOf[entry]) do
-            if prefix ~= nil and not entry.tray and string.sub(key, 1, #prefix) == prefix then
-                entry.front = true
-                return
-            end
+        local object = firstObjects[entry]
+        if prefix ~= nil and object ~= nil and not entry.tray and not isOpening(object)
+            and string.sub(entry.key, 1, #prefix) == prefix then
+            entry.front = true
+            return
         end
     end
 end
