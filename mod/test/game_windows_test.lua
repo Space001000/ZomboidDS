@@ -34,6 +34,20 @@ function ISButtonPrompt:cmdShowLoot() table.insert(opened, "loot") end
 function ISButtonPrompt:cmdShowInventory() table.insert(opened, "inventory") end
 local prompt = setmetatable({ player = 0 }, { __index = ISButtonPrompt })
 
+-- Opening a car's trunk: the game's door action shows the trunk in its loot window when done.
+function isServer() return false end
+local trunk = container("TruckBed")
+local forced
+lootPage.setForceSelectedContainer = function(_, c) forced = c end
+local car = { getPartById = function(_, id) return id == "TruckBed" and
+    { getItemContainer = function() return trunk end, getIndex = function() return 3 end } or nil end,
+  canAccessContainer = function() return true end }
+local function door(id) return { getId = function() return id end } end
+local walker = { getPlayerNum = function() return 0 end, getVehicle = function() return nil end }
+ISOpenVehicleDoor = {}
+function ISOpenVehicleDoor:selectContainerInLootWindow() table.insert(opened, "trunk:" .. self.part:getId()) end
+local function openDoor(id) return setmetatable({ vehicle = car, part = door(id), character = walker }, { __index = ISOpenVehicleDoor }) end
+
 local B42 = require("ZomboidDS/Adapters/B42")
 local ids = {}
 for _, c in ipairs(B42.snapshotContainers(player).containers) do ids[c.name] = c.id end
@@ -51,7 +65,18 @@ check(#opened == 0 and shown[1].panel == "inventory" and shown[1].container == i
 ISButtonPrompt.cmdShowInventory(prompt)
 check(#opened == 0 and shown[2].container == ids["Inventory"], "Inventory shows the main inventory")
 
+openDoor("TrunkDoor"):selectContainerInLootWindow()
+check(#opened == 0 and shown[3].container == require("ZomboidDS/Adapters/B42/Containers").idOf(trunk),
+  "opening a trunk shows it in the app instead of the game's loot window, with the snapshot's id")
+check(forced == trunk, "and the game's loot window still selects it")
+openDoor("DoorFrontLeft"):selectContainerInLootWindow()
+check(opened[1] == "trunk:DoorFrontLeft" and #shown == 3, "other doors keep the game's behaviour (a quiet pre-select)")
+table.remove(opened, 1)
+
 handle = false
+openDoor("DoorRear"):selectContainerInLootWindow()
+check(opened[1] == "trunk:DoorRear", "not handled: the game shows its loot window as usual")
+table.remove(opened, 1)
 ISButtonPrompt.cmdShowLoot(prompt)
 check(opened[1] == "loot", "not handled (no app connected): the game's window opens as usual")
 

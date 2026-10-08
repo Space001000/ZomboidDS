@@ -13,6 +13,7 @@ data class Release(val version: String, val title: String, val date: String?, va
 val RELEASES = listOf(
     Release("1.3.2", "Fixes", null, listOf(
         "**Build:** tap **Craft ▾** and pick Build for the game's build menu. Wood Chair (Shoddy, Poor, Good) is one tile; pick the version in its panel. **Place** brings up the game's cursor on the top screen: d-pad moves, LB/RB turn, A builds, B stops.",
+        "**Fixed:** opening a car's trunk opened the game's loot window on the top screen. It opens on the bottom screen now, like Loot.",
         "**Fixed:** food didn't age while you used the app instead of the game's inventory window. Frozen food never thawed, and playing without the mod made everything rot at once. Food ages, freezes and thaws as in the game again (and wet clothes in your bags dry).",
     )),
     Release("1.3.1", "Food, drinks and stacks", "3 Oct 2026", listOf(

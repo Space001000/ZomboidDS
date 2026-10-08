@@ -250,7 +250,56 @@ end
 
 --- Calls `onShow(playerNum, { panel = "inventory", container = id })` when the player asks the game
 --- for its inventory or loot window. If it returns true, the game's window stays closed.
+--- The trunk the game would show after opening this door, with the checks of 42.20's
+--- ISOpenVehicleDoor:selectContainerInLootWindow; nil for other doors (those only pre-select a
+--- seat's container without showing the window).
+local function trunkOpenedBy(action)
+    if isServer() or action.vehicle == nil or action.part == nil or action.character:getVehicle() ~= nil then
+        return nil
+    end
+    local id = action.part:getId()
+    if id ~= "TrunkDoor" and id ~= "DoorRear" then
+        return nil
+    end
+    local bed = action.vehicle:getPartById("TruckBed")
+    if bed == nil or bed:getItemContainer() == nil or not action.vehicle:canAccessContainer(bed:getIndex(), action.character) then
+        return nil
+    end
+    return bed:getItemContainer()
+end
+
+--- Opening a trunk (A at the trunk, or the vehicle menu) shows the trunk in the game's loot window
+--- when the action is done (ISOpenVehicleDoor:selectContainerInLootWindow). Like Loot, it goes to
+--- `onShow` instead.
+local function redirectTrunk(onShow)
+    if ISOpenVehicleDoor == nil or ISOpenVehicleDoor.selectContainerInLootWindow == nil or ISOpenVehicleDoor.zomboidDSRedirect then
+        return
+    end
+    ISOpenVehicleDoor.zomboidDSRedirect = true
+    local original = ISOpenVehicleDoor.selectContainerInLootWindow
+    ISOpenVehicleDoor.selectContainerInLootWindow = function(self, ...)
+        local ok, handled = pcall(function()
+            local trunk = trunkOpenedBy(self)
+            if trunk == nil then
+                return false
+            end
+            local playerNum = self.character:getPlayerNum()
+            if not onShow(playerNum, { panel = "inventory", container = Containers.idOf(trunk) }) then
+                return false
+            end
+            -- The game's loot window still selects it, for when the player opens that.
+            getPlayerLoot(playerNum):setForceSelectedContainer(trunk, 100)
+            return true
+        end)
+        if ok and handled then
+            return
+        end
+        return original(self, ...)
+    end
+end
+
 function B42.redirectGameWindows(onShow)
+    redirectTrunk(onShow)
     if ISButtonPrompt == nil or ISButtonPrompt.zomboidDSRedirect then
         return
     end
