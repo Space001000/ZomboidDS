@@ -1,12 +1,12 @@
 package dev.zomboidds.companion.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.CardDefaults
 import dev.zomboidds.companion.domain.ItemMenuResult
 import androidx.compose.runtime.produceState
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.unit.DpOffset
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -256,34 +256,33 @@ internal fun BoxScope.GarmentPanel(
                     GarmentSilhouette(g, iconUrl, Modifier.width(88.dp).height(216.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         g.parts.forEach { p ->
-                            val open = p.id == part
                             // While the game sews a part, its row shows the bar; nothing to choose.
-                            Box {
-                                PartRow(p, open, onClick = { if (p.sewing == null) part = if (open) null else p.id })
-                                if (open) {
-                                    PartPopout(
-                                        load = { tailoring.garmentMenu(g.id, p.id) },
-                                        key = Triple(g.id, p.id, p.hole to p.patch),
-                                        cantRepair = g.cantRepair,
-                                        iconUrl = iconUrl,
-                                        onSelect = { menuId, optionId ->
-                                            part = null
-                                            scope.launch {
-                                                when (val chosen = actions.selectMenuOption(menuId, optionId)) {
-                                                    CommandResult.Ok -> reload++
-                                                    is CommandResult.Failed -> message = chosen.reason
-                                                }
-                                            }
-                                        },
-                                        onDismiss = { part = null },
-                                    )
-                                }
-                            }
+                            PartRow(p, open = p.id == part, onClick = { if (p.sewing == null) part = p.id })
                         }
                     }
                 }
             }
         }
+    }
+    val shown = (garment as? Fetched.Ready)?.value
+    val open = shown?.parts?.firstOrNull { it.id == part }
+    if (shown != null && open != null) {
+        PartCard(
+            garment = shown,
+            part = open,
+            load = { tailoring.garmentMenu(shown.id, open.id) },
+            iconUrl = iconUrl,
+            onSelect = { menuId, optionId ->
+                part = null
+                scope.launch {
+                    when (val chosen = actions.selectMenuOption(menuId, optionId)) {
+                        CommandResult.Ok -> reload++
+                        is CommandResult.Failed -> message = chosen.reason
+                    }
+                }
+            },
+            onDismiss = { part = null },
+        )
     }
 }
 
@@ -359,19 +358,19 @@ private fun PartRow(part: GarmentPart, open: Boolean, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(part.name, Modifier.width(110.dp), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(
-            "Bite ${part.bite} · Scratch ${part.scratch}" + if (part.bullet > 0) " · Bullet ${part.bullet}" else "",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-        )
         val sewing = part.sewing
+        val numbers = "Bite ${part.bite} · Scratch ${part.scratch}" + if (part.bullet > 0) " · Bullet ${part.bullet}" else ""
         if (sewing != null) {
+            Text(numbers, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             Box(Modifier.weight(1f).height(16.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f), RoundedCornerShape(2.dp))) {
                 Box(Modifier.fillMaxWidth(sewing.progress.coerceIn(0f, 1f)).height(16.dp)
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.55f), RoundedCornerShape(2.dp)))
                 Text(sewing.name, Modifier.padding(start = 6.dp), fontSize = 11.sp, lineHeight = 16.sp)
             }
         } else {
-            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp),
+                itemVerticalAlignment = Alignment.CenterVertically) {
+                Text(numbers, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                 if (part.hole) Tag("Hole", Danger.copy(alpha = 0.22f), Color(0xFFFF9D93))
                 part.blood?.let { Tag("Blood ${(it * 100).toInt()}%", Danger.copy(alpha = 0.12f), Color(0xFFE9A59D)) }
                 part.patch?.let { Tag(it, Good.copy(alpha = 0.16f), Color(0xFF9FE39F)) }
@@ -387,41 +386,61 @@ private fun Tag(text: String, background: Color, color: Color) {
 }
 
 /**
- * The window's menu for a part as a popout from its row, like the game's right-click menu (and like
- * Craft ▾'s menu: a panel for a thing, a popout for a choice in it). A submenu (Patch Hole, Add
- * Padding) is a heading over its choices; every row does one thing: its fabric's icon, its name and,
- * under it, the game's tooltip (what it adds at your Tailoring level, or why it's greyed). Tap
- * outside to close. Not focusable: the controller stays with the game.
+ * The window's menu for a part, in a card over the dimmed panel: the part's name, its defence and
+ * state, then the menu. A submenu (Patch Hole, Add Padding) is a heading over its choices; every row
+ * does one thing: its fabric's icon, its name and, under it, the game's tooltip (what it adds at your
+ * Tailoring level, or why it's greyed). Tap outside or Close to close. Drawn in the app's window, not
+ * as a popup window, so it can't take the controller from the game.
  */
 @Composable
-private fun PartPopout(
+private fun BoxScope.PartCard(
+    garment: Garment,
+    part: GarmentPart,
     load: suspend () -> ItemMenuResult,
-    key: Any,
-    cantRepair: String?,
     iconUrl: (String) -> String,
     onSelect: (menuId: String, optionId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val menu by produceState<ItemMenuResult?>(null, key) { value = if (cantRepair != null) null else load() }
-    DropdownMenu(
-        expanded = true, onDismissRequest = onDismiss, properties = NoFocusMenu,
-        offset = DpOffset(24.dp, 4.dp), modifier = Modifier.widthIn(min = 260.dp, max = 380.dp),
+    val menu by produceState<ItemMenuResult?>(null, garment.id, part.id, part.hole, part.patch) {
+        value = if (garment.cantRepair != null) null else load()
+    }
+    Box(
+        Modifier.fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.35f))
+            .clickable(interactionSource = null, indication = null, onClick = onDismiss),
+    )
+    Card(
+        Modifier.align(Alignment.Center).widthIn(max = 420.dp).fillMaxWidth(0.85f)
+            // Taps on the card stay on the card.
+            .clickable(interactionSource = null, indication = null, onClick = {}),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
     ) {
-        when (val result = menu) {
-            null if cantRepair != null -> PopoutNote(cantRepair)
-            null -> PopoutNote("Loading the game's menu...")
-            is ItemMenuResult.Failed -> PopoutNote(result.reason)
-            is ItemMenuResult.Ready -> {
-                val options = result.menu.options
-                val (groups, single) = options.partition { it.children.isNotEmpty() }
-                groups.forEachIndexed { i, group ->
-                    if (i > 0) HorizontalDivider()
-                    Text(group.name.uppercase(), Modifier.padding(start = 14.dp, top = 8.dp, bottom = 2.dp),
-                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    group.children.forEach { PopoutItem(it, iconUrl) { onSelect(result.menu.menuId, it.id) } }
+        Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
+            Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(part.name, style = MaterialTheme.typography.titleMedium)
+                    val state = listOfNotNull("Hole".takeIf { part.hole }, part.patch)
+                    Text((listOf("Bite ${part.bite} · Scratch ${part.scratch}") + state).joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (groups.isNotEmpty() && single.isNotEmpty()) HorizontalDivider()
-                single.forEach { PopoutItem(it, iconUrl) { onSelect(result.menu.menuId, it.id) } }
+                TextButton(onClick = onDismiss) { Text("Close") }
+            }
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            when (val result = menu) {
+                null if garment.cantRepair != null -> PopoutNote(garment.cantRepair)
+                null -> PopoutNote("Loading the game's menu...")
+                is ItemMenuResult.Failed -> PopoutNote(result.reason)
+                is ItemMenuResult.Ready -> {
+                    val (groups, single) = result.menu.options.partition { it.children.isNotEmpty() }
+                    groups.forEachIndexed { i, group ->
+                        if (i > 0) HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                        Text(group.name.uppercase(), Modifier.padding(start = 16.dp, top = 6.dp, bottom = 2.dp),
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        group.children.forEach { PopoutItem(it, iconUrl) { onSelect(result.menu.menuId, it.id) } }
+                    }
+                    if (groups.isNotEmpty() && single.isNotEmpty()) HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                    single.forEach { PopoutItem(it, iconUrl) { onSelect(result.menu.menuId, it.id) } }
+                }
             }
         }
     }
@@ -433,7 +452,7 @@ private fun PopoutNote(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-/** One option: icon, name, and the game's tooltip under it (without its "Tailoring :4" line, or one that repeats the name). */
+/** One option: icon, name, and the game's tooltip under it (greyed: its reason) (without its "Tailoring :4" line, or one that repeats the name). */
 @Composable
 private fun PopoutItem(option: MenuOption, iconUrl: (String) -> String, onClick: () -> Unit) {
     val effect = option.tooltip?.split("\n")
@@ -441,17 +460,19 @@ private fun PopoutItem(option: MenuOption, iconUrl: (String) -> String, onClick:
         ?.filter { it.isNotEmpty() && !SKILL_LINE.matches(it) && !it.equals(option.name, ignoreCase = true) }
         ?.joinToString(" · ")
         ?.takeIf { it.isNotEmpty() }
-    DropdownMenuItem(
-        enabled = option.enabled && option.children.isEmpty(),
-        onClick = onClick,
-        leadingIcon = { GameIcon(option.icon, iconUrl, 26.dp) },
-        text = {
-            Column {
-                Text(option.name, maxLines = 2)
-                effect?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            }
-        },
-    )
+    val enabled = option.enabled && option.children.isEmpty()
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 6.dp).alpha(if (enabled) 1f else 0.45f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        GameIcon(option.icon, iconUrl, 26.dp)
+        Column {
+            Text(option.name, style = MaterialTheme.typography.bodyLarge)
+            effect?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+    }
 }
 
 /** The tooltip's skill line, "Tailoring :4" in the game's language: the panel's header already says it. */
