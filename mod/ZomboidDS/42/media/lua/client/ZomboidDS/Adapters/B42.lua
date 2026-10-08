@@ -287,8 +287,13 @@ local function redirectTrunk(onShow)
             if not onShow(playerNum, { panel = "inventory", container = Containers.idOf(trunk) }) then
                 return false
             end
-            -- The game's loot window still selects it, for when the player opens that.
-            getPlayerLoot(playerNum):setForceSelectedContainer(trunk, 100)
+            -- The game's loot window still selects it, for when the player opens that. Hidden, it
+            -- only refreshes its container list when it's drawn (OnContainerUpdate sets
+            -- renderDirty) or when the player moves or turns, so the app wouldn't see the trunk
+            -- until then: refresh it now (that also tells us, OnRefreshInventoryWindowContainers).
+            local loot = getPlayerLoot(playerNum)
+            loot:setForceSelectedContainer(trunk, 100)
+            loot:refreshBackpacks()
             return true
         end)
         if ok and handled then
