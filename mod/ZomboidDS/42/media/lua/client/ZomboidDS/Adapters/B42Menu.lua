@@ -263,12 +263,13 @@ end
 --- prompt's own getInteractOptionsButtonObjects (the player's tile and the three tiles they face,
 --- not through walls), and the menu is built at the player's screen position like there.
 --- A world object, or the `object` of a table that carries one (Disassemble passes
---- { object = ..., square = ... }); nil for anything else.
+--- { object = ..., square = ... }); nil for anything else. Characters, zombies and vehicles are
+--- objects too, but never what an action is about: Wash at a sink passes the player first.
 local function asWorldObject(value)
     if type(value) == "table" and not instanceof(value, "IsoObject") then
         value = value.object
     end
-    if value ~= nil and instanceof(value, "IsoObject") then
+    if value ~= nil and instanceof(value, "IsoObject") and not instanceof(value, "IsoMovingObject") then
         return value
     end
     return nil

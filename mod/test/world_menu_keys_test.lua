@@ -24,7 +24,10 @@ local square = at(10, 20)
 local facing = "N"
 function square:getAdjacentSquare(d) return d == "N" and at(10, 19) or d == "S" and at(10, 21) or at(11, 20) end
 local doorInFront = nil
-local player = { getPlayerNum = function() return 0 end, getCurrentSquare = function() return square end,
+-- The player is a (moving) object too, on its own square and in none of the squares' object lists.
+local player = { iso = true, class = "IsoMovingObject", getSquare = function() return square end,
+  getObjectIndex = function() return -1 end,
+  getPlayerNum = function() return 0 end, getCurrentSquare = function() return square end,
   getDir = function() return facing end, getVehicle = function() return nil end,
   getContextDoorOrWindowOrWindowFrame = function() return doorInFront end }
 function isoToScreenX() return 0 end
@@ -61,7 +64,9 @@ ISContextManager = { getInstance = function() return { createWorldMenu = functio
   local window = function() addSub("Window", { opt("Open Window", onWindow, window), opt("Close Curtains", onCurtain, curtain) }) end
   local oven = function() addSub("Green Oven", { opt("Turn on", onStove, oven) }) end
   if order == "kitchen" then window() oven() else oven() window() end
-  addSub("Chrome Sink", { opt("Drink", onDrink, sink) })
+  local wash = opt("Wash yourself", onDrink, sink)
+  wash.target = player -- the game's Wash passes the player first
+  addSub("Chrome Sink", { wash, opt("Drink", onDrink, sink) })
   local dis = { opt("Green Oven", ISDisassembleMenu.disassemble, { object = oven }),
                 opt("Rough Wooden Corner Counter", ISDisassembleMenu.disassemble, { object = counter }),
                 opt("Chrome Toaster", ISDisassembleMenu.disassemble, { object = toaster }) }
@@ -82,7 +87,8 @@ end
 local ok, _, data = B42Menu.openWorld(player)
 local o = byName(data.options)
 check(ok and o["Window"].key == "10,19,0#2", "an object's card is keyed by where its object is")
-check(o["Green Oven"].key == "11,20,0#1" and o["Chrome Sink"].key == "10,21,0#1", "each object its own key")
+check(o["Green Oven"].key == "11,20,0#1" and o["Chrome Sink"].key == "10,21,0#1",
+  "each object its own key (the sink's, though Wash passes the player first)")
 check(o["Disassemble"].tray and o["Disassemble"].key == "list:Disassemble", "Disassemble is a list of objects: tray")
 check(not o["Window"].tray and not o["Chrome Sink"].tray, "an object's actions are not a tray (even on several objects, the curtains)")
 check(o["Sit on ground"].key == "name:Sit on ground" and not o["Sit on ground"].tray, "a loose action is keyed by its name")
