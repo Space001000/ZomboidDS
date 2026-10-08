@@ -64,6 +64,8 @@ import dev.zomboidds.companion.domain.MenuOption
 import dev.zomboidds.companion.domain.SewingKit
 import dev.zomboidds.companion.domain.TailorList
 import dev.zomboidds.companion.domain.Tailoring
+import dev.zomboidds.companion.domain.GameSpeed
+import dev.zomboidds.companion.domain.TimeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -76,7 +78,15 @@ private enum class Shown(val label: String) { ALL("All"), WORN("Worn"), BAGS("In
  * [changes]: anything that changes the clothes or the kit (inventory, containers); the list follows it.
  */
 @Composable
-fun TailorScreen(tailoring: Tailoring, actions: ItemActions, iconUrl: (String) -> String, changes: Any?) {
+fun TailorScreen(
+    tailoring: Tailoring,
+    actions: ItemActions,
+    iconUrl: (String) -> String,
+    changes: Any?,
+    /** The game's speed: its tailoring menu waits while it's paused. */
+    time: TimeState? = null,
+    onUnpause: () -> Unit = {},
+) {
     var list by remember { mutableStateOf<Fetched<TailorList>?>(null) }
     var reload by remember { mutableIntStateOf(0) }
     LaunchedEffect(changes, reload) {
@@ -132,7 +142,7 @@ fun TailorScreen(tailoring: Tailoring, actions: ItemActions, iconUrl: (String) -
             }
         }
         selected?.let { id ->
-            GarmentPanel(tailoring, actions, id, iconUrl, changes, onClose = { selected = null })
+            GarmentPanel(tailoring, actions, id, iconUrl, changes, time, onUnpause, onClose = { selected = null })
         }
     }
 }
@@ -219,6 +229,8 @@ internal fun BoxScope.GarmentPanel(
     itemId: Long,
     iconUrl: (String) -> String,
     changes: Any?,
+    time: TimeState?,
+    onUnpause: () -> Unit,
     onClose: () -> Unit,
 ) {
     var garment by remember(itemId) { mutableStateOf<Fetched<Garment>?>(null) }
@@ -271,6 +283,8 @@ internal fun BoxScope.GarmentPanel(
             garment = shown,
             part = open,
             load = { tailoring.garmentMenu(shown.id, open.id) },
+            time = time,
+            onUnpause = onUnpause,
             iconUrl = iconUrl,
             onSelect = { menuId, optionId ->
                 part = null
@@ -345,32 +359,36 @@ private fun GarmentSilhouette(garment: Garment, iconUrl: (String) -> String, mod
     }
 }
 
-/** A part: its name, Bite and Scratch (and Bullet when it has any), then hole, blood and patch, or the sewing bar. */
+/**
+ * A part: its name and Bite and Scratch (and Bullet when it has any), or the sewing bar while the
+ * game sews it; its hole, blood and patch on a line of their own below, all together.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PartRow(part: GarmentPart, open: Boolean, onClick: () -> Unit) {
-    Row(
+    Column(
         Modifier.fillMaxWidth()
             .background(if (open) MaterialTheme.colorScheme.primary.copy(alpha = 0.13f) else Color.Transparent, RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        Text(part.name, Modifier.width(110.dp), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        val sewing = part.sewing
-        val numbers = "Bite ${part.bite} · Scratch ${part.scratch}" + if (part.bullet > 0) " · Bullet ${part.bullet}" else ""
-        if (sewing != null) {
-            Text(numbers, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-            Box(Modifier.weight(1f).height(16.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f), RoundedCornerShape(2.dp))) {
-                Box(Modifier.fillMaxWidth(sewing.progress.coerceIn(0f, 1f)).height(16.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.55f), RoundedCornerShape(2.dp)))
-                Text(sewing.name, Modifier.padding(start = 6.dp), fontSize = 11.sp, lineHeight = 16.sp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(part.name, Modifier.width(110.dp), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                "Bite ${part.bite} · Scratch ${part.scratch}" + if (part.bullet > 0) " · Bullet ${part.bullet}" else "",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+            )
+            part.sewing?.let { sewing ->
+                Box(Modifier.weight(1f).height(16.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f), RoundedCornerShape(2.dp))) {
+                    Box(Modifier.fillMaxWidth(sewing.progress.coerceIn(0f, 1f)).height(16.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.55f), RoundedCornerShape(2.dp)))
+                    Text(sewing.name, Modifier.padding(start = 6.dp), fontSize = 11.sp, lineHeight = 16.sp)
+                }
             }
-        } else {
-            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp),
-                itemVerticalAlignment = Alignment.CenterVertically) {
-                Text(numbers, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        }
+        if (part.hole || part.blood != null || part.patch != null) {
+            FlowRow(Modifier.padding(start = 118.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 if (part.hole) Tag("Hole", Danger.copy(alpha = 0.22f), Color(0xFFFF9D93))
                 part.blood?.let { Tag("Blood ${(it * 100).toInt()}%", Danger.copy(alpha = 0.12f), Color(0xFFE9A59D)) }
                 part.patch?.let { Tag(it, Good.copy(alpha = 0.16f), Color(0xFF9FE39F)) }
@@ -397,12 +415,16 @@ private fun BoxScope.PartCard(
     garment: Garment,
     part: GarmentPart,
     load: suspend () -> ItemMenuResult,
+    time: TimeState?,
+    onUnpause: () -> Unit,
     iconUrl: (String) -> String,
     onSelect: (menuId: String, optionId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val menu by produceState<ItemMenuResult?>(null, garment.id, part.id, part.hole, part.patch) {
-        value = if (garment.cantRepair != null) null else load()
+    // Like Status's treatments: no menu while the game is paused; it loads by itself once it runs.
+    val paused = time?.speed == GameSpeed.PAUSED
+    val menu by produceState<ItemMenuResult?>(null, garment.id, part.id, part.hole, part.patch, paused) {
+        value = if (garment.cantRepair != null || paused) null else load()
     }
     Box(
         Modifier.fillMaxSize()
@@ -428,6 +450,12 @@ private fun BoxScope.PartCard(
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             when (val result = menu) {
                 null if garment.cantRepair != null -> PopoutNote(garment.cantRepair)
+                null if paused -> Row(Modifier.padding(end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) {
+                        PopoutNote(if (time?.gameMenuOpen == true) "Close the game's menu, then unpause to sew" else "Unpause to sew")
+                    }
+                    if (time?.canChange == true && !time.gameMenuOpen) TextButton(onClick = onUnpause) { Text("Unpause") }
+                }
                 null -> PopoutNote("Loading the game's menu...")
                 is ItemMenuResult.Failed -> PopoutNote(result.reason)
                 is ItemMenuResult.Ready -> {

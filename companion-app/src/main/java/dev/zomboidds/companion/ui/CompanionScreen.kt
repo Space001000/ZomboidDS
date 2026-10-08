@@ -3,6 +3,8 @@ package dev.zomboidds.companion.ui
 import dev.zomboidds.companion.setup.AppUpdateState
 import dev.zomboidds.companion.domain.Building
 import dev.zomboidds.companion.domain.Tailoring
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import dev.zomboidds.companion.devtools.DevTools
 import dev.zomboidds.companion.domain.Crafting
 import dev.zomboidds.companion.domain.GameControls
@@ -207,6 +209,8 @@ private fun InGame(
 
     // The game's Loot/Inventory button: show that container here instead of on the top screen.
     var showRequest by remember { mutableStateOf<ShowRequest?>(null) }
+    val scope = rememberCoroutineScope()
+    val unpause: () -> Unit = { scope.launch { controls.setSpeed(GameSpeed.PLAY) } }
     // Inspect on a garment in the game: its garment panel here, over whatever tab is open.
     var garmentShown by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(events) {
@@ -262,13 +266,15 @@ private fun InGame(
                     mode == CraftMode.BUILD && building != null ->
                         BuildScreen(building, iconUrl, changes = state.inventory to state.containers, placing = state.placing)
                     mode == CraftMode.TAILOR && tailoring != null ->
-                        TailorScreen(tailoring, actions, iconUrl, changes = state.inventory to state.containers)
+                        TailorScreen(tailoring, actions, iconUrl, changes = state.inventory to state.containers,
+                            time = state.time, onUnpause = unpause)
                     else -> crafting?.let { CraftScreen(it, iconUrl, changes = state.inventory to state.containers) }
                 }
             }
             val shownGarment = garmentShown
             if (shownGarment != null && tailoring != null) {
                 GarmentPanel(tailoring, actions, shownGarment, iconUrl, changes = state.inventory to state.containers,
+                    time = state.time, onUnpause = unpause,
                     onClose = { garmentShown = null })
             }
         }
