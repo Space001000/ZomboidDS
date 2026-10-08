@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import dev.zomboidds.companion.setup.SetupController
 import dev.zomboidds.companion.setup.ZomdroidStorage
+import dev.zomboidds.companion.domain.ConnectionStatus
 import dev.zomboidds.companion.ui.CompanionScreen
 import dev.zomboidds.companion.ui.InventoryDisplay
 import dev.zomboidds.companion.ui.MapDisplay
@@ -55,9 +56,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Never take input focus: the gamepad must keep driving the game on the other screen
-        // (Zomdroid stops listening to it when its activity pauses). Touches still arrive.
-        // On the Thor the firmware already routes the gamepad to the top screen; this is a safety net.
+        // While the game runs, never take input focus: the gamepad must keep driving the game on the
+        // other screen (Zomdroid stops listening to it when its activity pauses), and touching a
+        // window that can't take focus doesn't move it. Touches still arrive. See followGameFocus.
         window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
         // Debug builds only: this activity can be started by any app, and these reset or remove mods.
         if (BuildConfig.DEBUG) handleDevIntent(intent)
@@ -67,6 +68,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val state by gateway.state.collectAsStateWithLifecycle()
             val connection by gateway.connection.collectAsStateWithLifecycle()
+            LaunchedEffect(connection) { followGameFocus(connection == ConnectionStatus.Connected) }
             val report by setup.report.collectAsStateWithLifecycle()
             val update by container.updater.state.collectAsStateWithLifecycle()
             val inventoryLayout by container.settings.inventoryLayout.collectAsStateWithLifecycle()
@@ -104,6 +106,19 @@ class MainActivity : ComponentActivity() {
                     MapDisplay(it.map, mapPlacement, container.settings::setMapPlacement, mapSymbols, container.settings::setMapSymbols)
                 },
             )
+        }
+    }
+
+    /**
+     * Without the game the app is the focused app on its screen, and Android sends it the gamepad's
+     * buttons. A window that can't take focus never receives them, so after 5 seconds Android
+     * reported the app as not responding. Without a game, the window takes focus like any app.
+     */
+    private fun followGameFocus(gameRunning: Boolean) {
+        if (gameRunning) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
         }
     }
 
