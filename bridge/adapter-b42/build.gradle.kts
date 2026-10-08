@@ -105,3 +105,32 @@ val modZipElements by configurations.creating {
 artifacts {
     add(modZipElements.name, modZip)
 }
+
+// DEVELOPMENT ONLY: the same mod plus mod/dev (test kits), with "-dev" after its version so the app's
+// setup checklist swaps it for the release mod and back. Only the app's debug and dev builds bundle
+// this one; companion-app's release build checks that its zip has no Dev/ files.
+val devModZip by tasks.registering(Zip::class) {
+    archiveFileName.set("ZomboidDS-dev.zip")
+    destinationDirectory.set(layout.buildDirectory.dir("distributions"))
+    into("ZomboidDS") {
+        from(rootProject.file("mod/ZomboidDS")) {
+            filesMatching("42/mod.info") {
+                filter { line -> if (line.startsWith("modversion=")) "$line-dev" else line }
+            }
+        }
+        from(rootProject.file("mod/dev/ZomboidDS"))
+        from(rootProject.file("LICENSE"), rootProject.file("THIRD_PARTY_NOTICES.md"))
+        into("licenses") { from(rootProject.file("licenses")) }
+    }
+    into("ZomboidDS/42/media/java/client") {
+        from(tasks.shadowJar)
+    }
+}
+
+val devModZipElements by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+}
+artifacts {
+    add(devModZipElements.name, devModZip)
+}

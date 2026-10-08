@@ -55,6 +55,8 @@ fun CommandDeckScreen(
     controls: GameControls,
     iconUrl: (String) -> String,
     onEdit: () -> Unit,
+    /** Below the buttons: the development builds' test kits (nothing in a release build). */
+    extra: @Composable () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var failure by remember { mutableStateOf<String?>(null) }
@@ -90,6 +92,7 @@ fun CommandDeckScreen(
                 }
             }, onEdit = onEdit)
         }
+        extra()
     }
     when (panel) {
         "weapons" -> DeckSheet(onClose = { panel = null }) {

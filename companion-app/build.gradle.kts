@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.util.zip.ZipFile
 
 plugins {
     alias(libs.plugins.android.application)
@@ -28,6 +29,12 @@ val modZip by configurations.creating {
     isCanBeResolved = true
 }
 
+// DEVELOPMENT ONLY: the mod with test kits (mod/dev), for the debug and dev builds.
+val devModZip by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
 /**
  * Copies the mod zip built by :bridge:adapter-b42 into a generated assets folder, with the licence
  * texts the app shows under "Open-source licences" (assets/legal/).
@@ -39,6 +46,10 @@ abstract class BundleModTask : DefaultTask() {
     @get:InputFiles
     abstract val legalFiles: ConfigurableFileCollection
 
+    /** The release build: fail if any development-only file (mod/dev, a Dev/ folder) got into the zip. */
+    @get:Input
+    abstract val releaseOnly: Property<Boolean>
+
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
@@ -47,18 +58,35 @@ abstract class BundleModTask : DefaultTask() {
         val out = outputDir.get().asFile
         out.deleteRecursively()
         out.mkdirs()
+        if (releaseOnly.get()) {
+            ZipFile(modZip.singleFile).use { zip ->
+                val dev = zip.entries().asSequence().map { it.name }.filter { "/Dev/" in it }.toList()
+                check(dev.isEmpty()) { "Development files in the release mod zip: $dev" }
+                val info = zip.getEntry("ZomboidDS/42/mod.info")?.let { zip.getInputStream(it).bufferedReader().readText() }.orEmpty()
+                check("-dev" !in info) { "The release mod zip has a development mod version" }
+            }
+        }
         modZip.singleFile.copyTo(File(out, "ZomboidDS.zip"))
         legalFiles.forEach { it.copyTo(File(out, "legal/${it.name}")) }
     }
 }
 
+val legal = listOf(
+    rootProject.file("LICENSE"),
+    rootProject.file("THIRD_PARTY_NOTICES.md"),
+    rootProject.file("licenses/Apache-2.0.txt"),
+)
+
 val bundleMod by tasks.registering(BundleModTask::class) {
     modZip.from(configurations.named("modZip"))
-    legalFiles.from(
-        rootProject.file("LICENSE"),
-        rootProject.file("THIRD_PARTY_NOTICES.md"),
-        rootProject.file("licenses/Apache-2.0.txt"),
-    )
+    legalFiles.from(legal)
+    releaseOnly.set(true)
+}
+
+val bundleDevMod by tasks.registering(BundleModTask::class) {
+    modZip.from(configurations.named("devModZip"))
+    legalFiles.from(legal)
+    releaseOnly.set(false)
 }
 
 android {
@@ -102,6 +130,24 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfigs.findByName("release")?.let { signingConfig = it }
         }
+        debug {
+            buildConfigField("String", "BUNDLED_MOD_VERSION", "\"$bundledModVersion-dev\"")
+        }
+        // DEVELOPMENT ONLY: the release build plus test kits (src/devtools, mod/dev), signed with the
+        // release key so it installs over the Thor's app. Never published: releases are assembleRelease.
+        create("dev") {
+            initWith(getByName("release"))
+            matchingFallbacks += "release"
+            versionNameSuffix = "-dev"
+            buildConfigField("String", "BUNDLED_MOD_VERSION", "\"$bundledModVersion-dev\"")
+        }
+    }
+
+    // Test kits in the debug and dev builds; the release build gets the empty stand-ins.
+    sourceSets {
+        getByName("debug").kotlin.srcDir("src/devtools/java")
+        getByName("dev").kotlin.srcDir("src/devtools/java")
+        getByName("release").kotlin.srcDir("src/nodevtools/java")
     }
 
     buildFeatures {
@@ -122,12 +168,14 @@ android {
 
 androidComponents {
     onVariants { variant ->
-        variant.sources.assets?.addGeneratedSourceDirectory(bundleMod, BundleModTask::outputDir)
+        val bundle = if (variant.buildType == "release") bundleMod else bundleDevMod
+        variant.sources.assets?.addGeneratedSourceDirectory(bundle, BundleModTask::outputDir)
     }
 }
 
 dependencies {
     modZip(project(path = ":bridge:adapter-b42", configuration = "modZipElements"))
+    devModZip(project(path = ":bridge:adapter-b42", configuration = "devModZipElements"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

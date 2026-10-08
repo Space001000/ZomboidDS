@@ -3,6 +3,7 @@ package dev.zomboidds.companion.ui
 import dev.zomboidds.companion.setup.AppUpdateState
 import dev.zomboidds.companion.domain.Building
 import dev.zomboidds.companion.domain.Tailoring
+import dev.zomboidds.companion.devtools.DevTools
 import dev.zomboidds.companion.domain.Crafting
 import dev.zomboidds.companion.domain.GameControls
 import dev.zomboidds.companion.domain.GameSpeed
@@ -94,6 +95,8 @@ fun CompanionScreen(
     crafting: Crafting? = null,
     building: Building? = null,
     tailoring: Tailoring? = null,
+    /** The development builds' tools (test kits); empty in a release build. */
+    devTools: DevTools? = null,
     /** What the Craft tab shows (its ▾ menu), and how to change it. */
     craftMode: CraftMode = CraftMode.CRAFT,
     onCraftModeChange: (CraftMode) -> Unit = {},
@@ -113,7 +116,7 @@ fun CompanionScreen(
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
                     InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting,
-                        building, tailoring, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange, map)
+                        building, tailoring, devTools, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange, map)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     var licences by remember { mutableStateOf(false) }
@@ -157,6 +160,7 @@ private fun InGame(
     crafting: Crafting?,
     building: Building?,
     tailoring: Tailoring?,
+    devTools: DevTools?,
     craftMode: CraftMode,
     onCraftModeChange: (CraftMode) -> Unit,
     deckCommands: List<String>,
@@ -250,7 +254,8 @@ private fun InGame(
                     DeckEditor(state.deck.commands, deckCommands, iconUrl, onChange = onDeckCommandsChange,
                         onDone = { editingDeck = false })
                 } else {
-                    CommandDeckScreen(state.time, state.deck, deckCommands, controls, iconUrl, onEdit = { editingDeck = true })
+                    CommandDeckScreen(state.time, state.deck, deckCommands, controls, iconUrl, onEdit = { editingDeck = true },
+                        extra = { devTools?.DeckSection(capabilities) })
                 }
                 Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
                 Tab.CRAFT -> when {

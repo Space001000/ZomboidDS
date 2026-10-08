@@ -130,6 +130,12 @@ key described by a `keystore.properties` in the project root (`storeFile`, `stor
 `keyAlias`, `keyPassword`; never committed). Without it they build unsigned. Updates only install
 over an app signed with the same key, so releases must always use the same one.
 
+**Test kits** (development only): the debug build and a `dev` build (`assembleDev`: the release
+build signed with the same key, version `-dev`) add test kits, one tap on the Deck that gives a
+feature's test setup (the Tailor kit: needle, thread, fabric, clothes with holes). They live in
+`mod/dev` and `companion-app/src/devtools`, which the release build never includes; the release
+build fails if its mod zip has any. `python tools/check-release-apk.py <apk>` checks an APK.
+
 ## Tests
 
 ```bash

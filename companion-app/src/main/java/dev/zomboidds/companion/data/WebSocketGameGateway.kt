@@ -35,6 +35,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -140,6 +141,14 @@ class WebSocketGameGateway(
     override suspend fun place(id: String): CommandResult = send(ProtocolV1.buildPlaceRequest(id)).result
 
     override suspend fun stopPlacing(): CommandResult = send(ProtocolV1.buildStopRequest()).result
+
+    override suspend fun command(name: String, args: JsonObject): Fetched<JsonElement?> {
+        val reply = send(ProtocolV1.Request(name, args))
+        return when (val result = reply.result) {
+            is CommandResult.Failed -> Fetched.Failed(result.reason)
+            CommandResult.Ok -> Fetched.Ready(reply.data)
+        }
+    }
 
     override suspend fun tailorList(): Fetched<TailorList> =
         fetched(send(ProtocolV1.tailorListRequest()), "The game's clothes couldn't be read", ProtocolV1::tailorList)
