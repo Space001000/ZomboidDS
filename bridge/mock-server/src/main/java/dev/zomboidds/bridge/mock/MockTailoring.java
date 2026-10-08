@@ -103,13 +103,25 @@ final class MockTailoring {
             boolean hole = Boolean.TRUE.equals(part.get("hole"));
             String label = hole ? "Patch Hole" : "Add Padding";
             List<Object> choices = new ArrayList<>();
+            long holes = parts(garment).stream().filter(p -> Boolean.TRUE.equals(p.get("hole"))).count();
             int i = 0;
             for (Fabric fabric : FABRICS) {
                 if (counts.get(fabric.type()) > 0) {
                     String choiceId = "1." + (++i);
-                    choices.add(MockItemMenu.option(choiceId, fabric.name(), true,
-                            "Tailoring :" + TAILORING + "\nScratch Defense +" + fabric.scratch() + "\nBite Defense +" + fabric.bite(), null));
+                    Map<String, Object> choice = MockItemMenu.option(choiceId, fabric.name(), true,
+                            "Tailoring :" + TAILORING + "\nScratch Defense +" + fabric.scratch() + "\nBite Defense +" + fabric.bite(), null);
+                    choice.put("icon", fabric.icon());
+                    choices.add(choice);
                     actions.put(choiceId, () -> start(id, partId, fabric, label));
+                    // Like the game: "all" when there's more than one hole and more than one of the fabric.
+                    if (hole && holes > 1 && counts.get(fabric.type()) > 1) {
+                        String allId = "1." + (++i);
+                        Map<String, Object> all = MockItemMenu.option(allId, "Patch all Holes using " + fabric.name(), true,
+                                "Patch all holes using " + fabric.name(), null);
+                        all.put("icon", fabric.icon());
+                        choices.add(all);
+                        actions.put(allId, () -> start(id, partId, fabric, label)); // one at a time here
+                    }
                 }
             }
             if (choices.isEmpty()) {

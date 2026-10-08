@@ -119,7 +119,8 @@ function ISGarmentUI:doContextMenu(bodyPart)
   if self.clothing:getFabricType() then
     local patch = menu:addOption("Patch Hole")
     local sub = newMenu()
-    sub:addOption("Rag", self.chr, ISInventoryPaneContextMenu.repairClothing, self.clothing, bodyPart, "rag", "thread", "needle")
+    local rag = sub:addOption("Rag", self.chr, ISInventoryPaneContextMenu.repairClothing, self.clothing, bodyPart, "rag", "thread", "needle")
+    rag.itemForTexture = { getTex = function() return { getName = function() return "media/textures/Item_Rag.png" end } end }
     menu:addSubMenu(patch, sub)
   end
   lastMenu = menu
@@ -163,6 +164,7 @@ check(not B42.commands.tailor_garment(player, { itemId = 5 }), "not clothing: re
 local okM, _, menu = B42.commands.tailor_menu(player, { itemId = 1, part = "ForeArm_R" })
 check(okM and menu.options[1].name == "Patch Hole" and menu.options[1].children[1].name == "Rag", "the Inspect window's menu for that part")
 check(lastMenu.hidden, "built hidden, never shown on the top screen")
+check(menu.options[1].children[1].icon == "Item_Rag", "the fabric's icon, from the item the game shows next to it")
 check(B42.commands.menu_select(player, { menuId = menu.menuId, optionId = "1.1" }), "choosing an option")
 check(repaired and repaired.clothing == jacket and repaired.part == FAR and repaired.fabric == "rag", "runs the game's repair with the window's arguments")
 local okB, reason = B42.commands.tailor_menu(player, { itemId = 2, part = "Foot_L" })

@@ -54,6 +54,20 @@ local function iconName(texture)
     return name
 end
 
+--- The icon of the item the game shows next to an option (option.itemForTexture: the fabric in the
+--- tailoring menu, an ingredient in recipe menus), as the bridge's icon endpoint knows it.
+local function itemIconName(item)
+    if item == nil then
+        return nil
+    end
+    local name = Util.textureFileName(Util.try(Util.try(item, "getTex"), "getName"))
+    if name ~= nil and name ~= "" then
+        return name
+    end
+    local scriptIcon = Util.try(Util.try(item, "getScriptItem"), "getIcon")
+    return scriptIcon and ("Item_" .. scriptIcon) or nil
+end
+
 --- The item menu's entries the app already has as its own buttons, by the game function behind
 --- them (not their translated names): Grab / Grab all (the app's Take), the Move To submenu (Move
 --- to...), Transfer all / Loot all (Put all / Take all). Grab one / Grab half stay: the app has none.
@@ -141,7 +155,7 @@ local function snapshot(menu, calls, prefix, depth, skip, pills)
     for index, option in ipairs(menu.options) do
         if option ~= nil and option.name ~= nil and not (skip and option.onSelect and skip[option.onSelect]) then
             local id = prefix .. index
-            local entry = { id = id, name = tostring(option.name), icon = iconName(option.iconTexture) }
+            local entry = { id = id, name = tostring(option.name), icon = iconName(option.iconTexture) or itemIconName(option.itemForTexture) }
             if pills ~= nil then
                 entry.pill = pillOf(option, menu, pills, depth)
             end

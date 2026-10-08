@@ -1,9 +1,12 @@
 package dev.zomboidds.companion.ui
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
+import dev.zomboidds.companion.domain.ItemMenuResult
+import androidx.compose.runtime.produceState
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -254,23 +257,27 @@ internal fun BoxScope.GarmentPanel(
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         g.parts.forEach { p ->
                             val open = p.id == part
-                            PartRow(p, open, onClick = { part = if (open) null else p.id })
-                            if (open && p.sewing == null && g.cantRepair == null) {
-                                LoadingGameMenu(
-                                    key = Triple(g.id, p.id, p.hole to p.patch),
-                                    load = { tailoring.garmentMenu(g.id, p.id) },
-                                    onSelect = { menuId, optionId ->
-                                        scope.launch {
-                                            when (val chosen = actions.selectMenuOption(menuId, optionId)) {
-                                                CommandResult.Ok -> {
-                                                    part = null
-                                                    reload++
+                            // While the game sews a part, its row shows the bar; nothing to choose.
+                            Box {
+                                PartRow(p, open, onClick = { if (p.sewing == null) part = if (open) null else p.id })
+                                if (open) {
+                                    PartPopout(
+                                        load = { tailoring.garmentMenu(g.id, p.id) },
+                                        key = Triple(g.id, p.id, p.hole to p.patch),
+                                        cantRepair = g.cantRepair,
+                                        iconUrl = iconUrl,
+                                        onSelect = { menuId, optionId ->
+                                            part = null
+                                            scope.launch {
+                                                when (val chosen = actions.selectMenuOption(menuId, optionId)) {
+                                                    CommandResult.Ok -> reload++
+                                                    is CommandResult.Failed -> message = chosen.reason
                                                 }
-                                                is CommandResult.Failed -> message = chosen.reason
                                             }
-                                        }
-                                    },
-                                ) { menu, select -> PartMenu(menu, select) }
+                                        },
+                                        onDismiss = { part = null },
+                                    )
+                                }
                             }
                         }
                     }
@@ -380,53 +387,72 @@ private fun Tag(text: String, background: Color, color: Color) {
 }
 
 /**
- * The window's menu for a part, laid open: every button does something. A submenu (Patch Hole, Add
- * Padding) is a plain heading over its choices (each fabric, Patch all Holes using ...), so there's
- * no button that only folds or unfolds. Options without a submenu (Remove Patch, the greyed
- * Tailoring) are buttons of their own. Under each group the game's tooltips: what each fabric adds
- * at your Tailoring level, or why an option is greyed.
+ * The window's menu for a part as a popout from its row, like the game's right-click menu (and like
+ * Craft ▾'s menu: a panel for a thing, a popout for a choice in it). A submenu (Patch Hole, Add
+ * Padding) is a heading over its choices; every row does one thing: its fabric's icon, its name and,
+ * under it, the game's tooltip (what it adds at your Tailoring level, or why it's greyed). Tap
+ * outside to close. Not focusable: the controller stays with the game.
  */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
-private fun PartMenu(menu: ItemMenu, onSelect: (optionId: String) -> Unit) {
-    // The panel scrolls: keep the menu in view when it opens.
-    val inView = remember { BringIntoViewRequester() }
-    LaunchedEffect(menu.menuId) { inView.bringIntoView() }
-    val (groups, actions) = menu.options.partition { it.children.isNotEmpty() }
-    Surface(Modifier.bringIntoViewRequester(inView), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
-        Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            groups.forEach { group ->
-                Text(group.name, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                ActionButtons(group.children, onSelect)
-                Tooltips(group.children, withNames = true)
-            }
-            if (actions.isNotEmpty()) {
-                ActionButtons(actions, onSelect)
-                Tooltips(actions.filter { !it.enabled }, withNames = false)
+private fun PartPopout(
+    load: suspend () -> ItemMenuResult,
+    key: Any,
+    cantRepair: String?,
+    iconUrl: (String) -> String,
+    onSelect: (menuId: String, optionId: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val menu by produceState<ItemMenuResult?>(null, key) { value = if (cantRepair != null) null else load() }
+    DropdownMenu(
+        expanded = true, onDismissRequest = onDismiss, properties = NoFocusMenu,
+        offset = DpOffset(24.dp, 4.dp), modifier = Modifier.widthIn(min = 260.dp, max = 380.dp),
+    ) {
+        when (val result = menu) {
+            null if cantRepair != null -> PopoutNote(cantRepair)
+            null -> PopoutNote("Loading the game's menu...")
+            is ItemMenuResult.Failed -> PopoutNote(result.reason)
+            is ItemMenuResult.Ready -> {
+                val options = result.menu.options
+                val (groups, single) = options.partition { it.children.isNotEmpty() }
+                groups.forEachIndexed { i, group ->
+                    if (i > 0) HorizontalDivider()
+                    Text(group.name.uppercase(), Modifier.padding(start = 14.dp, top = 8.dp, bottom = 2.dp),
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    group.children.forEach { PopoutItem(it, iconUrl) { onSelect(result.menu.menuId, it.id) } }
+                }
+                if (groups.isNotEmpty() && single.isNotEmpty()) HorizontalDivider()
+                single.forEach { PopoutItem(it, iconUrl) { onSelect(result.menu.menuId, it.id) } }
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ActionButtons(options: List<MenuOption>, onSelect: (optionId: String) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        options.forEach { option ->
-            // A deeper submenu doesn't happen in this menu (42.20); shown greyed rather than guessed at.
-            Button(enabled = option.enabled && option.children.isEmpty(), onClick = { onSelect(option.id) }) { Text(option.name) }
-        }
-    }
+private fun PopoutNote(text: String) {
+    Text(text, Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-/** The game's tooltips, one line each ("Rag: Tailoring :4 · Scratch Defense +2 · ..."). */
+/** One option: icon, name, and the game's tooltip under it (without its "Tailoring :4" line, or one that repeats the name). */
 @Composable
-private fun Tooltips(options: List<MenuOption>, withNames: Boolean) {
-    options.forEach { option ->
-        option.tooltip?.let { tip ->
-            val text = tip.replace("\n", " · ")
-            Text(if (withNames) "${option.name}: $text" else text, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
+private fun PopoutItem(option: MenuOption, iconUrl: (String) -> String, onClick: () -> Unit) {
+    val effect = option.tooltip?.split("\n")
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() && !SKILL_LINE.matches(it) && !it.equals(option.name, ignoreCase = true) }
+        ?.joinToString(" · ")
+        ?.takeIf { it.isNotEmpty() }
+    DropdownMenuItem(
+        enabled = option.enabled && option.children.isEmpty(),
+        onClick = onClick,
+        leadingIcon = { GameIcon(option.icon, iconUrl, 26.dp) },
+        text = {
+            Column {
+                Text(option.name, maxLines = 2)
+                effect?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+        },
+    )
 }
+
+/** The tooltip's skill line, "Tailoring :4" in the game's language: the panel's header already says it. */
+private val SKILL_LINE = Regex("""^[^:]+:\s*\d+$""")
