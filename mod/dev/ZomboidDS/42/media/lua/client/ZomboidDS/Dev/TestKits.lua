@@ -62,6 +62,93 @@ kit("tailor", "Tailor", "Needle, thread, 6 Rags, 3 Denim Strips (no Leather Stri
         triggerEvent("OnClothingUpdated", player)
     end)
 
+kit("build", "Build", "Hammer, saw, 20 planks, 100 nails, hinges and doorknobs (a Wood Door); propane torch, "
+    .. "welding mask and rods, 3 metal pipes but only 2 small metal sheets (something short); Carpentry 5, Welding 3.",
+    function(player)
+        local inventory = player:getInventory()
+        add(inventory, "Base.Hammer")
+        add(inventory, "Base.Saw")
+        add(inventory, "Base.Plank", 20)
+        add(inventory, "Base.Nails", 20) -- 5 a piece
+        add(inventory, "Base.Hinge", 4)
+        add(inventory, "Base.Doorknob", 2)
+        add(inventory, "Base.BlowTorch")
+        add(inventory, "Base.WeldingMask")
+        add(inventory, "Base.WeldingRods")
+        add(inventory, "Base.MetalPipe", 3)
+        add(inventory, "Base.SmallSheetMetal", 2)
+        setSkill(player, Perks.Woodwork, 5)
+        setSkill(player, Perks.MetalWelding, 3)
+    end)
+
+kit("craft", "Craft", "Hunting knife, saw, hammer, scissors; 2 logs, 4 planks, 25 nails, 2 sheets, a tree branch, "
+    .. "twine, duct tape, glue: something to make in most of Craft's categories.",
+    function(player)
+        local inventory = player:getInventory()
+        add(inventory, "Base.HuntingKnife")
+        add(inventory, "Base.Saw")
+        add(inventory, "Base.Hammer")
+        add(inventory, "Base.Scissors")
+        add(inventory, "Base.Log", 2)
+        add(inventory, "Base.Plank", 4)
+        add(inventory, "Base.Nails", 5)
+        add(inventory, "Base.Sheet", 2)
+        add(inventory, "Base.TreeBranch2")
+        add(inventory, "Base.Twine")
+        add(inventory, "Base.DuctTape")
+        add(inventory, "Base.Glue")
+    end)
+
+--- Food `age` days old: fresh, stale (between the two limits) or rotten (past the last one).
+local function aged(item, state)
+    local off, offMax = item:getOffAge(), item:getOffAgeMax()
+    if state == "stale" then
+        item:setAge((off + offMax) / 2)
+    elseif state == "rotten" then
+        item:setAge(offMax + 1)
+    end
+    return item
+end
+
+kit("food", "Food", "5 fresh apples (a stack), a stale and a rotten one; raw, frozen and burnt steak, cooked chicken; "
+    .. "soup and a tin opener; a pot half full of water, a full water bottle, a pan; bread set Unwanted.",
+    function(player)
+        local inventory = player:getInventory()
+        add(inventory, "Base.Apple", 5)
+        aged(add(inventory, "Base.Apple"), "stale")
+        aged(add(inventory, "Base.Apple"), "rotten")
+        add(inventory, "Base.Steak")
+        add(inventory, "Base.Steak"):setFreezingTime(100)
+        local burnt = add(inventory, "Base.Steak")
+        burnt:setCooked(true)
+        burnt:setBurnt(true)
+        add(inventory, "Base.Chicken"):setCooked(true)
+        add(inventory, "Base.TinnedSoup")
+        add(inventory, "Base.TinOpener")
+        for fullType, fraction in pairs({ ["Base.Pot"] = 0.5, ["Base.WaterBottle"] = 1 }) do
+            local fluids = add(inventory, fullType):getFluidContainer()
+            if fluids then fluids:addFluid(Fluid.Water, fluids:getCapacity() * fraction) end
+        end
+        add(inventory, "Base.Pan")
+        add(inventory, "Base.Bread"):setUnwanted(player, true)
+    end)
+
+kit("medic", "Medic", "A scratch on the left hand, a cut on the right forearm, glass in a deep wound on the left "
+    .. "thigh; bandages, ripped sheets, disinfectant, tweezers, suture needle; First Aid 4.",
+    function(player)
+        local body = player:getBodyDamage()
+        body:getBodyPart(BodyPartType.Hand_L):setScratched(true, true)
+        body:getBodyPart(BodyPartType.ForeArm_R):setCut(true, true)
+        body:getBodyPart(BodyPartType.UpperLeg_L):generateDeepShardWound()
+        local inventory = player:getInventory()
+        add(inventory, "Base.Bandage", 3)
+        add(inventory, "Base.RippedSheets", 3)
+        add(inventory, "Base.Disinfectant")
+        add(inventory, "Base.Tweezers")
+        add(inventory, "Base.SutureNeedle")
+        setSkill(player, Perks.Doctor, 4)
+    end)
+
 B42.commands.dev_kits = function(_player, _args)
     local list = {}
     for _, id in ipairs(order) do

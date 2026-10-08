@@ -13,7 +13,9 @@ function triggerEvent(name) events[#events + 1] = name end
 local function check(cond, msg) if not cond then error("FAIL: " .. msg, 2) end print("ok   " .. msg) end
 
 BloodBodyPartType = setmetatable({}, { __index = function(_, k) return k end })
-Perks = { Tailoring = "Tailoring" }
+BodyPartType = BloodBodyPartType
+Perks = { Tailoring = "Tailoring", Woodwork = "Woodwork", MetalWelding = "MetalWelding", Doctor = "Doctor" }
+Fluid = { Water = "Water" }
 
 local function newContainer()
   local c = { items = {} }
@@ -25,6 +27,18 @@ local function newContainer()
     function item:getCondLossPerHole() return 1.25 end
     function item:addPatch(_, part, fabric) self.patches[part] = fabric end
     function item:getInventory() self.inner = self.inner or newContainer() return self.inner end
+    function item:getOffAge() return 4 end
+    function item:getOffAgeMax() return 8 end
+    function item:setAge(v) self.age = v end
+    function item:setFreezingTime(v) self.frozen = v >= 100 end
+    function item:setCooked(v) self.cooked = v end
+    function item:setBurnt(v) self.burnt = v end
+    function item:setUnwanted(_, v) self.unwanted = v end
+    function item:getFluidContainer()
+      if self.type ~= "Base.Pot" and self.type ~= "Base.WaterBottle" then return nil end
+      local i = self
+      return { getCapacity = function() return 2 end, addFluid = function(_, fluid, amount) i.fluid, i.amount = fluid, amount end }
+    end
     table.insert(self.items, item)
     return item
   end
@@ -34,7 +48,13 @@ local function newContainer()
 end
 local inventory = newContainer()
 local levels = {}
+local injuries = {}
+local function bodyPart(id)
+  return { setScratched = function() injuries[id] = "scratch" end, setCut = function() injuries[id] = "cut" end,
+    generateDeepShardWound = function() injuries[id] = "glass" end }
+end
 local player = { getInventory = function() return inventory end, getPlayerNum = function() return 0 end,
+  getBodyDamage = function() return { getBodyPart = function(_, id) return bodyPart(id) end } end,
   setPerkLevelDebug = function(_, perk, level) levels[perk] = level end,
   getXp = function() return { setXPToLevel = function(_, perk, level) levels[perk .. "xp"] = level end } end }
 function instanceItem(fullType) return { type = fullType } end
@@ -65,4 +85,26 @@ check(hoodie and hoodie.holes.Torso_Upper and hoodie.holes.ForeArm_L, "a hoodie 
 check(inventory:count("Base.Shoes_ArmyBoots") == 1, "boots the game can't repair")
 check(levels.Tailoring == 4 and levels.Tailoringxp == 4, "Tailoring 4")
 check(not B42.commands.dev_kit(player, { kit = "nope" }), "an unknown kit: refused")
+
+check(B42.commands.dev_kit(player, { kit = "build" }), "gives the Build kit")
+check(inventory:count("Base.Plank") == 20 and inventory:count("Base.Nails") == 20 and inventory:count("Base.SmallSheetMetal") == 2,
+  "planks, nails, and too few metal sheets")
+check(levels.Woodwork == 5 and levels.MetalWelding == 3, "Carpentry 5, Welding 3")
+
+check(B42.commands.dev_kit(player, { kit = "craft" }), "gives the Craft kit")
+check(inventory:count("Base.Log") == 2 and inventory:count("Base.HuntingKnife") == 1, "logs and tools")
+
+check(B42.commands.dev_kit(player, { kit = "food" }), "gives the Food kit")
+local apples = {}
+for _, i in ipairs(inventory.items) do if i.type == "Base.Apple" then apples[#apples + 1] = i end end
+check(#apples == 7 and apples[6].age == 6 and apples[7].age == 9 and apples[1].age == nil, "5 fresh apples, a stale and a rotten one")
+local steaks = {}
+for _, i in ipairs(inventory.items) do if i.type == "Base.Steak" then steaks[#steaks + 1] = i end end
+check(steaks[2].frozen and steaks[3].cooked and steaks[3].burnt and not steaks[1].cooked, "raw, frozen and burnt steak")
+check(inventory:find("Base.Pot").amount == 1 and inventory:find("Base.WaterBottle").amount == 2, "a half pot and a full bottle of water")
+check(inventory:find("Base.Bread").unwanted, "bread set Unwanted")
+
+check(B42.commands.dev_kit(player, { kit = "medic" }), "gives the Medic kit")
+check(injuries.Hand_L == "scratch" and injuries.ForeArm_R == "cut" and injuries.UpperLeg_L == "glass", "three injuries to treat")
+check(inventory:count("Base.Bandage") == 3 and levels.Doctor == 4, "bandages and First Aid 4")
 print("ALL LUA CHECKS PASSED")

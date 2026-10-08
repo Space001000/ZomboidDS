@@ -131,7 +131,7 @@ android {
             signingConfigs.findByName("release")?.let { signingConfig = it }
         }
         debug {
-            buildConfigField("String", "BUNDLED_MOD_VERSION", "\"$bundledModVersion-dev\"")
+            buildConfigField("String", "BUNDLED_MOD_VERSION", "\"${rootProject.extra["devModVersion"]}\"")
         }
         // DEVELOPMENT ONLY: the release build plus test kits (src/devtools, mod/dev), signed with the
         // release key so it installs over the Thor's app. Never published: releases are assembleRelease.
@@ -139,7 +139,7 @@ android {
             initWith(getByName("release"))
             matchingFallbacks += "release"
             versionNameSuffix = "-dev"
-            buildConfigField("String", "BUNDLED_MOD_VERSION", "\"$bundledModVersion-dev\"")
+            buildConfigField("String", "BUNDLED_MOD_VERSION", "\"${rootProject.extra["devModVersion"]}\"")
         }
     }
 

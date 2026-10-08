@@ -26,8 +26,8 @@ def main():
     path = [a for a in sys.argv[1:] if a != "--dev"][0]
     dev_files, version, dex_kits = inspect(path)
     print(f"{path}\n  mod {version}\n  mod Dev/ files: {len(dev_files)}\n  test kits in the app code: {dex_kits}")
-    has_dev = bool(dev_files) or version.endswith("-dev") or dex_kits
-    if dev and not (dev_files and version.endswith("-dev") and dex_kits):
+    has_dev = bool(dev_files) or ("-dev" in version) or dex_kits
+    if dev and not (dev_files and ("-dev" in version) and dex_kits):
         sys.exit("FAIL: a dev build should carry the test kits in the mod and the app")
     if not dev and has_dev:
         sys.exit("FAIL: development parts in a release build")

@@ -106,8 +106,9 @@ artifacts {
     add(modZipElements.name, modZip)
 }
 
-// DEVELOPMENT ONLY: the same mod plus mod/dev (test kits), with "-dev" after its version so the app's
-// setup checklist swaps it for the release mod and back. Only the app's debug and dev builds bundle
+// DEVELOPMENT ONLY: the same mod plus mod/dev (test kits), with the dev version (root build.gradle.kts:
+// "<x>-dev.<fingerprint>") so the app's setup checklist swaps it for the release mod and back, and
+// offers it again after each change. Only the app's debug and dev builds bundle
 // this one; companion-app's release build checks that its zip has no Dev/ files.
 val devModZip by tasks.registering(Zip::class) {
     archiveFileName.set("ZomboidDS-dev.zip")
@@ -115,7 +116,7 @@ val devModZip by tasks.registering(Zip::class) {
     into("ZomboidDS") {
         from(rootProject.file("mod/ZomboidDS")) {
             filesMatching("42/mod.info") {
-                filter { line -> if (line.startsWith("modversion=")) "$line-dev" else line }
+                filter { line -> if (line.startsWith("modversion=")) "modversion=${rootProject.extra["devModVersion"]}" else line }
             }
         }
         from(rootProject.file("mod/dev/ZomboidDS"))
