@@ -185,7 +185,7 @@ executed on the game thread on the next tick (also while the game is paused), us
 | `build_recipe` | `recipe` (an `id` from `build_list`). Result `data`: `{ id, name, icon, category, seconds, canBuild, inputs[], skills[] }` as in `craft_recipe` |
 | `build_place` | `recipe`: turns on the game's placement cursor for it on the game's screen, as the build window's Build button does. The `building` message follows. |
 | `build_stop` | none: puts the cursor away, as B on the controller does |
-| `tailor_list` | none. Result `data`: the player's clothes and sewing kit: `garments[]` `{ id, name, icon, condition, worn, bag, holes, patches, repairable }`, `kit` `{ needle, thread, fabrics[] { type, name, icon, count } }`, `tailoring` (skill level) (see Tailoring) |
+| `tailor_list` | none. Result `data`: the player's clothes and sewing kit: `garments[]` `{ id, name, icon, condition, worn, holes, patches, repairable }`, `kit` `{ needle, thread, fabrics[] { type, name, icon, count } }`, `tailoring` (skill level) (see Tailoring) |
 | `tailor_garment` | `itemId`. Result `data`: `{ id, name, icon, worn, condition, blood, dirt, cantRepair, tailoring, parts[] }`, each part `{ id, name, bite, scratch, bullet, hole, blood, patch, sewing }` (see Tailoring) |
 | `tailor_menu` | `itemId`, `part` (a part `id`). Result `data`: `{ menuId, options[] }` as `item_menu`: the game's tailoring menu for that part. Choose with `menu_select`. |
 
@@ -215,11 +215,11 @@ game blocks it when something is short.
 ### Tailoring
 
 As the game's Inspect window (42.20 `ISGarmentUI`) shows a garment. `garments` are the clothes in
-the player's inventory and bags that cover a body part, worn first; `bag` names the bag a carried
-one is in; `holes` / `patches` count them; `repairable` false for clothes without a fabric (boots,
-helmets). `kit` is what the window's menu looks for anywhere in the inventory: a needle, thread and
-the three fabrics it patches with (types `RippedSheets`, `DenimStrips`, `LeatherStrips`, in that order: Rag, Denim Strips and Leather Strips in English, with
-their item names and counts).
+the player's inventory and bags that cover a body part, worn first; `holes` / `patches` count
+them; `repairable` false for clothes without a fabric (boots, helmets). `kit` is what the window's
+menu looks for anywhere in the inventory: a needle, thread and the three fabrics it patches with
+(types `RippedSheets`, `DenimStrips`, `LeatherStrips`, in that order: Rag, Denim Strips and Leather
+Strips in English), with their item names and counts.
 
 A garment's `parts` are the body parts it covers (`BloodBodyPartType`, `Back` included), with the
 translated `name`; `bite`, `scratch`, `bullet` the defence there (0 over a hole); `hole` true;

@@ -1,29 +1,35 @@
 package dev.zomboidds.companion.data
 
+import dev.zomboidds.companion.domain.AlarmClock
 import dev.zomboidds.companion.domain.BodyPartStatus
 import dev.zomboidds.companion.domain.BridgeInfo
+import dev.zomboidds.companion.domain.BuildList
+import dev.zomboidds.companion.domain.BuildRecipe
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.Container
 import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.CookState
 import dev.zomboidds.companion.domain.Cooking
+import dev.zomboidds.companion.domain.DeckClock
+import dev.zomboidds.companion.domain.DeckCommand
+import dev.zomboidds.companion.domain.DeckState
 import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.ExploredAreas
+import dev.zomboidds.companion.domain.Fabric
 import dev.zomboidds.companion.domain.FluidFill
 import dev.zomboidds.companion.domain.Freshness
 import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameSpeed
-import dev.zomboidds.companion.domain.AlarmClock
-import dev.zomboidds.companion.domain.HotbarItem
-import dev.zomboidds.companion.domain.HotbarSlot
-import dev.zomboidds.companion.domain.DeckCommand
-import dev.zomboidds.companion.domain.DeckClock
-import dev.zomboidds.companion.domain.DeckState
 import dev.zomboidds.companion.domain.GameState
+import dev.zomboidds.companion.domain.Garment
+import dev.zomboidds.companion.domain.GarmentPart
+import dev.zomboidds.companion.domain.GarmentSummary
 import dev.zomboidds.companion.domain.Health
 import dev.zomboidds.companion.domain.HealthLine
 import dev.zomboidds.companion.domain.HealthTone
 import dev.zomboidds.companion.domain.HereState
+import dev.zomboidds.companion.domain.HotbarItem
+import dev.zomboidds.companion.domain.HotbarSlot
 import dev.zomboidds.companion.domain.Inventory
 import dev.zomboidds.companion.domain.InventoryItem
 import dev.zomboidds.companion.domain.ItemAction
@@ -36,10 +42,8 @@ import dev.zomboidds.companion.domain.MenuPill
 import dev.zomboidds.companion.domain.Moodle
 import dev.zomboidds.companion.domain.MoodleTone
 import dev.zomboidds.companion.domain.Moodles
-import dev.zomboidds.companion.domain.PlayerStatus
-import dev.zomboidds.companion.domain.BuildList
-import dev.zomboidds.companion.domain.BuildRecipe
 import dev.zomboidds.companion.domain.Placing
+import dev.zomboidds.companion.domain.PlayerStatus
 import dev.zomboidds.companion.domain.RecipeCategory
 import dev.zomboidds.companion.domain.RecipeDetails
 import dev.zomboidds.companion.domain.RecipeInput
@@ -47,15 +51,11 @@ import dev.zomboidds.companion.domain.RecipeList
 import dev.zomboidds.companion.domain.RecipeOutput
 import dev.zomboidds.companion.domain.RecipeSkill
 import dev.zomboidds.companion.domain.RecipeSummary
-import dev.zomboidds.companion.domain.SkillNeed
-import dev.zomboidds.companion.domain.Fabric
-import dev.zomboidds.companion.domain.Garment
-import dev.zomboidds.companion.domain.GarmentPart
-import dev.zomboidds.companion.domain.GarmentSummary
+import dev.zomboidds.companion.domain.SessionInfo
 import dev.zomboidds.companion.domain.Sewing
 import dev.zomboidds.companion.domain.SewingKit
+import dev.zomboidds.companion.domain.SkillNeed
 import dev.zomboidds.companion.domain.TailorList
-import dev.zomboidds.companion.domain.SessionInfo
 import dev.zomboidds.companion.domain.TimeState
 import dev.zomboidds.companion.domain.Vehicle
 import java.io.ByteArrayOutputStream
@@ -563,7 +563,6 @@ object ProtocolV1 {
         val icon: String? = null,
         val condition: Float? = null,
         val worn: Boolean = false,
-        val bag: String? = null,
         val holes: Int = 0,
         val patches: Int = 0,
         val repairable: Boolean = true,
@@ -611,8 +610,8 @@ object ProtocolV1 {
         val dto = json.decodeFromJsonElement<TailorListDto>(lenient(data))
         return TailorList(
             dto.garments.map {
-                GarmentSummary(it.id, it.name.ifEmpty { "?" }, it.icon, it.condition, it.worn, it.bag?.takeIf(String::isNotBlank),
-                    it.holes, it.patches, it.repairable)
+                GarmentSummary(it.id, it.name.ifEmpty { "?" }, it.icon, it.condition, it.worn, it.holes, it.patches,
+                    it.repairable)
             },
             SewingKit(dto.kit.needle, dto.kit.thread, dto.kit.fabrics.map { Fabric(it.type, it.name.ifEmpty { it.type }, it.icon, it.count) }),
             dto.tailoring,

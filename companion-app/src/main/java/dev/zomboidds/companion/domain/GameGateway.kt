@@ -3,6 +3,8 @@ package dev.zomboidds.companion.domain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 /**
  * The app's view of the game. The UI only talks to this interface; how the data gets here
@@ -25,7 +27,7 @@ interface GameGateway : ItemActions, GameControls, Crafting, Building, Tailoring
      * Any command by name, with its reply's `data` (for tools that don't need their own model,
      * like the development builds' test kits). Never throws.
      */
-    suspend fun command(name: String, args: kotlinx.serialization.json.JsonObject): Fetched<kotlinx.serialization.json.JsonElement?>
+    suspend fun command(name: String, args: JsonObject): Fetched<JsonElement?>
 }
 
 /** What the app can ask of the game itself. */

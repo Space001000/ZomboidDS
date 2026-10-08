@@ -1,12 +1,6 @@
 package dev.zomboidds.companion.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.CardDefaults
-import dev.zomboidds.companion.domain.ItemMenuResult
-import androidx.compose.runtime.produceState
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -19,21 +13,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -49,22 +45,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.Fetched
+import dev.zomboidds.companion.domain.GameSpeed
 import dev.zomboidds.companion.domain.Garment
 import dev.zomboidds.companion.domain.GarmentPart
 import dev.zomboidds.companion.domain.GarmentSummary
 import dev.zomboidds.companion.domain.ItemActions
-import dev.zomboidds.companion.domain.ItemMenu
+import dev.zomboidds.companion.domain.ItemMenuResult
 import dev.zomboidds.companion.domain.MenuOption
 import dev.zomboidds.companion.domain.SewingKit
 import dev.zomboidds.companion.domain.TailorList
 import dev.zomboidds.companion.domain.Tailoring
-import dev.zomboidds.companion.domain.GameSpeed
 import dev.zomboidds.companion.domain.TimeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -340,7 +337,7 @@ private fun GarmentBars(garment: Garment) {
     }
 }
 
-private fun lerpColor(a: Color, b: Color, t: Float) = androidx.compose.ui.graphics.lerp(a, b, t.coerceIn(0f, 1f))
+private fun lerpColor(a: Color, b: Color, t: Float) = lerp(a, b, t.coerceIn(0f, 1f))
 
 /** The body with the garment's parts lit: a hole red, a patch green, the rest of what it covers light. */
 @Composable
@@ -449,25 +446,25 @@ private fun BoxScope.PartCard(
             }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             when (val result = menu) {
-                null if garment.cantRepair != null -> PopoutNote(garment.cantRepair)
+                null if garment.cantRepair != null -> MenuNote(garment.cantRepair)
                 null if paused -> Row(Modifier.padding(end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) {
-                        PopoutNote(if (time?.gameMenuOpen == true) "Close the game's menu, then unpause to sew" else "Unpause to sew")
+                        MenuNote(if (time.gameMenuOpen) "Close the game's menu, then unpause to sew" else "Unpause to sew")
                     }
-                    if (time?.canChange == true && !time.gameMenuOpen) TextButton(onClick = onUnpause) { Text("Unpause") }
+                    if (time.canChange && !time.gameMenuOpen) TextButton(onClick = onUnpause) { Text("Unpause") }
                 }
-                null -> PopoutNote("Loading the game's menu...")
-                is ItemMenuResult.Failed -> PopoutNote(result.reason)
+                null -> MenuNote("Loading the game's menu...")
+                is ItemMenuResult.Failed -> MenuNote(result.reason)
                 is ItemMenuResult.Ready -> {
                     val (groups, single) = result.menu.options.partition { it.children.isNotEmpty() }
                     groups.forEachIndexed { i, group ->
                         if (i > 0) HorizontalDivider(Modifier.padding(vertical = 4.dp))
                         Text(group.name.uppercase(), Modifier.padding(start = 16.dp, top = 6.dp, bottom = 2.dp),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        group.children.forEach { PopoutItem(it, iconUrl) { onSelect(result.menu.menuId, it.id) } }
+                        group.children.forEach { MenuRow(it, iconUrl) { onSelect(result.menu.menuId, it.id) } }
                     }
                     if (groups.isNotEmpty() && single.isNotEmpty()) HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                    single.forEach { PopoutItem(it, iconUrl) { onSelect(result.menu.menuId, it.id) } }
+                    single.forEach { MenuRow(it, iconUrl) { onSelect(result.menu.menuId, it.id) } }
                 }
             }
         }
@@ -475,14 +472,17 @@ private fun BoxScope.PartCard(
 }
 
 @Composable
-private fun PopoutNote(text: String) {
+private fun MenuNote(text: String) {
     Text(text, Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-/** One option: icon, name, and the game's tooltip under it (greyed: its reason) (without its "Tailoring :4" line, or one that repeats the name). */
+/**
+ * One option: its icon, its name, and under it the game's tooltip (for a greyed one, its reason),
+ * without the "Tailoring :4" line or a line that only repeats the name.
+ */
 @Composable
-private fun PopoutItem(option: MenuOption, iconUrl: (String) -> String, onClick: () -> Unit) {
+private fun MenuRow(option: MenuOption, iconUrl: (String) -> String, onClick: () -> Unit) {
     val effect = option.tooltip?.split("\n")
         ?.map { it.trim() }
         ?.filter { it.isNotEmpty() && !SKILL_LINE.matches(it) && !it.equals(option.name, ignoreCase = true) }

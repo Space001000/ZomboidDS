@@ -62,7 +62,7 @@ local rag = { classes = {}, getID = function() return 5 end }
 
 local bagInventory = { getItems = function() return list({ hoodie }) end }
 local bag = { classes = { InventoryContainer = true }, getID = function() return 6 end,
-  getName = function() return "Military Backpack" end, getInventory = function() return bagInventory end }
+  getInventory = function() return bagInventory end }
 local byId = { [1] = jacket, [2] = boots, [3] = hoodie, [5] = rag }
 local counts = { RippedSheets = 12, DenimStrips = 3, LeatherStrips = 0 }
 local hasNeedle = true
@@ -134,7 +134,7 @@ local ok, _, data = B42.commands.tailor_list(player, {})
 check(ok and #data.garments == 3, "lists the clothes in the inventory and bags, hidden wounds left out")
 local g1, g2, g3 = data.garments[1], data.garments[2], data.garments[3]
 check(g1.name == "Leather Jacket" and g1.worn and g2.name == "Military Boots" and g2.worn, "worn clothes first")
-check(g3.name == "Hoodie" and not g3.worn and g3.bag == "Military Backpack", "then carried ones, with the bag they're in")
+check(g3.name == "Hoodie" and not g3.worn, "then carried ones, in bags too")
 check(g1.holes == 1 and g1.patches == 1 and g3.holes == 1, "holes and patches counted")
 check(g1.repairable and g2.repairable == false, "clothes without a fabric can't be repaired")
 check(g1.icon == "Item_JacketBlack" and g1.condition == 0.6, "icon and condition as the inventory shows them")

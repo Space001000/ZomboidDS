@@ -262,21 +262,25 @@ end
 --- controller's interact button opens (42.20 ISButtonPrompt:interact). The objects come from the
 --- prompt's own getInteractOptionsButtonObjects (the player's tile and the three tiles they face,
 --- not through walls), and the menu is built at the player's screen position like there.
---- The world object a call acts on: its target or a parameter that is one, or the `object` of a
---- table parameter (Disassemble passes { object = ..., square = ... }). nil for none.
-local function worldObjectOf(values, count)
-    for i = 0, count do
-        local v = values[i]
-        if v ~= nil then
-            if type(v) == "table" and not instanceof(v, "IsoObject") then
-                v = v.object
-            end
-            if v ~= nil and instanceof(v, "IsoObject") then
-                return v
-            end
-        end
+--- A world object, or the `object` of a table that carries one (Disassemble passes
+--- { object = ..., square = ... }); nil for anything else.
+local function asWorldObject(value)
+    if type(value) == "table" and not instanceof(value, "IsoObject") then
+        value = value.object
+    end
+    if value ~= nil and instanceof(value, "IsoObject") then
+        return value
     end
     return nil
+end
+
+--- The world object a call acts on: its target, or the first parameter that is one.
+local function callObject(call)
+    local object = asWorldObject(call.target)
+    for i = 1, 10 do
+        object = object or asWorldObject(call[i])
+    end
+    return object
 end
 
 --- Where an object is: its square and its place among the square's objects. Survives rebuilds,
@@ -309,45 +313,59 @@ local function promptObject(player, prompts)
         return nil
     end
     local params = prompts.aParams or {}
-    local object = worldObjectOf({ [0] = params[1], params[2], params[3], params[4] }, 3)
-    return object or Util.try(player, "getContextDoorOrWindowOrWindowFrame", player:getDir())
+    for i = 1, 4 do
+        local object = asWorldObject(params[i])
+        if object ~= nil then
+            return object
+        end
+    end
+    return Util.try(player, "getContextDoorOrWindowOrWindowFrame", player:getDir())
+end
+
+--- Whether an option is one action over a list of objects (Disassemble > each object): the
+--- entries under it run the same function, each on its own object. Disassemble is one even with
+--- a single object. `list`: the calls under it; `objects`: how many objects they act on.
+local function isObjectList(entry, list, objects)
+    if #(entry.children or {}) == 0 or list[1] == nil then
+        return false
+    end
+    for _, child in ipairs(entry.children) do
+        if #(child.children or {}) > 0 then
+            return false
+        end
+    end
+    for _, call in ipairs(list) do
+        if call.fn ~= list[1].fn then
+            return false
+        end
+    end
+    local disassemble = ISDisassembleMenu and ISDisassembleMenu.disassemble
+    return (objects >= 2 and objects == #list) or (disassemble ~= nil and list[1].fn == disassemble)
 end
 
 --- Gives the world menu's top-level options what the app needs to keep them in place:
 ---   key   the object an option belongs to (its first call's object), so a card keeps its place
 ---         however the game orders its menu; options without an object get their name
----   tray  a list of objects under one action (Disassemble > each object): the same function for
----         every entry, each on its own object (or Disassemble itself, even with one object). The
----         app shows these apart from the objects.
----   front the option for what the interact button would act on.
+---   tray  a list of objects under one action (see isObjectList); the app shows these apart
+---   front the option for what the interact button would act on
+--- `calls`: the call data of every option, greyed ones too.
 local function markWorld(player, prompts, options, calls)
     local front = promptObject(player, prompts)
     local frontKey = front and objectKey(front)
     local used = {}
     for _, entry in ipairs(options) do
         local list = callsUnder(entry, calls, {})
-        local keys, firstKey = {}, nil
+        local keys, firstKey, objects = {}, nil, 0
         for _, call in ipairs(list) do
-            local object = worldObjectOf({ [0] = call.target, call[1], call[2], call[3], call[4], call[5],
-                call[6], call[7], call[8], call[9], call[10] }, 10)
+            local object = callObject(call)
             local key = object and objectKey(object)
-            if key ~= nil then
+            if key ~= nil and not keys[key] then
                 keys[key] = true
+                objects = objects + 1
                 firstKey = firstKey or key
             end
         end
-        local children = entry.children or {}
-        local sameFunction, objects = #children > 0, 0
-        for _, child in ipairs(children) do
-            local call = calls[child.id]
-            if #(child.children or {}) > 0 or (call ~= nil and list[1] ~= nil and call.fn ~= list[1].fn) then
-                sameFunction = false
-            end
-        end
-        for _ in pairs(keys) do objects = objects + 1 end
-        local disassemble = ISDisassembleMenu and ISDisassembleMenu.disassemble
-        entry.tray = (sameFunction and ((objects >= 2 and objects >= #list)
-            or (disassemble ~= nil and list[1] ~= nil and list[1].fn == disassemble))) or nil
+        entry.tray = isObjectList(entry, list, objects) or nil
         local key = entry.tray and ("list:" .. entry.name) or firstKey or ("name:" .. entry.name)
         used[key] = (used[key] or 0) + 1
         entry.key = used[key] == 1 and key or (key .. "|" .. used[key])
@@ -519,6 +537,7 @@ function B42Menu.openGarment(player, clothing, partId)
     for i = 0, covered:size() - 1 do
         if tostring(covered:get(i)) == partId then
             part = covered:get(i)
+            break
         end
     end
     if part == nil then

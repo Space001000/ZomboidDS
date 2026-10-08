@@ -1,27 +1,8 @@
 package dev.zomboidds.companion.ui
 
-import dev.zomboidds.companion.setup.AppUpdateState
-import dev.zomboidds.companion.domain.Building
-import dev.zomboidds.companion.domain.Tailoring
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
-import dev.zomboidds.companion.devtools.DevTools
-import dev.zomboidds.companion.domain.Crafting
-import dev.zomboidds.companion.domain.GameControls
-import dev.zomboidds.companion.domain.GameSpeed
-import dev.zomboidds.companion.domain.GameEvent
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
-import androidx.compose.runtime.remember
-import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,9 +23,11 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,33 +35,50 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
-import coil3.compose.AsyncImage
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import dev.zomboidds.companion.ContainerLayout
 import dev.zomboidds.companion.CraftMode
 import dev.zomboidds.companion.InventoryLayout
 import dev.zomboidds.companion.MapPlacement
+import dev.zomboidds.companion.devtools.DevTools
 import dev.zomboidds.companion.domain.BridgeInfo
+import dev.zomboidds.companion.domain.Building
 import dev.zomboidds.companion.domain.CommandResult
+import dev.zomboidds.companion.domain.ConnectionStatus
+import dev.zomboidds.companion.domain.Crafting
+import dev.zomboidds.companion.domain.GameControls
+import dev.zomboidds.companion.domain.GameEvent
+import dev.zomboidds.companion.domain.GameSpeed
+import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.ItemActions
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenuResult
-import dev.zomboidds.companion.domain.ConnectionStatus
-import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.PlayerStatus
 import dev.zomboidds.companion.domain.SessionInfo
+import dev.zomboidds.companion.domain.Tailoring
 import dev.zomboidds.companion.domain.Vehicle
+import dev.zomboidds.companion.setup.AppUpdateState
 import dev.zomboidds.companion.setup.SetupReport
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -274,8 +274,7 @@ private fun InGame(
             val shownGarment = garmentShown
             if (shownGarment != null && tailoring != null) {
                 GarmentPanel(tailoring, actions, shownGarment, iconUrl, changes = state.inventory to state.containers,
-                    time = state.time, onUnpause = unpause,
-                    onClose = { garmentShown = null })
+                    time = state.time, onUnpause = unpause, onClose = { garmentShown = null })
             }
         }
     }

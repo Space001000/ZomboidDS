@@ -102,7 +102,6 @@
      "name": "Hoodie",
      "icon": "Item_HoodieWhite",
      "condition": 0.41,
-     "bag": "Military Backpack",
      "holes": 3,
      "patches": 0,
      "repairable": true
@@ -112,7 +111,6 @@
      "name": "Padded Pants",
      "icon": "Item_PaddedTrousers_White",
      "condition": 0.8,
-     "bag": "Military Backpack",
      "holes": 0,
      "patches": 0,
      "repairable": false
@@ -122,7 +120,6 @@
      "name": "Shirt - Lumberjack",
      "icon": "Item_ShirtLumberjackRed",
      "condition": 1,
-     "bag": "Military Backpack",
      "holes": 0,
      "patches": 0,
      "repairable": true
@@ -132,7 +129,6 @@
      "name": "Leather Jacket",
      "icon": "Item_JacketBlack",
      "condition": 0.9,
-     "bag": "Military Backpack",
      "holes": 0,
      "patches": 1,
      "repairable": true
@@ -142,7 +138,6 @@
      "name": "Long Socks",
      "icon": "Item_SocksWhite",
      "condition": 1,
-     "bag": "Military Backpack",
      "holes": 0,
      "patches": 0,
      "repairable": true
@@ -152,7 +147,6 @@
      "name": "T-shirt",
      "icon": "Item_TshirtGeneric",
      "condition": 0.5,
-     "bag": "Military Backpack",
      "holes": 1,
      "patches": 0,
      "repairable": true

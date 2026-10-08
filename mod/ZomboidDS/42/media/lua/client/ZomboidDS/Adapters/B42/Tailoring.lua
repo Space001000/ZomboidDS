@@ -46,21 +46,21 @@ local function garments(player)
             list[#list + 1] = { item = item, worn = true }
         end
     end
-    local function walk(container, bagName)
+    local function walk(container)
         local items = container:getItems()
         for i = 0, items:size() - 1 do
             local item = items:get(i)
             if inspectable(item) and not seen[item:getID()] then
                 seen[item:getID()] = true
-                list[#list + 1] = { item = item, worn = false, bag = bagName }
+                list[#list + 1] = { item = item, worn = false }
             end
             local inner = instanceof(item, "InventoryContainer") and try(item, "getInventory") or nil
             if inner ~= nil then
-                walk(inner, try(item, "getName") or try(item, "getDisplayName"))
+                walk(inner)
             end
         end
     end
-    walk(player:getInventory(), nil)
+    walk(player:getInventory())
     return list
 end
 
@@ -97,7 +97,6 @@ function Tailoring.list(player)
             icon = described.icon,
             condition = described.condition,
             worn = entry.worn or nil,
-            bag = entry.bag,
             holes = holes(item),
             patches = try(item, "getPatchesNumber") or 0,
             repairable = try(item, "getFabricType") ~= nil,

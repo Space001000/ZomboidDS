@@ -95,7 +95,10 @@ your character:
   - The two small buttons at the top right pick the layout (top and bottom, side by side, one at a
     time) and switch between grid and list.
 - **Here**: what you can do where you stand (open a door, sit, drink, ...), as cards per object,
-  updating by itself as you walk. Tap an action to do it; greyed-out ones tell you why when tapped.
+  updating by itself as you walk. Each object keeps its place; what you face goes on top after a
+  second (outlined, "In front"), with the one before right under it. Disassemble and loose actions
+  (Sit on ground) are in the row at the bottom; lists open over the cards. Tap an action to do it;
+  greyed-out ones tell you why when tapped. While your finger is on the screen, nothing moves.
   **In a vehicle** this tab becomes **Vehicle**: speed, engine and fuel, and the car's own menu (the
   one the controller's radial menu shows) as big buttons: start the engine, headlights, heater,
   horn, windows, doors, sleep, switch seat, get out, ...

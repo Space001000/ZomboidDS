@@ -418,7 +418,7 @@ class ProtocolV1Test {
         assertEquals(2, jacket.holes)
         assertEquals(1, jacket.patches)
         assertEquals(false, list.garments.single { it.name == "Military Boots" }.repairable)
-        assertEquals("Military Backpack", list.garments.last().bag)
+        assertEquals("carried in a bag", false, list.garments.last().worn)
         assertEquals(listOf("Rag" to 12, "Denim Strips" to 3, "Leather Strips" to 0), list.kit.fabrics.map { it.name to it.count })
         assertTrue(list.kit.needle && list.kit.thread)
         assertEquals(4, list.tailoring)

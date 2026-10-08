@@ -47,7 +47,6 @@ final class MockTailoring {
             for (String key : List.of("id", "name", "icon", "condition", "worn")) {
                 if (garment.containsKey(key)) entry.put(key, garment.get(key));
             }
-            if (!Boolean.TRUE.equals(garment.get("worn"))) entry.put("bag", "Military Backpack");
             entry.put("holes", parts(garment).stream().filter(p -> Boolean.TRUE.equals(p.get("hole"))).count());
             entry.put("patches", parts(garment).stream().filter(p -> p.get("patch") != null).count());
             entry.put("repairable", garment.get("cantRepair") == null);

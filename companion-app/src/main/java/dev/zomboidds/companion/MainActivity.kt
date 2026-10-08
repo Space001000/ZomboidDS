@@ -1,10 +1,8 @@
 package dev.zomboidds.companion
 
-import java.io.File
-import dev.zomboidds.companion.setup.AppRelease
-import android.net.Uri
 import android.app.ActivityOptions
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Display
 import android.view.WindowManager
@@ -14,21 +12,23 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import dev.zomboidds.companion.devtools.DevTools
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import dev.zomboidds.companion.data.WorldMapState
+import dev.zomboidds.companion.devtools.DevTools
+import dev.zomboidds.companion.domain.ConnectionStatus
+import dev.zomboidds.companion.setup.AppRelease
 import dev.zomboidds.companion.setup.SetupController
 import dev.zomboidds.companion.setup.ZomdroidStorage
-import dev.zomboidds.companion.domain.ConnectionStatus
 import dev.zomboidds.companion.ui.CompanionScreen
 import dev.zomboidds.companion.ui.InventoryDisplay
 import dev.zomboidds.companion.ui.MapDisplay
-import dev.zomboidds.companion.data.WorldMapState
 import dev.zomboidds.companion.ui.SetupActions
+import java.io.File
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 

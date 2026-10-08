@@ -20,17 +20,13 @@ interface Tailoring {
 
 data class TailorList(val garments: List<GarmentSummary>, val kit: SewingKit, val tailoring: Int? = null)
 
-/**
- * A garment in the list. [bag]: the bag it's in, when carried in one. [repairable]: false for
- * clothes without a fabric (boots, helmets), which the game can't patch.
- */
+/** A garment in the list. [repairable]: false for clothes without a fabric (boots, helmets), which the game can't patch. */
 data class GarmentSummary(
     val id: Long,
     val name: String,
     val icon: String?,
     val condition: Float? = null,
     val worn: Boolean = false,
-    val bag: String? = null,
     val holes: Int = 0,
     val patches: Int = 0,
     val repairable: Boolean = true,
