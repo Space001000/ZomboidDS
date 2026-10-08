@@ -56,6 +56,10 @@ data class RecipeInput(
     val unit: String? = null,
 )
 
+/** The names of the ingredients and skills that fall short. */
+val RecipeDetails.missing: List<String>
+    get() = inputs.filter { !it.ok }.map { it.name } + skills.filter { !it.ok }.map { it.name }
+
 data class RecipeOutput(val name: String, val icon: String?, val amount: Float, val unit: String? = null)
 
 data class RecipeSkill(val name: String, val level: Int, val have: Int) {

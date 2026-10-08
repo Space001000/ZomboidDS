@@ -170,6 +170,16 @@ local function describeInput(logic, input)
     return entry
 end
 
+--- Every input of a recipe, with the player's items counted.
+local function describeInputs(logic, recipe)
+    local inputs, list = {}, try(recipe, "getInputs")
+    for i = 0, (list and list:size() or 0) - 1 do
+        local ok, entry = pcall(describeInput, logic, list:get(i))
+        if ok then inputs[#inputs + 1] = entry end
+    end
+    return inputs
+end
+
 local function describeOutput(output)
     local items = try(output, "getPossibleResultItems")
     local first = items ~= nil and items:size() > 0 and items:get(0) or nil
@@ -211,15 +221,10 @@ function Crafting.recipe(player, id)
         seconds = try(recipe, "getTime", player),
         canCraft = canCraft(logic, player, recipe),
         max = try(logic, "getPossibleCraftCount", true) or 0,
-        inputs = {},
+        inputs = describeInputs(logic, recipe),
         outputs = {},
         skills = {},
     }
-    local inputs = try(recipe, "getInputs")
-    for i = 0, (inputs and inputs:size() or 0) - 1 do
-        local ok, entry = pcall(describeInput, logic, inputs:get(i))
-        if ok then data.inputs[#data.inputs + 1] = entry end
-    end
     local outputs = try(recipe, "getOutputs")
     for i = 0, (outputs and outputs:size() or 0) - 1 do
         local ok, entry = pcall(describeOutput, outputs:get(i))
@@ -265,7 +270,7 @@ Crafting.shared = {
     listed = listed,
     canCraft = canCraft,
     categoryName = categoryName,
-    describeInput = describeInput,
+    describeInputs = describeInputs,
     describeSkills = describeSkills,
 }
 

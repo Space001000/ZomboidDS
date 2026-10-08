@@ -118,9 +118,14 @@ your character:
   (your bags and the containers around you); categories along the top. Tap one to see what it needs
   (✓ have, ✗ missing), what it makes and how long it takes, then **Craft** (− / + for several). Your
   character fetches the ingredients and does it, like with the game's crafting window.
+- **Build**: tap the arrow on **Craft ▾** and pick Build for the game's build menu (Craft ▾ switches
+  back). Things that come in versions (Wood Chair Shoddy, Poor, Good) are one tile; pick the version
+  in its panel. **Place** brings up the game's cursor on the top screen: the d-pad moves it, LB/RB
+  turn it, A builds, B stops. The cursor stays up for the next one. While it's up, the bottom screen
+  says what you're placing (red when something runs out), with **Stop**.
 
 The **Loot / Inventory button (Y)** opens the container on the bottom screen instead of the game's
-windows on the top screen (without the app, Y works as usual). The gamepad keeps controlling the game
+windows on the top screen, and so does opening a car's trunk (without the app, both work as usual). The gamepad keeps controlling the game
 while you use the bottom screen.
 
 ## Better graphics: the Turnip driver

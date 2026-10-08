@@ -48,12 +48,12 @@ windows can't be moved to the other display: each panel is rebuilt in the app fr
 └──────────────────────────────────────────────────────────────────────────────┘
                   ws://127.0.0.1:7786/ws         http://127.0.0.1:7786/icons/*.png
 ┌──────────────────── BOTTOM SCREEN: ZomboidDS Companion ──────────────────────┐
-│  Kotlin + Jetpack Compose, a non-focusable window (the game keeps the pad)   │
+│  Kotlin + Jetpack Compose; never takes the gamepad while the game runs       │
 │   ├─ setup:  checklist, mod installer (folder picker → Zomdroid's provider), │
 │   │          ZombieBuddy download, app updates                               │
-│   ├─ domain: GameState, commands, menus, crafting (ports, no Android)        │
+│   ├─ domain: GameState, commands, menus, crafting, building (ports)          │
 │   ├─ data:   WebSocketGameGateway (OkHttp), ProtocolV1                       │
-│   └─ ui:     Inventory, Here (Vehicle), Status, Craft, Deck                  │
+│   └─ ui:     Inventory, Here (Vehicle), Status, Craft ▾ (Craft, Build), Deck │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -90,6 +90,7 @@ Everything below was checked against the game's Lua sources and `projectzomboid.
 | Moodles | `player:getMoodles()` for levels, names and descriptions; the moodle column's rules (level > 0, "food eaten" from level 3, background grey → good/bad highlight colour by level/4). The type → icon table is Java-only (`zombie.ui.MoodleTextureSet`), so the adapter holds a copy. |
 | Food freshness | The rule `Food:getName` uses for "Fresh / Stale / Rotten". |
 | Crafting | Java `HandcraftLogic` with the crafting window's default query (`InHandCraft;AnySurfaceCraft`), its containers and manual input selection; crafting runs the window's own `startHandcraft` with a stand-in for its craft control (fetch ingredients, walk to a surface, queue the actions, put items back). |
+| Building | Java `BuildLogic` (the build window's, same base as `HandcraftLogic`) with `getAllBuildableRecipes`. Versions of one thing (Shoddy, Poor, Good) are entities named `<thing>_Lvl<n>` and share a tile. Place does what the window's Build button does (`ISBuildPanel:createBuildIsoEntity`): it turns on the game's placement cursor, which the player moves, turns and places with the controller; after each placement the logic re-checks what's in reach and the cursor comes back. |
 | Map | The app reads the game's own map files from the player's copy (`worldmap.xml.bin` and the forest file, the format of `WorldMapBinary`) and draws them in the minimap's style (`MapUtils.initDefaultStyleV1`: colours, and detail fading out by zoom). Shown only where `ISMiniMap.IsAllowed` (or with the mod option "Map on every save", never without the world map). Explored areas are the game's `WorldMapVisited` bits; symbols are the player's own from `MapItem`'s symbol list plus the game's labels from each map's `worldmap-annotations.lua`, shown like the minimap's Symbols option (off by default, handwriting, each label's zoom range, with zoom converted by `MapProjection`). Zoom stops between the game's zoom levels 15.5 and 20. |
 | Icons | The bridge serves loose textures (`media/textures`, `media/ui`), item and UI packs, and world-object sprites from `Tiles1x.pack`, cropped to their visible pixels; a missing icon is never cached. |
 
@@ -106,8 +107,12 @@ Findings in Zomdroid's and ZombieBuddy's sources that shape the setup:
   be enabled. The app builds the complete package from the same official release and tag
   (verified against hashes in `gradle.properties`) and saves it for Zomdroid's installer.
   ZombieBuddy isn't bundled or hosted by ZomboidDS.
-- Zomdroid stops reading the gamepad when its activity pauses, so the app's window never takes
-  input focus; touches still arrive.
+- Zomdroid stops reading the gamepad when its activity pauses, so while the game is connected the
+  app's window never takes input focus; touches still arrive. With the Thor's focus setting on
+  Automatic the gamepad follows the focused screen, so nothing in the app may open a window that
+  takes focus (menus are non-focusable, panels are drawn in the app's window). Without a game the
+  window takes focus normally: otherwise Android sends it the gamepad's buttons, can't deliver
+  them, and reports the app as not responding.
 - Cocoon can launch the app on the bottom screen together with Zomdroid.
 
 The app bundles the mod; after an app update the checklist offers the matching mod update. The app

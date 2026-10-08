@@ -103,16 +103,6 @@ local function findRecipe(player, id)
     return recipesById[id]
 end
 
---- Every input with the player's items counted, as the window's ingredient widgets show them.
-local function describeInputs(logic, recipe)
-    local inputs, list = {}, try(recipe, "getInputs")
-    for i = 0, (list and list:size() or 0) - 1 do
-        local ok, entry = pcall(shared.describeInput, logic, list:get(i))
-        if ok then inputs[#inputs + 1] = entry end
-    end
-    return inputs
-end
-
 --- What a recipe needs and whether the player can build it now.
 function Building.recipe(player, id)
     local recipe = findRecipe(player, id)
@@ -129,7 +119,7 @@ function Building.recipe(player, id)
         category = try(recipe, "getCategory"),
         seconds = try(recipe, "getTime", player),
         canBuild = shared.canCraft(logic, player, recipe),
-        inputs = describeInputs(logic, recipe),
+        inputs = shared.describeInputs(logic, recipe),
         skills = shared.describeSkills(player, recipe),
     }
 end
@@ -275,7 +265,7 @@ function Building.snapshot(player)
     }
     if state.cursor.blockBuild == true and not state.logic:isCraftActionInProgress() then
         local missing = {}
-        for _, input in ipairs(describeInputs(state.logic, recipe)) do
+        for _, input in ipairs(shared.describeInputs(state.logic, recipe)) do
             if not input.ok then missing[#missing + 1] = input.name end
         end
         for _, skill in ipairs(shared.describeSkills(player, recipe)) do

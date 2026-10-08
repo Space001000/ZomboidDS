@@ -19,6 +19,8 @@ runs on the top screen (through [Zomdroid](https://github.com/udarmolota/zomdroi
   map, your hotbar weapons, your watch's alarm, ...
 - **Status**: the game's moodles, your body with its injuries, and the game's treatments.
 - **Craft**: the recipes you can make with what's in reach, what each needs, and crafting them.
+- **Build**: the game's build menu (Craft ▾ → Build); pick something, then place it with the game's
+  own cursor and the controller.
 - **Vehicle**: while you drive, speed, engine and fuel with the car's controls.
 
 ## Install

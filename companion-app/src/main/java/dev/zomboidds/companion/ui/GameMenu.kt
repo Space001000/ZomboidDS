@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import dev.zomboidds.companion.domain.ItemMenu
 import dev.zomboidds.companion.domain.ItemMenuResult
 import dev.zomboidds.companion.domain.MenuOption
@@ -95,19 +96,38 @@ internal fun LoadingGameMenu(
         null if !enabled -> whileDisabled()
         null -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             untilReady()
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                Text("Loading the game's menu...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            LoadingRow("Loading the game's menu...")
         }
         is ItemMenuResult.Failed -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             untilReady()
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(result.reason, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { reload++ }) { Text("Retry") }
-            }
+            FailedRow(result.reason, "Retry") { reload++ }
         }
         is ItemMenuResult.Ready -> content(result.menu) { optionId -> onSelect(result.menu.menuId, optionId) }
+    }
+}
+
+/**
+ * Menus open in a window of their own, and Material's are focusable: that window would take the
+ * controller from the game on the top screen, and once it closed Android would report the app as
+ * not responding (the controller's input waits for a focused window the app never has).
+ */
+internal val NoFocusMenu = PopupProperties(focusable = false)
+
+/** Asking the game for something: a spinner and [text] ("Loading the game's menu..."). */
+@Composable
+internal fun LoadingRow(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+        Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** The game said no, or didn't answer: its [reason], and [action] (Retry, Close). */
+@Composable
+internal fun FailedRow(reason: String, action: String, onAction: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(reason, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TextButton(onClick = onAction) { Text(action) }
     }
 }
 

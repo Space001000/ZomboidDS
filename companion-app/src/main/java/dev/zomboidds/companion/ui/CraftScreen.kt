@@ -1,6 +1,5 @@
 package dev.zomboidds.companion.ui
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -14,17 +13,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,17 +32,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.Crafting
 import dev.zomboidds.companion.domain.Fetched
 import dev.zomboidds.companion.domain.RecipeDetails
-import dev.zomboidds.companion.domain.RecipeInput
+import dev.zomboidds.companion.domain.missing
 import dev.zomboidds.companion.domain.RecipeList
 import dev.zomboidds.companion.domain.RecipeSummary
 import kotlinx.coroutines.delay
@@ -80,19 +71,13 @@ fun CraftScreen(crafting: Crafting, iconUrl: (String) -> String, changes: Any?) 
 
     Box(Modifier.fillMaxSize()) {
         when (val result = list) {
-            null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                Text("Loading the game's recipes...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            is Fetched.Failed -> Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(result.reason, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { reload++ }) { Text("Retry") }
-            }
+            null -> LoadingRow("Loading the game's recipes...")
+            is Fetched.Failed -> FailedRow(result.reason, "Retry") { reload++ }
             is Fetched.Ready -> {
                 val recipes = result.value.recipes
                 val shown = recipes.filter { (!canMakeOnly || it.canCraft) && (category == null || it.category == category) }
                 Column(verticalArrangement = Arrangement.spacedBy(PaneSpacing)) {
-                    Filters(result.value, canMakeOnly, { canMakeOnly = it }, category, { category = it })
+                    RecipeFilters("Can make", canMakeOnly, { canMakeOnly = it }, result.value.categories, category, { category = it })
                     Text(
                         if (canMakeOnly) "You can make ${shown.size} of ${recipes.count { category == null || it.category == category }}"
                         else "${shown.size} recipes",
@@ -131,27 +116,6 @@ fun CraftScreen(crafting: Crafting, iconUrl: (String) -> String, changes: Any?) 
     }
 }
 
-/** "Can make" and the categories, like the game window's filter and category list. */
-@Composable
-private fun Filters(
-    list: RecipeList,
-    canMakeOnly: Boolean,
-    onCanMakeOnly: (Boolean) -> Unit,
-    category: String?,
-    onCategory: (String?) -> Unit,
-) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        FilterChip(
-            selected = canMakeOnly, onClick = { onCanMakeOnly(!canMakeOnly) }, label = { Text("Can make") },
-            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Good.copy(alpha = 0.25f)),
-        )
-        FilterChip(selected = category == null, onClick = { onCategory(null) }, label = { Text("All") })
-        list.categories.sortedBy { it.name }.forEach { c ->
-            FilterChip(selected = category == c.id, onClick = { onCategory(if (category == c.id) null else c.id) }, label = { Text(c.name) })
-        }
-    }
-}
-
 /** A recipe like an inventory tile; dimmed when something is missing. */
 @Composable
 private fun RecipeTile(recipe: RecipeSummary, iconUrl: (String) -> String, selected: Boolean, onClick: () -> Unit) {
@@ -184,36 +148,14 @@ private fun BoxScope.RecipePanel(
     val details by produceState<Fetched<RecipeDetails>?>(null, id, changes) { value = crafting.recipe(id) }
     val scope = rememberCoroutineScope()
     when (val result = details) {
-        null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-            Text("Loading the recipe...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        is Fetched.Failed -> Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(result.reason, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = onClose) { Text("Close") }
-        }
+        null -> LoadingRow("Loading the recipe...")
+        is Fetched.Failed -> FailedRow(result.reason, "Close", onClose)
         is Fetched.Ready -> {
             val recipe = result.value
             var count by remember(recipe.id) { mutableIntStateOf(1) }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                GameIcon(recipe.icon, iconUrl, 44.dp)
-                Column(Modifier.weight(1f)) {
-                    Text(recipe.name, style = MaterialTheme.typography.titleMedium)
-                    val details = listOfNotNull(
-                        recipe.category,
-                        recipe.seconds?.let { if (it >= 60) "about ${it / 60} min" else "about $it s" },
-                    ) + recipe.skills.map { "${it.name} ${it.level}" }
-                    Text(details.joinToString(" · "), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                TextButton(onClick = onClose) { Text("Close") }
-            }
+            RecipeHeader(recipe.icon, recipe.name, recipe, iconUrl, onClose)
             HorizontalDivider()
-            RecipeSection("Ingredients")
-            recipe.inputs.forEach { IngredientRow(it, iconUrl) }
-            recipe.skills.filter { !it.ok }.forEach {
-                Text("Needs ${it.name} ${it.level} (you have ${it.have})", color = Danger, style = MaterialTheme.typography.bodySmall)
-            }
+            RecipeInputs("Ingredients", recipe, iconUrl)
             if (recipe.outputs.isNotEmpty()) {
                 RecipeSection("Makes")
                 recipe.outputs.forEach { output ->
@@ -223,7 +165,7 @@ private fun BoxScope.RecipePanel(
                     }
                 }
             }
-            val missing = recipe.inputs.filter { !it.ok }.map { it.name } + recipe.skills.filter { !it.ok }.map { it.name }
+            val missing = recipe.missing
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (recipe.canCraft && recipe.max > 1) {
                     OutlinedButton(onClick = { count = (count - 1).coerceAtLeast(1) }, enabled = count > 1) { Text("−") }
@@ -249,45 +191,6 @@ private fun BoxScope.RecipePanel(
         }
     }
 }
-
-/** An ingredient: what (the item you have for it, or one that would do), have / need, ✓ or ✗. */
-@Composable
-internal fun IngredientRow(input: RecipeInput, iconUrl: (String) -> String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        GameIcon(input.icon, iconUrl, 26.dp)
-        Column(Modifier.weight(1f)) {
-            Text(input.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val notes = listOfNotNull(
-                "kept".takeIf { input.keep },
-                "or ${input.others} other${if (input.others > 1) "s" else ""}".takeIf { input.others > 0 },
-            )
-            if (notes.isNotEmpty()) {
-                Text(notes.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        Text(
-            "${number(input.have)}/${number(input.need)}${input.unit ?: ""} " + if (input.ok) "✓" else "✗",
-            color = if (input.ok) Good else Danger,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-    }
-}
-
-@Composable
-internal fun RecipeSection(title: String) {
-    Text(title.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-@Composable
-internal fun GameIcon(icon: String?, iconUrl: (String) -> String, size: Dp) {
-    Box(Modifier.size(size)) {
-        icon?.let {
-            AsyncImage(model = iconUrl(it), contentDescription = null, filterQuality = FilterQuality.None, modifier = Modifier.fillMaxSize())
-        }
-    }
-}
-
-internal fun number(value: Float) = if (value == value.toInt().toFloat()) value.toInt().toString() else "%.1f".format(value)
 
 private fun amountSuffix(amount: Float, unit: String?) = when {
     unit != null -> " ${number(amount)}$unit"

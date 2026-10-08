@@ -19,14 +19,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,6 +53,7 @@ import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.Fetched
 import dev.zomboidds.companion.domain.Placing
 import dev.zomboidds.companion.domain.RecipeDetails
+import dev.zomboidds.companion.domain.missing
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -88,14 +86,8 @@ fun BuildScreen(building: Building, iconUrl: (String) -> String, changes: Any?, 
 
     Box(Modifier.fillMaxSize()) {
         when (val result = list) {
-            null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                Text("Loading the game's build recipes...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            is Fetched.Failed -> Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(result.reason, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = { reload++ }) { Text("Retry") }
-            }
+            null -> LoadingRow("Loading the game's build recipes...")
+            is Fetched.Failed -> FailedRow(result.reason, "Retry") { reload++ }
             is Fetched.Ready -> {
                 val groups = result.value.groups
                 val inCategory = groups.filter { category == null || it.category == category }
@@ -109,7 +101,7 @@ fun BuildScreen(building: Building, iconUrl: (String) -> String, changes: Any?, 
                         })
                         PlacingHelp(placing)
                     } else {
-                        Filters(result.value, canBuildOnly, { canBuildOnly = it }, category, { category = it })
+                        RecipeFilters("Can build", canBuildOnly, { canBuildOnly = it }, result.value.categories, category, { category = it })
                         Text(
                             if (canBuildOnly) "You can build ${shown.size} of ${inCategory.size}" else "${shown.size} to build",
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -151,27 +143,6 @@ fun BuildScreen(building: Building, iconUrl: (String) -> String, changes: Any?, 
                     )
                 }
             }
-        }
-    }
-}
-
-/** "Can build" and the categories, like the build window's filter and category list. */
-@Composable
-private fun Filters(
-    list: BuildList,
-    canBuildOnly: Boolean,
-    onCanBuildOnly: (Boolean) -> Unit,
-    category: String?,
-    onCategory: (String?) -> Unit,
-) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        FilterChip(
-            selected = canBuildOnly, onClick = { onCanBuildOnly(!canBuildOnly) }, label = { Text("Can build") },
-            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Good.copy(alpha = 0.25f)),
-        )
-        FilterChip(selected = category == null, onClick = { onCategory(null) }, label = { Text("All") })
-        list.categories.sortedBy { it.name }.forEach { c ->
-            FilterChip(selected = category == c.id, onClick = { onCategory(if (category == c.id) null else c.id) }, label = { Text(c.name) })
         }
     }
 }
@@ -221,21 +192,8 @@ private fun BoxScope.BuildPanel(
     // Fetched again when what's in reach changes, so the ✓ / ✗ stay true.
     val details by produceState<Fetched<RecipeDetails>?>(null, versionId, changes) { value = building.buildRecipe(versionId) }
     BottomPanel(onDismiss = onClose, footer = { (details as? Fetched.Ready)?.value?.let { PlaceRow(it, onPlace) } }) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            GameIcon(group.icon, iconUrl, 44.dp)
-            Column(Modifier.weight(1f)) {
-                val recipe = (details as? Fetched.Ready)?.value
-                Text(recipe?.name ?: group.versions.first { it.id == versionId }.name, style = MaterialTheme.typography.titleMedium)
-                if (recipe != null) {
-                    val line = listOfNotNull(
-                        recipe.category,
-                        recipe.seconds?.let { if (it >= 60) "about ${it / 60} min" else "about $it s" },
-                    ) + recipe.skills.map { "${it.name} ${it.level}" }
-                    Text(line.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            TextButton(onClick = onClose) { Text("Close") }
-        }
+        val recipe = (details as? Fetched.Ready)?.value
+        RecipeHeader(group.icon, recipe?.name ?: group.versions.first { it.id == versionId }.name, recipe, iconUrl, onClose)
         if (group.versions.size > 1) {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 group.versions.forEach { version ->
@@ -259,18 +217,10 @@ private fun BoxScope.BuildPanel(
         }
         HorizontalDivider()
         when (val result = details) {
-            null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                Text("Loading the recipe...", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            null -> LoadingRow("Loading the recipe...")
             is Fetched.Failed -> Text(result.reason, color = MaterialTheme.colorScheme.onSurfaceVariant)
             is Fetched.Ready -> {
-                val recipe = result.value
-                RecipeSection("Materials")
-                recipe.inputs.forEach { IngredientRow(it, iconUrl) }
-                recipe.skills.filter { !it.ok }.forEach {
-                    Text("Needs ${it.name} ${it.level} (you have ${it.have})", color = Danger, style = MaterialTheme.typography.bodySmall)
-                }
+                RecipeInputs("Materials", result.value, iconUrl)
             }
         }
     }
@@ -279,7 +229,7 @@ private fun BoxScope.BuildPanel(
 /** Place, and what's missing or how the game's cursor works. Stays in view below the materials. */
 @Composable
 private fun PlaceRow(recipe: RecipeDetails, onPlace: (id: String) -> Unit) {
-    val missing = recipe.inputs.filter { !it.ok }.map { it.name } + recipe.skills.filter { !it.ok }.map { it.name }
+    val missing = recipe.missing
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(enabled = recipe.canCraft, onClick = { onPlace(recipe.id) }) { Text("Place") }
         if (missing.isNotEmpty()) {
