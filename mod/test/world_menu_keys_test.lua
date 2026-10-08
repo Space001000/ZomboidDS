@@ -18,10 +18,13 @@ function instanceof(o, class) return type(o) == "table" and o.iso == true and cl
 local window, curtain, oven, door = object(10, 19, 2), object(10, 19, 3), object(11, 20, 1), object(9, 20, 4)
 local counter, toaster, sink = object(11, 20, 2), object(11, 20, 3), object(10, 21, 1)
 
-local square = { getX = function() return 10 end, getY = function() return 20 end, getZ = function() return 0 end }
+local function at(x, y) return { getX = function() return x end, getY = function() return y end, getZ = function() return 0 end } end
+local square = at(10, 20)
+local facing = "N"
+function square:getAdjacentSquare(d) return d == "N" and at(10, 19) or d == "S" and at(10, 21) or at(11, 20) end
 local doorInFront = nil
 local player = { getPlayerNum = function() return 0 end, getCurrentSquare = function() return square end,
-  getDir = function() return "N" end, getVehicle = function() return nil end,
+  getDir = function() return facing end, getVehicle = function() return nil end,
   getContextDoorOrWindowOrWindowFrame = function() return doorInFront end }
 function isoToScreenX() return 0 end
 function isoToScreenY() return 0 end
@@ -94,11 +97,21 @@ doorInFront = door
 local _, _, data3 = B42Menu.openWorld(player)
 local o3 = byName(data3.options)
 check(o3["Door"].front and not o3["Green Oven"].front, "a door's prompt has no object: the door the game picks is in front")
-prompt.aPrompt = nil
+prompt.aPrompt, doorInFront = nil, nil
+facing = "S"
 local _, _, data4 = B42Menu.openWorld(player)
-local anyFront = false
-for _, x in ipairs(data4.options) do anyFront = anyFront or x.front end
-check(not anyFront, "no prompt: nothing is in front")
+local fronts = {}
+for _, x in ipairs(data4.options) do if x.front then fronts[#fronts + 1] = x.name end end
+check(#fronts == 1 and fronts[1] == "Chrome Sink", "no prompt (a sink has none): what's on the faced square is in front")
+facing = "E"
+local _, _, data5 = B42Menu.openWorld(player)
+local o5 = byName(data5.options)
+check(o5["Green Oven"].front and not o5["Disassemble"].front,
+  "the first card on the faced square, never Disassemble's list (its objects are there too)")
+prompt.aPrompt, prompt.aParams = "Enter vehicle", { object(30, 30, 1) }
+facing = "N"
+local _, _, data6 = B42Menu.openWorld(player)
+check(byName(data6.options)["Window"].front, "a prompt for something without a card: the faced square too")
 
 -- One object to disassemble is still Disassemble's list.
 ISContextManager = { getInstance = function() return { createWorldMenu = function()
@@ -107,6 +120,6 @@ ISContextManager = { getInstance = function() return { createWorldMenu = functio
   function menu:hideAndChildren() end
   return menu
 end } end }
-local _, _, data5 = B42Menu.openWorld(player)
-check(data5.options[1].tray, "Disassemble with one object is a tray too")
+local _, _, data7 = B42Menu.openWorld(player)
+check(data7.options[1].tray, "Disassemble with one object is a tray too")
 print("ALL LUA CHECKS PASSED")

@@ -283,6 +283,11 @@ local function callObject(call)
     return object
 end
 
+--- The start of the keys of objects on `square`: "x,y,z#".
+local function squarePrefix(square)
+    return square:getX() .. "," .. square:getY() .. "," .. square:getZ() .. "#"
+end
+
 --- Where an object is: its square and its place among the square's objects. Survives rebuilds,
 --- walking away and coming back, and the object changing (a door opening swaps its sprite).
 local function objectKey(object)
@@ -291,7 +296,7 @@ local function objectKey(object)
     if square == nil or index == nil then
         return nil
     end
-    return square:getX() .. "," .. square:getY() .. "," .. square:getZ() .. "#" .. index
+    return squarePrefix(square) .. index
 end
 
 --- The calls under an option (itself, or every option below it, greyed ones too), in menu order.
@@ -347,12 +352,14 @@ end
 ---   key   the object an option belongs to (its first call's object), so a card keeps its place
 ---         however the game orders its menu; options without an object get their name
 ---   tray  a list of objects under one action (see isObjectList); the app shows these apart
----   front the option for what the interact button would act on
+---   front the option for what the interact button would act on; when it acts on nothing here
+---         (the game has no one-button action for a sink), the first option for something on
+---         the square the player faces
 --- `calls`: the call data of every option, greyed ones too.
 local function markWorld(player, prompts, options, calls)
     local front = promptObject(player, prompts)
     local frontKey = front and objectKey(front)
-    local used = {}
+    local used, keysOf = {}, {}
     for _, entry in ipairs(options) do
         local list = callsUnder(entry, calls, {})
         local keys, firstKey, objects = {}, nil, 0
@@ -370,6 +377,22 @@ local function markWorld(player, prompts, options, calls)
         used[key] = (used[key] or 0) + 1
         entry.key = used[key] == 1 and key or (key .. "|" .. used[key])
         entry.front = (frontKey ~= nil and not entry.tray and keys[frontKey]) or nil
+        keysOf[entry] = keys
+    end
+    for _, entry in ipairs(options) do
+        if entry.front then
+            return
+        end
+    end
+    local square = Util.try(player:getCurrentSquare(), "getAdjacentSquare", player:getDir())
+    local prefix = square and squarePrefix(square)
+    for _, entry in ipairs(options) do
+        for key in pairs(keysOf[entry]) do
+            if prefix ~= nil and not entry.tray and string.sub(key, 1, #prefix) == prefix then
+                entry.front = true
+                return
+            end
+        end
     end
 end
 
