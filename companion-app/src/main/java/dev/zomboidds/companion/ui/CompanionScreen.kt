@@ -306,7 +306,7 @@ private fun TabBar(
                         )
                     }
                     if (withMenu) {
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }, properties = NoFocusMenu) {
                             craftModes.forEach { mode ->
                                 DropdownMenuItem(
                                     text = { Text(mode.title) },

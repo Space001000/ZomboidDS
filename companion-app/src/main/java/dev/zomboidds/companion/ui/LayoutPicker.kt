@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -69,7 +70,7 @@ internal fun <T> LayoutPicker(
                 .semantics { contentDescription = "$title: ${label(current)}" },
             contentAlignment = Alignment.Center,
         ) { LayoutGlyph(parts(current), Size(buttonSize.value * 0.5f, buttonSize.value * 0.38f)) }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, properties = NoFocusMenu) {
             Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -93,6 +94,13 @@ internal fun <T> LayoutPicker(
         }
     }
 }
+
+/**
+ * Menus open in a window of their own, and Material's are focusable: that window would take the
+ * controller from the game on the top screen, and once it closed Android would report the app as
+ * not responding (the controller's input waits for a focused window the app never has).
+ */
+internal val NoFocusMenu = PopupProperties(focusable = false)
 
 /** A small screen outline with [parts] filled in. */
 @Composable
