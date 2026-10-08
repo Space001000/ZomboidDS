@@ -6,8 +6,14 @@ package dev.zomboidds.companion.domain
  */
 data class Release(val version: String, val title: String, val date: String?, val notes: List<String>)
 
-/** Newest first. Add the next release at the top when releasing. */
+/**
+ * Newest first. The next release collects its notes at the top as they're made, undated; when
+ * releasing, give it its final version (same as versionName), date and title.
+ */
 val RELEASES = listOf(
+    Release("1.3.2", "Fixes", null, listOf(
+        "**Fixed:** food didn't age while you used the app instead of the game's inventory window. Frozen food never thawed, and playing without the mod made everything rot at once. Food ages, freezes and thaws as in the game again (and wet clothes in your bags dry).",
+    )),
     Release("1.3.1", "Food, drinks and stacks", "3 Oct 2026", listOf(
         "**Food** shows its name the way the game writes it, \"Steak (Fresh, Cooked)\". In the list the words are coloured, on a tile the corner says Cooked, Uncooked or Burnt.",
         "**In the oven:** a bar on the food fills while it cooks and turns red once it starts burning.",
