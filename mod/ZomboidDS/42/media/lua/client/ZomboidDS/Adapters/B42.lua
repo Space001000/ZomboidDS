@@ -300,8 +300,52 @@ local function redirectTrunk(onShow)
     end
 end
 
+--- One quick tap of A at a car door is handled twice by 42.20: the button prompt opens or closes
+--- the door on the press (ISButtonPrompt:cmdOpenVehicleDoor / cmdCloseVehicleDoor), and on the
+--- release, if within 400 ms, Java's click fires OnUseVehicle, whose part "use" toggles the door
+--- again (Vehicles.Use.TrunkDoor). The second one reopens what was just closed, or closes what was
+--- just opened. The game hides this by moving the controller to the loot window after opening a
+--- trunk, which mutes the release; with the app the controller stays with the character. So a
+--- use of the same car right after the prompt's door command is that same tap, and is dropped.
+local DOOR_TAP_MS = 500
+
+local function guardDoorTaps()
+    if ISButtonPrompt == nil or VehicleUtils == nil or VehicleUtils.OnUseVehicle == nil
+        or Events == nil or Events.OnUseVehicle == nil or VehicleUtils.zomboidDSDoorTaps then
+        return
+    end
+    VehicleUtils.zomboidDSDoorTaps = true
+    local lastDoorPrompt = {} -- playerNum -> { vehicle, ms }
+    for _, name in ipairs({ "cmdOpenVehicleDoor", "cmdCloseVehicleDoor" }) do
+        local original = ISButtonPrompt[name]
+        if original ~= nil then
+            ISButtonPrompt[name] = function(self, playerObj, part, ...)
+                pcall(function()
+                    lastDoorPrompt[playerObj:getPlayerNum()] = { vehicle = part:getVehicle(), ms = getTimestampMs() }
+                end)
+                return original(self, playerObj, part, ...)
+            end
+        end
+    end
+    local onUse = VehicleUtils.OnUseVehicle
+    local function onUseOnce(character, vehicle, ...)
+        local ok, sameTap = pcall(function()
+            local last = lastDoorPrompt[character:getPlayerNum()]
+            return last ~= nil and last.vehicle == vehicle and getTimestampMs() - last.ms < DOOR_TAP_MS
+        end)
+        if ok and sameTap then
+            return
+        end
+        return onUse(character, vehicle, ...)
+    end
+    -- The event holds the original function itself, so swap it there.
+    Events.OnUseVehicle.Remove(onUse)
+    Events.OnUseVehicle.Add(onUseOnce)
+end
+
 function B42.redirectGameWindows(onShow)
     redirectTrunk(onShow)
+    guardDoorTaps()
     if ISButtonPrompt == nil or ISButtonPrompt.zomboidDSRedirect then
         return
     end

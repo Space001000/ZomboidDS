@@ -48,6 +48,21 @@ ISOpenVehicleDoor = {}
 function ISOpenVehicleDoor:selectContainerInLootWindow() table.insert(opened, "trunk:" .. self.part:getId()) end
 local function openDoor(id) return setmetatable({ vehicle = car, part = door(id), character = walker }, { __index = ISOpenVehicleDoor }) end
 
+-- A tap of A at a car door: the prompt's door command on the press, OnUseVehicle on the release.
+local now = 0
+function getTimestampMs() return now end
+local used = {}
+VehicleUtils = { OnUseVehicle = function(character, vehicle) table.insert(used, vehicle) end }
+local useHandlers = {}
+Events = { OnUseVehicle = {
+  Add = function(f) useHandlers[f] = true end,
+  Remove = function(f) useHandlers[f] = nil end } }
+Events.OnUseVehicle.Add(VehicleUtils.OnUseVehicle)
+local function fireUse(character, vehicle) for f in pairs(useHandlers) do f(character, vehicle) end end
+local doorCommands = {}
+function ISButtonPrompt:cmdCloseVehicleDoor(playerObj, part) table.insert(doorCommands, "close") end
+function ISButtonPrompt:cmdOpenVehicleDoor(playerObj, part) table.insert(doorCommands, "open") end
+
 local B42 = require("ZomboidDS/Adapters/B42")
 local ids = {}
 for _, c in ipairs(B42.snapshotContainers(player).containers) do ids[c.name] = c.id end
@@ -57,6 +72,7 @@ B42.redirectGameWindows(function(playerNum, show)
   table.insert(shown, show)
   return handle
 end)
+local closeDoor, openDoorCmd = ISButtonPrompt.cmdCloseVehicleDoor, ISButtonPrompt.cmdOpenVehicleDoor
 
 -- The prompt looks the command up on ISButtonPrompt each time, so the wrapper is what runs.
 ISButtonPrompt.cmdShowLoot(prompt)
@@ -92,4 +108,21 @@ function ISButtonPrompt:cmdShowInventory() end
 B42.redirectGameWindows(function() error("boom") end)
 ISButtonPrompt.cmdShowLoot(prompt)
 check(opened[3] == "loot-after-error", "an error in the handler falls back to the game's window")
+-- Door taps (installed by redirectGameWindows above).
+local van = { name = "van" }
+local lid = { getVehicle = function() return van end }
+local me = { getPlayerNum = function() return 0 end }
+now = 1000
+closeDoor(prompt, me, lid)
+now = 1200
+fireUse(me, van)
+check(doorCommands[1] == "close" and #used == 0, "a quick tap: the prompt closes the door, the release's toggle is dropped")
+now = 3000
+fireUse(me, van)
+check(#used == 1, "using the car later (E, or a tap with no prompt command): the game's use as usual")
+now = 4000
+openDoorCmd(prompt, me, lid)
+now = 4100
+fireUse(me, { name = "other car" })
+check(doorCommands[2] == "open" and #used == 2, "another car: not the same tap")
 print("ALL LUA CHECKS PASSED")
