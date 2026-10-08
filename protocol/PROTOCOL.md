@@ -58,7 +58,7 @@ older state messages of the same type are dropped in favour of the newest.
 | `explored`       | bridge   | The parts of the map the player has seen, as the game remembers them (`WorldMapVisited`): `originX`, `originY` (tile of unit 0,0), `unit` (32 tiles), `width`, `height` (in units), `bits`: base64 of zlib-deflated bytes, 2 bits per unit (1 visited, 2 known from a map), 4 units per byte, unit `x` in bits `(x % 4) * 2` of byte `x / 4 + y * width / 4`. The minimap shows a unit when either bit is set. Sent when it changes, checked every 2 s. |
 | `map_symbols`    | bridge   | What the game's minimap shows with its Symbols option on: the game's printed labels (town, river, building names, read from each map's `worldmap-annotations.lua`, `label: true`) and the symbols and notes the player put on their world map. `symbols[]`, each `{ kind, x, y, color, scale, rotation, anchorX, anchorY, label, minZoom, maxZoom }` with `kind` `icon` (+ `icon`, an icon path like `LootableMaps/map_star`) or `text` (+ `text`, as the game shows it). `color` `[r, g, b, a]` (0–1), `scale` the game's size (0.666 default), `rotation` degrees, `anchorX`/`anchorY` which point of it sits on the spot (0–1), `minZoom`/`maxZoom` the game zoom levels it shows between (zoom = log2(pixels per tile × 40075017 / view height in pixels)). Colour alpha 0: the map style's colour (black on the minimap). Sent when they change, checked every 2 s (mod 0.23+). |
 | `command_result` | Lua      | `id`, `ok`, `error` (optional), `data` (optional, command-specific). Event, never replayed. |
-| `show`           | Lua      | `panel` (`inventory`), `container` (optional container id). The player asked the game for that panel, e.g. pressed the controller's Loot/Inventory button: the app shows it. Event, never replayed. |
+| `show`           | Lua      | `panel` (`inventory` or `garment`), `container` (optional container id, `inventory`), `item` (the garment's item id, `garment`). The player asked the game for that panel, e.g. pressed the controller's Loot/Inventory button, or chose Inspect on a garment (mod 0.26+): the app shows it. Event, never replayed. |
 
 Inventory item:
 
@@ -150,7 +150,7 @@ Two commands take arguments and come with their own state in `deck`:
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`, `build`, `deck`, `map`.
+`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`, `build`, `tailor`, `deck`, `map`.
 
 ## Client → server
 
@@ -185,6 +185,9 @@ executed on the game thread on the next tick (also while the game is paused), us
 | `build_recipe` | `recipe` (an `id` from `build_list`). Result `data`: `{ id, name, icon, category, seconds, canBuild, inputs[], skills[] }` as in `craft_recipe` |
 | `build_place` | `recipe`: turns on the game's placement cursor for it on the game's screen, as the build window's Build button does. The `building` message follows. |
 | `build_stop` | none: puts the cursor away, as B on the controller does |
+| `tailor_list` | none. Result `data`: the player's clothes and sewing kit: `garments[]` `{ id, name, icon, condition, worn, bag, holes, patches, repairable }`, `kit` `{ needle, thread, fabrics[] { type, name, icon, count } }`, `tailoring` (skill level) (see Tailoring) |
+| `tailor_garment` | `itemId`. Result `data`: `{ id, name, icon, worn, condition, blood, dirt, cantRepair, tailoring, parts[] }`, each part `{ id, name, bite, scratch, bullet, hole, blood, patch, sewing }` (see Tailoring) |
+| `tailor_menu` | `itemId`, `part` (a part `id`). Result `data`: `{ menuId, options[] }` as `item_menu`: the game's tailoring menu for that part. Choose with `menu_select`. |
 
 ### Crafting
 
@@ -208,6 +211,24 @@ they share a `group` with their `level`; `version` is the bracketed suffix of th
 and places the cursor with the mouse or controller (d-pad, LB/RB, A, B to stop). After each
 placement the mod re-counts what's in reach and brings the cursor back, as the window does; the
 game blocks it when something is short.
+
+### Tailoring
+
+As the game's Inspect window (42.20 `ISGarmentUI`) shows a garment. `garments` are the clothes in
+the player's inventory and bags that cover a body part, worn first; `bag` names the bag a carried
+one is in; `holes` / `patches` count them; `repairable` false for clothes without a fabric (boots,
+helmets). `kit` is what the window's menu looks for anywhere in the inventory: a needle, thread and
+the three fabrics it patches with (types `RippedSheets`, `DenimStrips`, `LeatherStrips`, in that order: Rag, Denim Strips and Leather Strips in English, with
+their item names and counts).
+
+A garment's `parts` are the body parts it covers (`BloodBodyPartType`, `Back` included), with the
+translated `name`; `bite`, `scratch`, `bullet` the defence there (0 over a hole); `hole` true;
+`blood` 0–1 when bloody; `patch` the game's line ("Leather Strips patch"); `sewing`
+`{ name, progress }` while the player's current action patches or unpatches that part (the game's
+label, 0–1). `blood` and `dirt` of the garment are 0–1; `cantRepair` is the game's "Can't be
+repaired." text. `tailor_menu` is the window's own menu for a part (Patch Hole / Add Padding with
+each fabric, Patch all Holes using …, Remove Patch, or the greyed Tailoring with the game's reason);
+the game moves the garment and kit into the main inventory first, as it does from the window.
 
 ### Moving items
 

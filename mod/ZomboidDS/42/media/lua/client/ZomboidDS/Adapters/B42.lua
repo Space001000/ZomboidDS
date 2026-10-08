@@ -1,7 +1,7 @@
 --- Build 42 adapter: this file and the modules next to it (B42Menu.lua, B42/) are the only Lua that
 --- calls the game API. Implements the contract documented in ZomboidDS/Core/Adapters.lua.
 ---
---- Each area has its own module in B42/ (items, containers, health, moodles, time, Here, crafting, building, deck); this file
+--- Each area has its own module in B42/ (items, containers, health, moodles, time, Here, crafting, building, tailoring, deck); this file
 --- puts them together, with the player, vehicle and item commands. Engine calls go through Util.try
 --- (see there). Every call was checked against 42.20's Lua sources and projectzomboid.jar.
 local Adapters = require("ZomboidDS/Core/Adapters")
@@ -16,13 +16,14 @@ local Here = require("ZomboidDS/Adapters/B42/Here")
 local Deck = require("ZomboidDS/Adapters/B42/Deck")
 local Crafting = require("ZomboidDS/Adapters/B42/Crafting")
 local Building = require("ZomboidDS/Adapters/B42/Building")
+local Tailoring = require("ZomboidDS/Adapters/B42/Tailoring")
 local Map = require("ZomboidDS/Adapters/B42/Map")
 local try, round = Util.try, Util.round
 
 local B42 = {
     id = "b42",
     capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop", "item_menu",
-                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "build", "deck", "map" },
+                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "build", "tailor", "deck", "map" },
     dirtyEvents = {
         inventory = { "OnContainerUpdate", "OnRefreshInventoryWindowContainers", "OnClothingUpdated",
                       "OnEquipPrimary", "OnEquipSecondary" },
@@ -226,9 +227,9 @@ B42.commands = {
     end),
 }
 
--- Moving items between containers, crafting and building (see B42/Containers.lua, B42/Crafting.lua,
--- B42/Building.lua).
-for _, module in ipairs({ Containers, Crafting, Building }) do
+-- Moving items between containers, crafting, building and tailoring (see B42/Containers.lua,
+-- B42/Crafting.lua, B42/Building.lua, B42/Tailoring.lua).
+for _, module in ipairs({ Containers, Crafting, Building, Tailoring }) do
     for name, command in pairs(module.commands) do
         B42.commands[name] = command
     end
@@ -343,8 +344,30 @@ local function guardDoorTaps()
     Events.OnUseVehicle.Add(onUseOnce)
 end
 
+--- Inspect on a garment opens the app's garment panel instead of the game's window (42.20
+--- ISInventoryPaneContextMenu.onInspectClothingUI, which the menu's Inspect calls after moving the
+--- garment into the main inventory, as the game does).
+local function redirectInspect(onShow)
+    local menu = ISInventoryPaneContextMenu
+    if menu == nil or menu.onInspectClothingUI == nil or menu.zomboidDSInspect then
+        return
+    end
+    menu.zomboidDSInspect = true
+    local original = menu.onInspectClothingUI
+    menu.onInspectClothingUI = function(player, clothing, ...)
+        local ok, handled = pcall(function()
+            return onShow(player:getPlayerNum(), { panel = "garment", item = clothing:getID() })
+        end)
+        if ok and handled then
+            return
+        end
+        return original(player, clothing, ...)
+    end
+end
+
 function B42.redirectGameWindows(onShow)
     redirectTrunk(onShow)
+    redirectInspect(onShow)
     guardDoorTaps()
     if ISButtonPrompt == nil or ISButtonPrompt.zomboidDSRedirect then
         return

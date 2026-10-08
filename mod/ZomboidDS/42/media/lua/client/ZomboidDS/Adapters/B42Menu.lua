@@ -21,7 +21,7 @@ local MAX_DEPTH = 4
 
 -- Only the latest menu of each kind is kept: the item menu (the app asks for a fresh one each time
 -- an item is tapped) and the world menu ("Here"), so one never invalidates the other.
-local menus = { item = nil, world = nil, health = nil }
+local menus = { item = nil, world = nil, health = nil, garment = nil }
 local nextMenuId = 0
 
 --- The game's tooltips use rich-text tags (<RGB:1,0,0>, <LINE>, ...): keep only the text.
@@ -97,6 +97,7 @@ local function pillFunctions(items)
             "onEatItems", "onDrinkFluid", "onDrinkForThirst", -- eat (and smoke), drink
             "onWearItems", "onClothingItemExtra", "onUnEquip", -- wear (clothes, bags), take off
             "onLiteratureItems", "onPillsItems", "onApplyBandage", -- read, take pills, apply
+            "onInspectClothing", -- a garment's holes and patches (the app's garment panel)
             "onRackGun", "onInsertMagazine", "onEjectMagazine", -- firearms
             "onLoadBulletsIntoFirearm", "onUnloadBulletsFromFirearm",
             "onLoadBulletsInMagazine", "onUnloadBulletsFromMagazine",
@@ -382,6 +383,54 @@ function B42Menu.openHealth(player, partId)
     nextMenuId = nextMenuId + 1
     menus.health = { id = "m" .. nextMenuId, created = getTimestampMs(), calls = calls }
     return true, nil, { menuId = menus.health.id, options = options }
+end
+
+--- The game's tailoring menu for one body part of a garment (Patch Hole / Add Padding with each
+--- fabric, Patch all Holes, Remove Patch, or the greyed "Tailoring" with its reason), as the
+--- Inspect window builds it on a click (42.20 ISGarmentUI:doContextMenu). The window is created but
+--- never shown: doContextMenu needs its list of the garment's parts for the "all" options.
+--- Returns true, nil, { menuId, options } or false, reason.
+function B42Menu.openGarment(player, clothing, partId)
+    if ISGarmentUI == nil or ISGarmentUI.doContextMenu == nil then
+        return false, "The game's garment window is not available"
+    end
+    if isPaused() then
+        return false, "The game is paused"
+    end
+    local part = nil
+    local covered = clothing:getCoveredParts()
+    for i = 0, covered:size() - 1 do
+        if tostring(covered:get(i)) == partId then
+            part = covered:get(i)
+        end
+    end
+    if part == nil then
+        return false, "No such body part"
+    end
+
+    local playerNum = player:getPlayerNum()
+    local joypad = JoypadState and JoypadState.players[playerNum + 1]
+    local focusBefore = joypad and joypad.focus
+    local window = ISGarmentUI:new(0, 0, player, clothing)
+    window:initialise()
+    local menu = window:doContextMenu(part, 0, 0)
+    local calls = {}
+    local ok, options = pcall(snapshot, menu, calls, "", 1)
+    menu:hideAndChildren() -- same tick as the game built it, so it never shows on the top screen
+    if joypad and joypad.focus ~= focusBefore then
+        joypad.focus = focusBefore
+        if updateJoypadFocus then updateJoypadFocus(joypad) end
+    end
+    if not ok then
+        return false, "Could not read the game's menu: " .. tostring(options)
+    end
+    if #options == 0 then
+        return false, getText("IGUI_garment_CantRepair")
+    end
+
+    nextMenuId = nextMenuId + 1
+    menus.garment = { id = "m" .. nextMenuId, created = getTimestampMs(), itemId = clothing:getID(), calls = calls }
+    return true, nil, { menuId = menus.garment.id, options = options }
 end
 
 --- Runs option `args.optionId` of menu `args.menuId`, like clicking it in the game.
