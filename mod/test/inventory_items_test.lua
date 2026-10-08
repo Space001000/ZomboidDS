@@ -115,4 +115,17 @@ for _, it in ipairs(B42.snapshotInventory(player).items) do byName[it.name] = it
 check(byName.Book.read == true and byName.VHS.read == true, "a read book and a watched tape are done")
 check(byName.Magazine.read == nil and byName.Magazine.unwanted == nil, "an unread magazine: neither")
 check(byName.Spiffo.unwanted == true, "set unwanted in the game")
+
+-- Aging (mod 0.24.1): food ages, freezes and thaws only when asked, which the game's inventory
+-- window does for every item it draws. With only the app open, we ask, before reading it.
+local meat = item(31, "Steak", "Food", "Food", { age = 1, off = 3, max = 5 })
+meat.updateAge = function(self) self._aged = true ; meat.getAge = function() return 4 end end
+local shirt = item(32, "Shirt", "Clothing", "Clothing")
+shirt.updateAge = function() end
+shirt.updateWetness = function(self) self._dried = true end
+items = { meat, shirt }
+byName = {}
+for _, it in ipairs(B42.snapshotInventory(player).items) do byName[it.name] = it end
+check(meat._aged and byName.Steak.freshness == "stale", "food catches up on its age before we read it")
+check(shirt._dried == true, "clothing's wetness too, as the game's window does")
 print("ALL LUA CHECKS PASSED")

@@ -185,6 +185,12 @@ end
 --- An item as the app shows it. `inInventory`: whether it's in the player's main inventory, the
 --- only place the quick actions (equip, wear, drop) apply; elsewhere the app moves it first.
 function Items.describe(player, item, inInventory)
+    -- Food ages, freezes and thaws only when something asks (Food:updateAge catches up on the hours
+    -- since it last did); in single player that's the game's inventory window, which does this for
+    -- every item it draws (42.20 ISInventoryPane:renderdetails). With that window closed and only
+    -- the app open, food stayed frozen and fresh, then rotted at once without the mod.
+    try(item, "updateAge")
+    if instanceof(item, "Clothing") then try(item, "updateWetness") end
     local equipped = equippedSlot(player, item)
     local plainName = try(item, "getDisplayName")
     -- The name as the game's inventory list shows it: "Steak (Fresh, Cooked)", "Water Bottle (Water)".
