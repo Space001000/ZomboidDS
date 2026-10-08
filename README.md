@@ -21,6 +21,8 @@ runs on the top screen (through [Zomdroid](https://github.com/udarmolota/zomdroi
 - **Craft**: the recipes you can make with what's in reach, what each needs, and crafting them.
 - **Build**: the game's build menu (Craft ▾ → Build); pick something, then place it with the game's
   own cursor and the controller.
+- **Tailor**: your clothes with their holes and patches (Craft ▾ → Tailor), and the game's Inspect
+  view to patch them part by part.
 - **Vehicle**: while you drive, speed, engine and fuel with the car's controls.
 
 ## Install

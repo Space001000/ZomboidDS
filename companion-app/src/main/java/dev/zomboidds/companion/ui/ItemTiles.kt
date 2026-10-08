@@ -192,7 +192,7 @@ internal fun WornTile(entry: PaneEntry.Worn, iconUrl: (String) -> String, list: 
 }
 
 @Composable
-private fun wornBorder(worn: Boolean) = if (worn) BorderStroke(1.dp, Caution.copy(alpha = 0.5f)) else null
+internal fun wornBorder(worn: Boolean) = if (worn) BorderStroke(1.dp, Caution.copy(alpha = 0.5f)) else null
 
 /** A stack unfolded like the game's inventory does: the stack ([OPEN]) and each of its items ([PART]). */
 internal enum class StackFold { NONE, OPEN, PART }
@@ -230,7 +230,7 @@ private fun StackBadge(count: Int, fold: StackFold, onFold: (() -> Unit)?, modif
 }
 
 /** Only damaged items get a bar: green, yellow below 60 %, red below 30 %. */
-private fun damage(condition: Float?): Pair<Float, Color>? {
+internal fun damage(condition: Float?): Pair<Float, Color>? {
     if (condition == null || condition >= 0.995f) return null
     return condition to when {
         condition < 0.3f -> Danger
@@ -308,7 +308,7 @@ internal fun selectedBorder(selected: Boolean) =
     if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
 
 @Composable
-private fun Meter(fraction: Float, color: Color, height: androidx.compose.ui.unit.Dp) {
+internal fun Meter(fraction: Float, color: Color, height: androidx.compose.ui.unit.Dp) {
     LinearProgressIndicator(
         progress = { fraction.coerceIn(0f, 1f) },
         modifier = Modifier.fillMaxWidth().height(height),

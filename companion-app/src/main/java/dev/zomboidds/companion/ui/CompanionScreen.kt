@@ -2,6 +2,7 @@ package dev.zomboidds.companion.ui
 
 import dev.zomboidds.companion.setup.AppUpdateState
 import dev.zomboidds.companion.domain.Building
+import dev.zomboidds.companion.domain.Tailoring
 import dev.zomboidds.companion.domain.Crafting
 import dev.zomboidds.companion.domain.GameControls
 import dev.zomboidds.companion.domain.GameSpeed
@@ -92,6 +93,7 @@ fun CompanionScreen(
     events: Flow<GameEvent>,
     crafting: Crafting? = null,
     building: Building? = null,
+    tailoring: Tailoring? = null,
     /** What the Craft tab shows (its ▾ menu), and how to change it. */
     craftMode: CraftMode = CraftMode.CRAFT,
     onCraftModeChange: (CraftMode) -> Unit = {},
@@ -111,7 +113,7 @@ fun CompanionScreen(
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
                     InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting,
-                        building, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange, map)
+                        building, tailoring, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange, map)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     var licences by remember { mutableStateOf(false) }
@@ -154,6 +156,7 @@ private fun InGame(
     events: Flow<GameEvent>,
     crafting: Crafting?,
     building: Building?,
+    tailoring: Tailoring?,
     craftMode: CraftMode,
     onCraftModeChange: (CraftMode) -> Unit,
     deckCommands: List<String>,
@@ -166,8 +169,15 @@ private fun InGame(
     var editingDeck by rememberSaveable { mutableStateOf(false) }
     // Craft only with a mod that can craft.
     val canCraft = crafting != null && "craft" in state.session?.capabilities.orEmpty()
-    // The Craft tab's modes: Build only with a mod that can build.
-    val craftModes = CraftMode.entries.filter { it != CraftMode.BUILD || (building != null && "build" in state.session?.capabilities.orEmpty()) }
+    // The Craft tab's modes: Build and Tailor only with a mod that can do them.
+    val capabilities = state.session?.capabilities.orEmpty()
+    val craftModes = CraftMode.entries.filter {
+        when (it) {
+            CraftMode.CRAFT -> true
+            CraftMode.BUILD -> building != null && "build" in capabilities
+            CraftMode.TAILOR -> tailoring != null && "tailor" in capabilities
+        }
+    }
     val mode = craftMode.takeIf { it in craftModes } ?: CraftMode.CRAFT
     val mapTab = map?.placement == MapPlacement.OWN_TAB
     val tabs = Tab.entries.filter { (it != Tab.CRAFT || canCraft) && (it != Tab.MAP || mapTab) }
@@ -193,6 +203,8 @@ private fun InGame(
 
     // The game's Loot/Inventory button: show that container here instead of on the top screen.
     var showRequest by remember { mutableStateOf<ShowRequest?>(null) }
+    // Inspect on a garment in the game: its garment panel here, over whatever tab is open.
+    var garmentShown by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(events) {
         events.collect { event ->
             when (event) {
@@ -200,6 +212,7 @@ private fun InGame(
                     tab = Tab.INVENTORY
                     showRequest = ShowRequest(event.containerId)
                 }
+                is GameEvent.ShowGarment -> garmentShown = event.itemId
             }
         }
     }
@@ -240,11 +253,18 @@ private fun InGame(
                     CommandDeckScreen(state.time, state.deck, deckCommands, controls, iconUrl, onEdit = { editingDeck = true })
                 }
                 Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
-                Tab.CRAFT -> if (mode == CraftMode.BUILD && building != null) {
-                    BuildScreen(building, iconUrl, changes = state.inventory to state.containers, placing = state.placing)
-                } else {
-                    crafting?.let { CraftScreen(it, iconUrl, changes = state.inventory to state.containers) }
+                Tab.CRAFT -> when {
+                    mode == CraftMode.BUILD && building != null ->
+                        BuildScreen(building, iconUrl, changes = state.inventory to state.containers, placing = state.placing)
+                    mode == CraftMode.TAILOR && tailoring != null ->
+                        TailorScreen(tailoring, actions, iconUrl, changes = state.inventory to state.containers)
+                    else -> crafting?.let { CraftScreen(it, iconUrl, changes = state.inventory to state.containers) }
                 }
+            }
+            val shownGarment = garmentShown
+            if (shownGarment != null && tailoring != null) {
+                GarmentPanel(tailoring, actions, shownGarment, iconUrl, changes = state.inventory to state.containers,
+                    onClose = { garmentShown = null })
             }
         }
     }
@@ -329,11 +349,12 @@ private fun TabBar(
     }
 }
 
-/** The game's sidebar icon for each mode: its crafting window's and its build window's. */
+/** The game's sidebar icon for each mode: its crafting window's and its build window's; thread for Tailor. */
 private val CraftMode.icon: String
     get() = when (this) {
         CraftMode.CRAFT -> "Sidebar/64/Carpentry_On_64"
         CraftMode.BUILD -> "Sidebar/64/Build_On_64"
+        CraftMode.TAILOR -> "Item_Thread" // the game has no sidebar icon for tailoring
     }
 
 /** A small ▾. */

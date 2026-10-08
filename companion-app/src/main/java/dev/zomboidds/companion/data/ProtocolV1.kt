@@ -48,12 +48,20 @@ import dev.zomboidds.companion.domain.RecipeOutput
 import dev.zomboidds.companion.domain.RecipeSkill
 import dev.zomboidds.companion.domain.RecipeSummary
 import dev.zomboidds.companion.domain.SkillNeed
+import dev.zomboidds.companion.domain.Fabric
+import dev.zomboidds.companion.domain.Garment
+import dev.zomboidds.companion.domain.GarmentPart
+import dev.zomboidds.companion.domain.GarmentSummary
+import dev.zomboidds.companion.domain.Sewing
+import dev.zomboidds.companion.domain.SewingKit
+import dev.zomboidds.companion.domain.TailorList
 import dev.zomboidds.companion.domain.SessionInfo
 import dev.zomboidds.companion.domain.TimeState
 import dev.zomboidds.companion.domain.Vehicle
 import java.io.ByteArrayOutputStream
 import java.util.Base64
 import java.util.zip.Inflater
+import kotlin.math.roundToInt
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -324,7 +332,7 @@ object ProtocolV1 {
     class Request(val name: String, val args: JsonObject)
 
     @Serializable
-    private data class ShowDto(val panel: String = "", val container: String? = null)
+    private data class ShowDto(val panel: String = "", val container: String? = null, val item: Long? = null)
 
     @Serializable
     private data class MenuDto(val menuId: String, val options: List<MenuOptionDto> = emptyList())
@@ -353,6 +361,7 @@ object ProtocolV1 {
             val dto = json.decodeFromJsonElement<ShowDto>(envelope.data)
             return when (dto.panel) {
                 "inventory" -> ServerMessage.Event(GameEvent.ShowInventory(dto.container))
+                "garment" if dto.item != null -> ServerMessage.Event(GameEvent.ShowGarment(dto.item))
                 else -> ServerMessage.StateUpdate { it } // a panel from a newer mod: nothing to show
             }
         }
@@ -532,6 +541,94 @@ object ProtocolV1 {
     /** The `data` of a `build_recipe` reply: like a craft recipe's, made once, with nothing it makes. */
     fun buildRecipeDetails(data: JsonElement?): RecipeDetails =
         recipeDetails(data).let { it.copy(max = if (it.canCraft) 1 else 0) }
+
+    fun tailorListRequest() = Request("tailor_list", buildJsonObject { })
+
+    fun tailorGarmentRequest(itemId: Long) = Request("tailor_garment", buildJsonObject { put("itemId", itemId) })
+
+    fun tailorMenuRequest(itemId: Long, partId: String) =
+        Request("tailor_menu", buildJsonObject { put("itemId", itemId); put("part", partId) })
+
+    @Serializable
+    private data class TailorListDto(val garments: List<GarmentSummaryDto> = emptyList(), val kit: SewingKitDto = SewingKitDto(), val tailoring: Int? = null)
+
+    @Serializable
+    private data class GarmentSummaryDto(
+        val id: Long,
+        val name: String = "",
+        val icon: String? = null,
+        val condition: Float? = null,
+        val worn: Boolean = false,
+        val bag: String? = null,
+        val holes: Int = 0,
+        val patches: Int = 0,
+        val repairable: Boolean = true,
+    )
+
+    @Serializable
+    private data class SewingKitDto(val needle: Boolean = false, val thread: Boolean = false, val fabrics: List<FabricDto> = emptyList())
+
+    @Serializable
+    private data class FabricDto(val type: String = "", val name: String = "", val icon: String? = null, val count: Int = 0)
+
+    @Serializable
+    private data class GarmentDto(
+        val id: Long,
+        val name: String = "",
+        val icon: String? = null,
+        val worn: Boolean = false,
+        val condition: Float? = null,
+        val blood: Float = 0f,
+        val dirt: Float = 0f,
+        val cantRepair: String? = null,
+        val tailoring: Int? = null,
+        val parts: List<GarmentPartDto> = emptyList(),
+    )
+
+    @Serializable
+    private data class GarmentPartDto(
+        val id: String,
+        val name: String = "",
+        val bite: Float = 0f,
+        val scratch: Float = 0f,
+        val bullet: Float = 0f,
+        val hole: Boolean = false,
+        val blood: Float? = null,
+        val patch: String? = null,
+        val sewing: SewingDto? = null,
+    )
+
+    @Serializable
+    private data class SewingDto(val name: String = "", val progress: Float = 0f)
+
+    /** The `data` of a `tailor_list` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun tailorList(data: JsonElement?): TailorList {
+        requireNotNull(data) { "the game sent no clothes" }
+        val dto = json.decodeFromJsonElement<TailorListDto>(lenient(data))
+        return TailorList(
+            dto.garments.map {
+                GarmentSummary(it.id, it.name.ifEmpty { "?" }, it.icon, it.condition, it.worn, it.bag?.takeIf(String::isNotBlank),
+                    it.holes, it.patches, it.repairable)
+            },
+            SewingKit(dto.kit.needle, dto.kit.thread, dto.kit.fabrics.map { Fabric(it.type, it.name.ifEmpty { it.type }, it.icon, it.count) }),
+            dto.tailoring,
+        )
+    }
+
+    /** The `data` of a `tailor_garment` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun garment(data: JsonElement?): Garment {
+        requireNotNull(data) { "the game sent no garment" }
+        val dto = json.decodeFromJsonElement<GarmentDto>(lenient(data))
+        return Garment(
+            dto.id, dto.name.ifEmpty { "?" }, dto.icon, dto.worn, dto.condition, dto.blood, dto.dirt,
+            dto.cantRepair?.takeIf(String::isNotBlank), dto.tailoring,
+            dto.parts.map { part ->
+                GarmentPart(part.id, part.name.ifEmpty { part.id }, part.bite.roundToInt(), part.scratch.roundToInt(), part.bullet.roundToInt(),
+                    part.hole, part.blood, part.patch?.takeIf(String::isNotBlank),
+                    part.sewing?.let { Sewing(it.name, it.progress) })
+            },
+        )
+    }
 
     fun setSpeedRequest(speed: GameSpeed) = Request("set_speed", buildJsonObject { put("speed", speed.ordinal) })
 

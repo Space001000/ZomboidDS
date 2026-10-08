@@ -18,15 +18,21 @@ import dev.zomboidds.companion.domain.HealthTone
  */
 @Composable
 fun BodySilhouette(parts: List<BodyPartStatus>, female: Boolean, iconUrl: (String) -> String, modifier: Modifier = Modifier) {
-    val prefix = if (female) "bps_female_" else "bps_male_"
     val tones = parts.associate { it.id to it.tone }
+    BodySilhouette(female, iconUrl, modifier) { partId -> bodyColor(tones[partId]) }
+}
+
+/** The same silhouette with each body part (the game's BodyPartType id) in [color]. */
+@Composable
+fun BodySilhouette(female: Boolean, iconUrl: (String) -> String, modifier: Modifier = Modifier, color: (partId: String) -> Color) {
+    val prefix = if (female) "bps_female_" else "bps_male_"
     Box(modifier) {
         IMAGES.forEach { (partId, image) ->
             AsyncImage(
                 model = iconUrl(prefix + image),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                colorFilter = ColorFilter.tint(bodyColor(tones[partId]), BlendMode.SrcIn),
+                colorFilter = ColorFilter.tint(color(partId), BlendMode.SrcIn),
                 modifier = Modifier.fillMaxSize(),
             )
         }

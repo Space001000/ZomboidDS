@@ -17,6 +17,8 @@ final class MockItemMenu {
     private String currentId;
     private Map<String, Supplier<String>> currentActions = Map.of();
     private int nextId;
+    /** Inspect on a garment: the game would show it (MockGame sends the show event). */
+    java.util.function.Consumer<Map<String, Object>> inspect = item -> { };
 
     /** Builds a menu for {@code item}; {@code remove} takes the item out of the inventory. */
     Map<String, Object> open(Map<String, Object> item, Runnable remove) {
@@ -66,6 +68,12 @@ final class MockItemMenu {
                 String id = String.valueOf(++n);
                 options.add(pill(option(id, "Wear", true, null, null), "action"));
                 actions.put(id, () -> null);
+                String inspectId = String.valueOf(++n);
+                options.add(pill(option(inspectId, "Inspect", true, null, null), "action"));
+                actions.put(inspectId, () -> {
+                    inspect.accept(item);
+                    return null;
+                });
             }
             case "Weapon" -> {
                 for (String equip : List.of("Equip Primary", "Equip Secondary", "Equip Two Hands")) {
@@ -156,6 +164,16 @@ final class MockItemMenu {
         return menu;
     }
 
+    /** A menu built elsewhere (the tailoring menu), under the same rules: only the latest, once. */
+    Map<String, Object> register(List<Object> options, Map<String, Supplier<String>> actions) {
+        currentId = "m" + (++nextId);
+        currentActions = actions;
+        Map<String, Object> menu = new LinkedHashMap<>();
+        menu.put("menuId", currentId);
+        menu.put("options", options);
+        return menu;
+    }
+
     /** Runs an option; returns an error message, or null on success. */
     String select(Object menuId, Object optionId) {
         if (currentId == null || !currentId.equals(String.valueOf(menuId))) {
@@ -176,7 +194,7 @@ final class MockItemMenu {
         return option;
     }
 
-    private static Map<String, Object> option(String id, String name, boolean enabled, String tooltip, List<Object> children) {
+    static Map<String, Object> option(String id, String name, boolean enabled, String tooltip, List<Object> children) {
         Map<String, Object> option = new LinkedHashMap<>();
         option.put("id", id);
         option.put("name", name);

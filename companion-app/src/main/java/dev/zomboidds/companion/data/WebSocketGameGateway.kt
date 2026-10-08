@@ -11,6 +11,8 @@ import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenuResult
 import dev.zomboidds.companion.domain.BuildList
+import dev.zomboidds.companion.domain.Garment
+import dev.zomboidds.companion.domain.TailorList
 import dev.zomboidds.companion.domain.RecipeDetails
 import dev.zomboidds.companion.domain.RecipeList
 import java.util.concurrent.ConcurrentHashMap
@@ -138,6 +140,15 @@ class WebSocketGameGateway(
     override suspend fun place(id: String): CommandResult = send(ProtocolV1.buildPlaceRequest(id)).result
 
     override suspend fun stopPlacing(): CommandResult = send(ProtocolV1.buildStopRequest()).result
+
+    override suspend fun tailorList(): Fetched<TailorList> =
+        fetched(send(ProtocolV1.tailorListRequest()), "The game's clothes couldn't be read", ProtocolV1::tailorList)
+
+    override suspend fun garment(itemId: Long): Fetched<Garment> =
+        fetched(send(ProtocolV1.tailorGarmentRequest(itemId)), "The garment couldn't be read", ProtocolV1::garment)
+
+    override suspend fun garmentMenu(itemId: Long, partId: String): ItemMenuResult =
+        menuFrom(send(ProtocolV1.tailorMenuRequest(itemId, partId)))
 
     private fun <T> fetched(reply: ProtocolV1.ServerMessage.Reply, unreadable: String, parse: (JsonElement?) -> T): Fetched<T> =
         when (val result = reply.result) {

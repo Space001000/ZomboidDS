@@ -95,6 +95,7 @@ class MainActivity : ComponentActivity() {
                 events = gateway.events,
                 crafting = gateway,
                 building = gateway,
+                tailoring = gateway,
                 craftMode = craftMode,
                 onCraftModeChange = container.settings::setCraftMode,
                 deckCommands = deckCommands,

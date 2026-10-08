@@ -61,9 +61,15 @@ final class MockGame {
     private final Map<String, Object> deck = fixtureData("deck.json");
     private boolean deckDirty = true;
 
+    /** The fake Inspect window (tailor_garments.json). */
+    private final MockTailoring tailoring = new MockTailoring(fixtureData("tailor_garments.json"));
+
     MockGame(BridgeContext bridge, String inventoryFixture) {
         this.bridge = bridge;
         this.inventory = fixtureData(inventoryFixture);
+        // Inspect on a garment: the game sends the app to its garment panel. The inventory fixtures'
+        // clothes aren't among the tailoring ones, so they all show the Leather Jacket.
+        menu.inspect = item -> bridge.state().publish("show", Map.of("panel", "garment", "item", 30003));
     }
 
     /** The fake crafting window: the list, and each recipe's details by id (see PROTOCOL.md "Crafting"). */
@@ -318,6 +324,28 @@ final class MockGame {
                     placing.put("missing", List.of("Plank"));
                 }
                 bridge.state().publish("building", Map.of("placing", placing));
+                yield null;
+            }
+            case "tailor_list" -> {
+                data[0] = tailoring.list();
+                yield null;
+            }
+            case "tailor_garment" -> {
+                Object id = command.args().get("itemId");
+                Map<String, Object> garment = id instanceof Number n ? tailoring.garment(n.longValue()) : null;
+                if (garment == null) {
+                    yield "That's not something you can inspect";
+                }
+                data[0] = garment;
+                yield null;
+            }
+            case "tailor_menu" -> {
+                Object id = command.args().get("itemId");
+                Object result = id instanceof Number n ? tailoring.menu(n.longValue(), String.valueOf(command.args().get("part")), menu) : "item not found";
+                if (result instanceof String refused) {
+                    yield refused;
+                }
+                data[0] = result;
                 yield null;
             }
             case "build_stop" -> {

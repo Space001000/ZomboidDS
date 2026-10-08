@@ -17,7 +17,7 @@ enum class ContainerLayout { SPLIT, SIDE_BY_SIDE, SINGLE }
 enum class MapPlacement { LEFT_OF_HERE, RIGHT_OF_HERE, OWN_TAB }
 
 /** What the Craft tab shows: the game's crafting window or its build window (the tab's ▾ menu). */
-enum class CraftMode(val title: String) { CRAFT("Craft"), BUILD("Build") }
+enum class CraftMode(val title: String) { CRAFT("Craft"), BUILD("Build"), TAILOR("Tailor") }
 
 /** The user's display choices, kept across app restarts. */
 class AppSettings(context: Context) {

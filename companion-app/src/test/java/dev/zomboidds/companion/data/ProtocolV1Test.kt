@@ -398,6 +398,43 @@ class ProtocolV1Test {
     }
 
     @Test
+    fun `show asks the app to open a garment`() {
+        val message = ProtocolV1.decode(fixture("show_garment.json")) as ProtocolV1.ServerMessage.Event
+        assertEquals(GameEvent.ShowGarment(30003), message.event)
+    }
+
+    @Test
+    fun `tailor replies list the clothes and read a garment`() {
+        val list = (ProtocolV1.decode(fixture("tailor_list_result.json")) as ProtocolV1.ServerMessage.Reply)
+            .let { ProtocolV1.tailorList(it.data) }
+        assertEquals(15, list.garments.size)
+        val jacket = list.garments[2]
+        assertEquals("Leather Jacket", jacket.name)
+        assertTrue(jacket.worn)
+        assertEquals(2, jacket.holes)
+        assertEquals(1, jacket.patches)
+        assertEquals(false, list.garments.single { it.name == "Military Boots" }.repairable)
+        assertEquals("Military Backpack", list.garments.last().bag)
+        assertEquals(listOf("Rag" to 12, "Denim Strips" to 3, "Leather Strips" to 0), list.kit.fabrics.map { it.name to it.count })
+        assertTrue(list.kit.needle && list.kit.thread)
+        assertEquals(4, list.tailoring)
+
+        val garment = (ProtocolV1.decode(fixture("tailor_garment_result.json")) as ProtocolV1.ServerMessage.Reply)
+            .let { ProtocolV1.garment(it.data) }
+        assertEquals(30003L, garment.id)
+        assertEquals(0.58f, garment.condition)
+        assertEquals(null, garment.cantRepair)
+        val forearm = garment.parts.single { it.id == "ForeArm_R" }
+        assertTrue(forearm.hole)
+        assertEquals(0, forearm.bite)
+        assertEquals(0.35f, forearm.blood)
+        assertEquals("Patch Hole", forearm.sewing?.name)
+        assertEquals(forearm.sewing, garment.sewing)
+        assertEquals("Leather Strips patch", garment.parts.single { it.id == "Torso_Lower" }.patch)
+        assertEquals(40, garment.parts.single { it.id == "Torso_Upper" }.scratch)
+    }
+
+    @Test
     fun `transfer requests encode their arguments`() {
         fun parse(json: String) = kotlinx.serialization.json.Json.parseToJsonElement(json).toString()
         assertEquals(

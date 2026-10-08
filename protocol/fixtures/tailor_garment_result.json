@@ -1,0 +1,86 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 62,
+ "data": {
+  "id": "c-72",
+  "ok": true,
+  "data": {
+   "id": 30003,
+   "name": "Leather Jacket",
+   "icon": "Item_JacketBlack",
+   "worn": true,
+   "condition": 0.58,
+   "blood": 0.22,
+   "dirt": 0.31,
+   "tailoring": 4,
+   "parts": [
+    {
+     "id": "Torso_Upper",
+     "name": "Upper Torso",
+     "bite": 20,
+     "scratch": 40,
+     "bullet": 0,
+     "blood": 0.12
+    },
+    {
+     "id": "Torso_Lower",
+     "name": "Lower Torso",
+     "bite": 4,
+     "scratch": 8,
+     "bullet": 0,
+     "patch": "Leather Strips patch"
+    },
+    {
+     "id": "Back",
+     "name": "Back",
+     "bite": 20,
+     "scratch": 40,
+     "bullet": 0
+    },
+    {
+     "id": "UpperArm_L",
+     "name": "Left Upper Arm",
+     "bite": 0,
+     "scratch": 0,
+     "bullet": 0,
+     "hole": true
+    },
+    {
+     "id": "UpperArm_R",
+     "name": "Right Upper Arm",
+     "bite": 20,
+     "scratch": 40,
+     "bullet": 0
+    },
+    {
+     "id": "ForeArm_L",
+     "name": "Left Forearm",
+     "bite": 20,
+     "scratch": 40,
+     "bullet": 0
+    },
+    {
+     "id": "ForeArm_R",
+     "name": "Right Forearm",
+     "bite": 0,
+     "scratch": 0,
+     "bullet": 0,
+     "hole": true,
+     "blood": 0.35,
+     "sewing": {
+      "name": "Patch Hole",
+      "progress": 0.45
+     }
+    },
+    {
+     "id": "Neck",
+     "name": "Neck",
+     "bite": 10,
+     "scratch": 20,
+     "bullet": 0
+    }
+   ]
+  }
+ }
+}

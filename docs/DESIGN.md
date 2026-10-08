@@ -53,7 +53,7 @@ windows can't be moved to the other display: each panel is rebuilt in the app fr
 │   │          ZombieBuddy download, app updates                               │
 │   ├─ domain: GameState, commands, menus, crafting, building (ports)          │
 │   ├─ data:   WebSocketGameGateway (OkHttp), ProtocolV1                       │
-│   └─ ui:     Inventory, Here (Vehicle), Status, Craft ▾ (Craft, Build), Deck │
+│   └─ ui:     Inventory, Here (Vehicle), Status, Craft ▾ (Craft, Build, Tailor), Deck │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -91,6 +91,7 @@ Everything below was checked against the game's Lua sources and `projectzomboid.
 | Food freshness | The rule `Food:getName` uses for "Fresh / Stale / Rotten". |
 | Crafting | Java `HandcraftLogic` with the crafting window's default query (`InHandCraft;AnySurfaceCraft`), its containers and manual input selection; crafting runs the window's own `startHandcraft` with a stand-in for its craft control (fetch ingredients, walk to a surface, queue the actions, put items back). |
 | Building | Java `BuildLogic` (the build window's, same base as `HandcraftLogic`) with `getAllBuildableRecipes`. Versions of one thing (Shoddy, Poor, Good) are entities named `<thing>_Lvl<n>` and share a tile. Place does what the window's Build button does (`ISBuildPanel:createBuildIsoEntity`): it turns on the game's placement cursor, which the player moves, turns and places with the controller; after each placement the logic re-checks what's in reach and the cursor comes back. |
+| Tailoring | The Inspect window (`ISGarmentUI`): a garment's covered parts (`Clothing:getCoveredParts`) with `getDefForPart`, holes, blood and patches; its per-part menu from `ISGarmentUI:doContextMenu` on a window that's built but never shown, so patching runs the game's own `repairClothing` / `removePatch` (which also move the garment and kit into the main inventory). Inspect in the item menu opens the app's panel instead of the window while the app is connected (`onInspectClothingUI`). |
 | Map | The app reads the game's own map files from the player's copy (`worldmap.xml.bin` and the forest file, the format of `WorldMapBinary`) and draws them in the minimap's style (`MapUtils.initDefaultStyleV1`: colours, and detail fading out by zoom). Shown only where `ISMiniMap.IsAllowed` (or with the mod option "Map on every save", never without the world map). Explored areas are the game's `WorldMapVisited` bits; symbols are the player's own from `MapItem`'s symbol list plus the game's labels from each map's `worldmap-annotations.lua`, shown like the minimap's Symbols option (off by default, handwriting, each label's zoom range, with zoom converted by `MapProjection`). Zoom stops between the game's zoom levels 15.5 and 20. |
 | Icons | The bridge serves loose textures (`media/textures`, `media/ui`), item and UI packs, and world-object sprites from `Tiles1x.pack`, cropped to their visible pixels; a missing icon is never cached. |
 

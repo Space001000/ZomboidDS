@@ -123,6 +123,12 @@ your character:
   in its panel. **Place** brings up the game's cursor on the top screen: the d-pad moves it, LB/RB
   turn it, A builds, B stops. The cursor stays up for the next one. While it's up, the bottom screen
   says what you're placing (red when something runs out), with **Stop**.
+- **Tailor** (Craft ▾ → Tailor): your clothes, worn ones first, then what's in your bags. Red corners
+  count holes; ✕ means the game can't repair it (boots, helmets). The line above shows your needle,
+  thread and fabrics (Rag, Denim Strips, Leather Strips). Tap a garment for the game's Inspect view:
+  each body part it covers with its Bite and Scratch protection, holes, blood and patches. Tap a part
+  for the game's choices there (Patch Hole or Add Padding with a fabric, Remove Patch); your character
+  sews it, and the part shows the progress. **Inspect** in a garment's item panel opens the same view.
 
 The **Loot / Inventory button (Y)** opens the container on the bottom screen instead of the game's
 windows on the top screen, and so does opening a car's trunk (without the app, both work as usual). The gamepad keeps controlling the game

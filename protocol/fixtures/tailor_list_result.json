@@ -1,0 +1,188 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 61,
+ "data": {
+  "id": "c-71",
+  "ok": true,
+  "data": {
+   "garments": [
+    {
+     "id": 30001,
+     "name": "Military Helmet",
+     "icon": "Item_HelmetArmyGreen",
+     "condition": 0.85,
+     "worn": true,
+     "holes": 0,
+     "patches": 0,
+     "repairable": false
+    },
+    {
+     "id": 30002,
+     "name": "Scarf",
+     "icon": "Item_ScarfStripedBlack",
+     "condition": 0.9,
+     "worn": true,
+     "holes": 0,
+     "patches": 0,
+     "repairable": true
+    },
+    {
+     "id": 30003,
+     "name": "Leather Jacket",
+     "icon": "Item_JacketBlack",
+     "condition": 0.58,
+     "worn": true,
+     "holes": 2,
+     "patches": 1,
+     "repairable": true
+    },
+    {
+     "id": 30004,
+     "name": "Shirt - Lumberjack",
+     "icon": "Item_ShirtLumberjackGreen",
+     "condition": 0.7,
+     "worn": true,
+     "holes": 1,
+     "patches": 0,
+     "repairable": true
+    },
+    {
+     "id": 30005,
+     "name": "T-shirt",
+     "icon": "Item_TshirtGeneric",
+     "condition": 1,
+     "worn": true,
+     "holes": 0,
+     "patches": 0,
+     "repairable": true
+    },
+    {
+     "id": 30006,
+     "name": "Leather Gloves",
+     "icon": "Item_GlovesLeatherBlackpng",
+     "condition": 0.45,
+     "worn": true,
+     "holes": 1,
+     "patches": 0,
+     "repairable": true
+    },
+    {
+     "id": 30007,
+     "name": "Jeans",
+     "icon": "Item_TrousersDenimBlue",
+     "condition": 0.62,
+     "worn": true,
+     "holes": 1,
+     "patches": 1,
+     "repairable": true
+    },
+    {
+     "id": 30008,
+     "name": "Long Socks",
+     "icon": "Item_SocksWhite",
+     "condition": 0.9,
+     "worn": true,
+     "holes": 0,
+     "patches": 0,
+     "repairable": true
+    },
+    {
+     "id": 30009,
+     "name": "Military Boots",
+     "icon": "Item_BootsARmy",
+     "condition": 0.73,
+     "worn": true,
+     "holes": 0,
+     "patches": 0,
+     "repairable": false
+    },
+    {
+     "id": 30010,
+     "name": "Hoodie",
+     "icon": "Item_HoodieWhite",
+     "condition": 0.41,
+     "bag": "Military Backpack",
+     "holes": 3,
+     "patches": 0,
+     "repairable": true
+    },
+    {
+     "id": 30011,
+     "name": "Padded Pants",
+     "icon": "Item_PaddedTrousers_White",
+     "condition": 0.8,
+     "bag": "Military Backpack",
+     "holes": 0,
+     "patches": 0,
+     "repairable": false
+    },
+    {
+     "id": 30012,
+     "name": "Shirt - Lumberjack",
+     "icon": "Item_ShirtLumberjackRed",
+     "condition": 1,
+     "bag": "Military Backpack",
+     "holes": 0,
+     "patches": 0,
+     "repairable": true
+    },
+    {
+     "id": 30013,
+     "name": "Leather Jacket",
+     "icon": "Item_JacketBlack",
+     "condition": 0.9,
+     "bag": "Military Backpack",
+     "holes": 0,
+     "patches": 1,
+     "repairable": true
+    },
+    {
+     "id": 30014,
+     "name": "Long Socks",
+     "icon": "Item_SocksWhite",
+     "condition": 1,
+     "bag": "Military Backpack",
+     "holes": 0,
+     "patches": 0,
+     "repairable": true
+    },
+    {
+     "id": 30015,
+     "name": "T-shirt",
+     "icon": "Item_TshirtGeneric",
+     "condition": 0.5,
+     "bag": "Military Backpack",
+     "holes": 1,
+     "patches": 0,
+     "repairable": true
+    }
+   ],
+   "kit": {
+    "needle": true,
+    "thread": true,
+    "fabrics": [
+     {
+      "type": "RippedSheets",
+      "name": "Rag",
+      "icon": "Item_Rag",
+      "count": 12
+     },
+     {
+      "type": "DenimStrips",
+      "name": "Denim Strips",
+      "icon": "Item_DenimStrips",
+      "count": 3
+     },
+     {
+      "type": "LeatherStrips",
+      "name": "Leather Strips",
+      "icon": "Item_LeatherStrips",
+      "count": 0
+     }
+    ]
+   },
+   "tailoring": 4
+  }
+ }
+}

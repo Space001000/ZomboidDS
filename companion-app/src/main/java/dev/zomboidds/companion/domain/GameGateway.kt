@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
  * The app's view of the game. The UI only talks to this interface; how the data gets here
  * (WebSocket to the mod, fake data for previews, ...) is an implementation detail.
  */
-interface GameGateway : ItemActions, GameControls, Crafting, Building {
+interface GameGateway : ItemActions, GameControls, Crafting, Building, Tailoring {
     val state: StateFlow<GameState>
     val connection: StateFlow<ConnectionStatus>
 
@@ -55,4 +55,7 @@ sealed interface GameEvent {
      * the game would have opened.
      */
     data class ShowInventory(val containerId: String?) : GameEvent
+
+    /** The player chose Inspect on a garment in the game: the app shows its garment panel. */
+    data class ShowGarment(val itemId: Long) : GameEvent
 }

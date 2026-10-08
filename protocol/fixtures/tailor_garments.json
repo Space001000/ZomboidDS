@@ -1,0 +1,697 @@
+{
+ "data": {
+  "garments": [
+   {
+    "id": 30001,
+    "name": "Military Helmet",
+    "icon": "Item_HelmetArmyGreen",
+    "worn": true,
+    "condition": 0.85,
+    "blood": 0.04,
+    "dirt": 0.2,
+    "cantRepair": "Can't be repaired.",
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Head",
+      "name": "Head",
+      "bite": 70,
+      "scratch": 80,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30002,
+    "name": "Scarf",
+    "icon": "Item_ScarfStripedBlack",
+    "worn": true,
+    "condition": 0.9,
+    "blood": 0,
+    "dirt": 0.35,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Neck",
+      "name": "Neck",
+      "bite": 0,
+      "scratch": 10,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30003,
+    "name": "Leather Jacket",
+    "icon": "Item_JacketBlack",
+    "worn": true,
+    "condition": 0.58,
+    "blood": 0.22,
+    "dirt": 0.31,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Torso_Upper",
+      "name": "Upper Torso",
+      "bite": 20,
+      "scratch": 40,
+      "bullet": 0,
+      "blood": 0.12
+     },
+     {
+      "id": "Torso_Lower",
+      "name": "Lower Torso",
+      "bite": 4,
+      "scratch": 8,
+      "bullet": 0,
+      "patch": "Leather Strips patch"
+     },
+     {
+      "id": "Back",
+      "name": "Back",
+      "bite": 20,
+      "scratch": 40,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_L",
+      "name": "Left Upper Arm",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0,
+      "hole": true
+     },
+     {
+      "id": "UpperArm_R",
+      "name": "Right Upper Arm",
+      "bite": 20,
+      "scratch": 40,
+      "bullet": 0
+     },
+     {
+      "id": "ForeArm_L",
+      "name": "Left Forearm",
+      "bite": 20,
+      "scratch": 40,
+      "bullet": 0
+     },
+     {
+      "id": "ForeArm_R",
+      "name": "Right Forearm",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0,
+      "hole": true,
+      "blood": 0.35
+     },
+     {
+      "id": "Neck",
+      "name": "Neck",
+      "bite": 10,
+      "scratch": 20,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30004,
+    "name": "Shirt - Lumberjack",
+    "icon": "Item_ShirtLumberjackGreen",
+    "worn": true,
+    "condition": 0.7,
+    "blood": 0.08,
+    "dirt": 0.4,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Torso_Upper",
+      "name": "Upper Torso",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "Torso_Lower",
+      "name": "Lower Torso",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "Back",
+      "name": "Back",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_L",
+      "name": "Left Upper Arm",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_R",
+      "name": "Right Upper Arm",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "ForeArm_L",
+      "name": "Left Forearm",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "ForeArm_R",
+      "name": "Right Forearm",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0,
+      "hole": true,
+      "blood": 0.2
+     }
+    ]
+   },
+   {
+    "id": 30005,
+    "name": "T-shirt",
+    "icon": "Item_TshirtGeneric",
+    "worn": true,
+    "condition": 1,
+    "blood": 0,
+    "dirt": 0.25,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Torso_Upper",
+      "name": "Upper Torso",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "Torso_Lower",
+      "name": "Lower Torso",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "Back",
+      "name": "Back",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_L",
+      "name": "Left Upper Arm",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_R",
+      "name": "Right Upper Arm",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30006,
+    "name": "Leather Gloves",
+    "icon": "Item_GlovesLeatherBlackpng",
+    "worn": true,
+    "condition": 0.45,
+    "blood": 0.3,
+    "dirt": 0.5,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Hand_L",
+      "name": "Left Hand",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0,
+      "hole": true,
+      "blood": 0.6
+     },
+     {
+      "id": "Hand_R",
+      "name": "Right Hand",
+      "bite": 15,
+      "scratch": 30,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30007,
+    "name": "Jeans",
+    "icon": "Item_TrousersDenimBlue",
+    "worn": true,
+    "condition": 0.62,
+    "blood": 0.15,
+    "dirt": 0.45,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Groin",
+      "name": "Groin",
+      "bite": 10,
+      "scratch": 20,
+      "bullet": 0
+     },
+     {
+      "id": "UpperLeg_L",
+      "name": "Left Thigh",
+      "bite": 10,
+      "scratch": 20,
+      "bullet": 0
+     },
+     {
+      "id": "UpperLeg_R",
+      "name": "Right Thigh",
+      "bite": 12,
+      "scratch": 24,
+      "bullet": 0,
+      "patch": "Denim Strips patch"
+     },
+     {
+      "id": "LowerLeg_L",
+      "name": "Left Shin",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0,
+      "hole": true,
+      "blood": 0.5
+     },
+     {
+      "id": "LowerLeg_R",
+      "name": "Right Shin",
+      "bite": 10,
+      "scratch": 20,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30008,
+    "name": "Long Socks",
+    "icon": "Item_SocksWhite",
+    "worn": true,
+    "condition": 0.9,
+    "blood": 0,
+    "dirt": 0.6,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Foot_L",
+      "name": "Left Foot",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "Foot_R",
+      "name": "Right Foot",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "LowerLeg_L",
+      "name": "Left Shin",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "LowerLeg_R",
+      "name": "Right Shin",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30009,
+    "name": "Military Boots",
+    "icon": "Item_BootsARmy",
+    "worn": true,
+    "condition": 0.73,
+    "blood": 0.1,
+    "dirt": 0.55,
+    "cantRepair": "Can't be repaired.",
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Foot_L",
+      "name": "Left Foot",
+      "bite": 100,
+      "scratch": 100,
+      "bullet": 0
+     },
+     {
+      "id": "Foot_R",
+      "name": "Right Foot",
+      "bite": 100,
+      "scratch": 100,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30010,
+    "name": "Hoodie",
+    "icon": "Item_HoodieWhite",
+    "condition": 0.41,
+    "blood": 0.3,
+    "dirt": 0.2,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Torso_Upper",
+      "name": "Upper Torso",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0,
+      "hole": true
+     },
+     {
+      "id": "Torso_Lower",
+      "name": "Lower Torso",
+      "bite": 0,
+      "scratch": 10,
+      "bullet": 0
+     },
+     {
+      "id": "Back",
+      "name": "Back",
+      "bite": 0,
+      "scratch": 10,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_L",
+      "name": "Left Upper Arm",
+      "bite": 0,
+      "scratch": 10,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_R",
+      "name": "Right Upper Arm",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0,
+      "hole": true
+     },
+     {
+      "id": "ForeArm_L",
+      "name": "Left Forearm",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0,
+      "hole": true
+     },
+     {
+      "id": "ForeArm_R",
+      "name": "Right Forearm",
+      "bite": 0,
+      "scratch": 10,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30011,
+    "name": "Padded Pants",
+    "icon": "Item_PaddedTrousers_White",
+    "condition": 0.8,
+    "blood": 0,
+    "dirt": 0.1,
+    "cantRepair": "Can't be repaired.",
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Groin",
+      "name": "Groin",
+      "bite": 10,
+      "scratch": 20,
+      "bullet": 0
+     },
+     {
+      "id": "UpperLeg_L",
+      "name": "Left Thigh",
+      "bite": 10,
+      "scratch": 20,
+      "bullet": 0
+     },
+     {
+      "id": "UpperLeg_R",
+      "name": "Right Thigh",
+      "bite": 10,
+      "scratch": 20,
+      "bullet": 0
+     },
+     {
+      "id": "LowerLeg_L",
+      "name": "Left Shin",
+      "bite": 10,
+      "scratch": 20,
+      "bullet": 0
+     },
+     {
+      "id": "LowerLeg_R",
+      "name": "Right Shin",
+      "bite": 10,
+      "scratch": 20,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30012,
+    "name": "Shirt - Lumberjack",
+    "icon": "Item_ShirtLumberjackRed",
+    "condition": 1,
+    "blood": 0,
+    "dirt": 0,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Torso_Upper",
+      "name": "Upper Torso",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "Torso_Lower",
+      "name": "Lower Torso",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "Back",
+      "name": "Back",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_L",
+      "name": "Left Upper Arm",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_R",
+      "name": "Right Upper Arm",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "ForeArm_L",
+      "name": "Left Forearm",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     },
+     {
+      "id": "ForeArm_R",
+      "name": "Right Forearm",
+      "bite": 0,
+      "scratch": 5,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30013,
+    "name": "Leather Jacket",
+    "icon": "Item_JacketBlack",
+    "condition": 0.9,
+    "blood": 0,
+    "dirt": 0.1,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Torso_Upper",
+      "name": "Upper Torso",
+      "bite": 20,
+      "scratch": 40,
+      "bullet": 0
+     },
+     {
+      "id": "Torso_Lower",
+      "name": "Lower Torso",
+      "bite": 20,
+      "scratch": 40,
+      "bullet": 0
+     },
+     {
+      "id": "Back",
+      "name": "Back",
+      "bite": 20,
+      "scratch": 40,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_L",
+      "name": "Left Upper Arm",
+      "bite": 20,
+      "scratch": 40,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_R",
+      "name": "Right Upper Arm",
+      "bite": 20,
+      "scratch": 40,
+      "bullet": 0
+     },
+     {
+      "id": "ForeArm_L",
+      "name": "Left Forearm",
+      "bite": 2,
+      "scratch": 4,
+      "bullet": 0,
+      "patch": "Denim Strips patch"
+     },
+     {
+      "id": "ForeArm_R",
+      "name": "Right Forearm",
+      "bite": 20,
+      "scratch": 40,
+      "bullet": 0
+     },
+     {
+      "id": "Neck",
+      "name": "Neck",
+      "bite": 10,
+      "scratch": 20,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30014,
+    "name": "Long Socks",
+    "icon": "Item_SocksWhite",
+    "condition": 1,
+    "blood": 0,
+    "dirt": 0,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Foot_L",
+      "name": "Left Foot",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "Foot_R",
+      "name": "Right Foot",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "LowerLeg_L",
+      "name": "Left Shin",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "LowerLeg_R",
+      "name": "Right Shin",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     }
+    ]
+   },
+   {
+    "id": 30015,
+    "name": "T-shirt",
+    "icon": "Item_TshirtGeneric",
+    "condition": 0.5,
+    "blood": 0,
+    "dirt": 0.3,
+    "tailoring": 4,
+    "parts": [
+     {
+      "id": "Torso_Upper",
+      "name": "Upper Torso",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "Torso_Lower",
+      "name": "Lower Torso",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "Back",
+      "name": "Back",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0,
+      "hole": true
+     },
+     {
+      "id": "UpperArm_L",
+      "name": "Left Upper Arm",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     },
+     {
+      "id": "UpperArm_R",
+      "name": "Right Upper Arm",
+      "bite": 0,
+      "scratch": 0,
+      "bullet": 0
+     }
+    ]
+   }
+  ]
+ }
+}
