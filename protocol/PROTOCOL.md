@@ -54,6 +54,7 @@ older state messages of the same type are dropped in favour of the newest.
 | `time`           | Lua      | `speed`: the game's speed button, 0 pause, 1 play, 2 fast forward (×5), 3 faster (×20), 4 wait (×40); `canChange` (false in multiplayer); `gameMenuOpen` (true while the game's pause menu is open: `set_speed` is refused then, as the game's own buttons are) |
 | `deck`           | Lua      | The Command deck: `clock` and `commands[]`, see below. |
 | `map`            | Lua      | The minimap: `x`, `y` (tiles; the car's while driving, as the game's minimap centres on it), `z` (floor), `heading` (degrees clockwise from east, 90 = south; optional, from the car's movement while driving), `miniMap` / `worldMap` (the save's sandbox Map options, `ISMiniMap.IsAllowed` / `ISWorldMap.IsAllowed`). `alwaysShow`: the player ticked "Map on every save" in the game's Options > Mods > ZomboidDS. The app shows the map when `worldMap` and (`miniMap` or `alwaysShow`). Sent when the player moves or turns (mod 0.22+). |
+| `building`       | Lua      | What the player is placing with the game's build cursor after `build_place`: `{ placing: { id, name, icon, missing[] } }`, or `{}` when the cursor is down. `missing` (names of inputs and skills) only while the game blocks the cursor because something is short. Sent when it changes (mod 0.25+). |
 | `explored`       | bridge   | The parts of the map the player has seen, as the game remembers them (`WorldMapVisited`): `originX`, `originY` (tile of unit 0,0), `unit` (32 tiles), `width`, `height` (in units), `bits`: base64 of zlib-deflated bytes, 2 bits per unit (1 visited, 2 known from a map), 4 units per byte, unit `x` in bits `(x % 4) * 2` of byte `x / 4 + y * width / 4`. The minimap shows a unit when either bit is set. Sent when it changes, checked every 2 s. |
 | `map_symbols`    | bridge   | What the game's minimap shows with its Symbols option on: the game's printed labels (town, river, building names, read from each map's `worldmap-annotations.lua`, `label: true`) and the symbols and notes the player put on their world map. `symbols[]`, each `{ kind, x, y, color, scale, rotation, anchorX, anchorY, label, minZoom, maxZoom }` with `kind` `icon` (+ `icon`, an icon path like `LootableMaps/map_star`) or `text` (+ `text`, as the game shows it). `color` `[r, g, b, a]` (0–1), `scale` the game's size (0.666 default), `rotation` degrees, `anchorX`/`anchorY` which point of it sits on the spot (0–1), `minZoom`/`maxZoom` the game zoom levels it shows between (zoom = log2(pixels per tile × 40075017 / view height in pixels)). Colour alpha 0: the map style's colour (black on the minimap). Sent when they change, checked every 2 s (mod 0.23+). |
 | `command_result` | Lua      | `id`, `ok`, `error` (optional), `data` (optional, command-specific). Event, never replayed. |
@@ -149,7 +150,7 @@ Two commands take arguments and come with their own state in `deck`:
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`, `deck`, `map`.
+`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`, `build`, `deck`, `map`.
 
 ## Client → server
 
@@ -180,6 +181,10 @@ executed on the game thread on the next tick (also while the game is paused), us
 | `craft_list` | none. Result `data`: what the game's crafting window lists for the player now: `recipes[]` `{ id, name, icon, category, canCraft }` and `categories[]` `{ id, name }` (see Crafting) |
 | `craft_recipe` | `recipe` (an `id` from `craft_list`). Result `data`: `{ id, name, icon, category, seconds, canCraft, max, inputs[], outputs[], skills[] }` (see Crafting) |
 | `craft` | `recipe`, `count`: crafts it `count` times (at most `max`), the way the crafting window's Craft button does |
+| `build_list` | none. Result `data`: what the game's build window lists: `recipes[]` `{ id, name, icon, category, canBuild, group, level, version, groupName, skill }` and `categories[]` (see Building) |
+| `build_recipe` | `recipe` (an `id` from `build_list`). Result `data`: `{ id, name, icon, category, seconds, canBuild, inputs[], skills[] }` as in `craft_recipe` |
+| `build_place` | `recipe`: turns on the game's placement cursor for it on the game's screen, as the build window's Build button does. The `building` message follows. |
+| `build_stop` | none: puts the cursor away, as B on the controller does |
 
 ### Crafting
 
@@ -192,6 +197,17 @@ player has for it, else the first that would do; `others`: how many other items 
 `skills[]` `{ name, level, have }`, `max`: how many times it can be made now. `craft` runs the
 window's own start: it fetches the ingredients, walks to a surface when the recipe needs one,
 queues the actions and puts items back; it fails with a reason when nothing can be made.
+
+### Building
+
+The recipes are the game build window's (42.20 `BuildLogic`, the game entities with a craft recipe),
+read like Crafting's. Versions of one thing (Shoddy, Poor, Good) are entities named `<thing>_Lvl<n>`:
+they share a `group` with their `level`; `version` is the bracketed suffix of the translated name
+(`Wood Chair (Poor)` → `Poor`, absent when the name has none) and `groupName` the name before it.
+`skill` `{ name, level }` is the first skill it needs. Placing is the game's: the player moves, turns
+and places the cursor with the mouse or controller (d-pad, LB/RB, A, B to stop). After each
+placement the mod re-counts what's in reach and brings the cursor back, as the window does; the
+game blocks it when something is short.
 
 ### Moving items
 

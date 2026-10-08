@@ -180,6 +180,20 @@ local function describeOutput(output)
     return { name = try(fluid, "getDisplayName") or try(fluid, "getFluidTypeString"), amount = round(try(output, "getAmount"), 2), unit = "L" }
 end
 
+--- The skills a recipe needs: { name, level, have }.
+local function describeSkills(player, recipe)
+    local skills = {}
+    for i = 0, (try(recipe, "getRequiredSkillCount") or 0) - 1 do
+        local skill = recipe:getRequiredSkill(i)
+        skills[#skills + 1] = {
+            name = try(try(skill, "getPerk"), "getName"),
+            level = try(skill, "getLevel"),
+            have = try(player, "getPerkLevel", try(skill, "getPerk")),
+        }
+    end
+    return skills
+end
+
 --- What a recipe needs and makes, whether the player can make it now and how many times.
 function Crafting.recipe(player, id)
     local recipe = findRecipe(id)
@@ -211,14 +225,7 @@ function Crafting.recipe(player, id)
         local ok, entry = pcall(describeOutput, outputs:get(i))
         if ok then data.outputs[#data.outputs + 1] = entry end
     end
-    for i = 0, (try(recipe, "getRequiredSkillCount") or 0) - 1 do
-        local skill = recipe:getRequiredSkill(i)
-        data.skills[#data.skills + 1] = {
-            name = try(try(skill, "getPerk"), "getName"),
-            level = try(skill, "getLevel"),
-            have = try(player, "getPerkLevel", try(skill, "getPerk")),
-        }
-    end
+    data.skills = describeSkills(player, recipe)
     return true, nil, data
 end
 
@@ -249,6 +256,18 @@ function Crafting.craft(player, id, count)
     control:startHandcraft(false)
     return true
 end
+
+-- For Building.lua: the build window's logic shares its base with the crafting window's
+-- (BaseCraftingLogic), so lists, ingredients and skills read the same way.
+Crafting.shared = {
+    textureName = textureName,
+    recipeId = recipeId,
+    listed = listed,
+    canCraft = canCraft,
+    categoryName = categoryName,
+    describeInput = describeInput,
+    describeSkills = describeSkills,
+}
 
 Crafting.commands = {
     craft_list = function(player, _args)
