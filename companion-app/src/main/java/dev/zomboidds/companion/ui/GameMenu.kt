@@ -114,19 +114,28 @@ internal fun LoadingGameMenu(
 /**
  * A panel over the bottom of the screen with the rest dimmed; tapping the dimmed part closes it.
  * Drawn in this window, not as a dialog: a new window could take focus from the game.
+ * [footer] stays in view below the content, which scrolls when it doesn't fit.
  */
 @Composable
-internal fun BoxScope.BottomPanel(onDismiss: () -> Unit, spacing: Dp = 8.dp, content: @Composable ColumnScope.() -> Unit) {
+internal fun BoxScope.BottomPanel(
+    onDismiss: () -> Unit,
+    spacing: Dp = 8.dp,
+    footer: (@Composable () -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Box(
         Modifier.fillMaxSize()
             .background(Color.Black.copy(alpha = 0.4f))
             .clickable(interactionSource = null, indication = null, onClick = onDismiss),
     )
     Card(Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
-        Column(
-            Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(spacing),
-            content = content,
-        )
+        Column(Modifier.heightIn(max = 460.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(spacing)) {
+            Column(
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                content = content,
+            )
+            footer?.invoke()
+        }
     }
 }

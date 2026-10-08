@@ -209,13 +209,13 @@ private fun BoxScope.RecipePanel(
                 TextButton(onClick = onClose) { Text("Close") }
             }
             HorizontalDivider()
-            Section("Ingredients")
+            RecipeSection("Ingredients")
             recipe.inputs.forEach { IngredientRow(it, iconUrl) }
             recipe.skills.filter { !it.ok }.forEach {
                 Text("Needs ${it.name} ${it.level} (you have ${it.have})", color = Danger, style = MaterialTheme.typography.bodySmall)
             }
             if (recipe.outputs.isNotEmpty()) {
-                Section("Makes")
+                RecipeSection("Makes")
                 recipe.outputs.forEach { output ->
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         GameIcon(output.icon, iconUrl, 26.dp)
@@ -252,7 +252,7 @@ private fun BoxScope.RecipePanel(
 
 /** An ingredient: what (the item you have for it, or one that would do), have / need, ✓ or ✗. */
 @Composable
-private fun IngredientRow(input: RecipeInput, iconUrl: (String) -> String) {
+internal fun IngredientRow(input: RecipeInput, iconUrl: (String) -> String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         GameIcon(input.icon, iconUrl, 26.dp)
         Column(Modifier.weight(1f)) {
@@ -274,12 +274,12 @@ private fun IngredientRow(input: RecipeInput, iconUrl: (String) -> String) {
 }
 
 @Composable
-private fun Section(title: String) {
+internal fun RecipeSection(title: String) {
     Text(title.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
-private fun GameIcon(icon: String?, iconUrl: (String) -> String, size: Dp) {
+internal fun GameIcon(icon: String?, iconUrl: (String) -> String, size: Dp) {
     Box(Modifier.size(size)) {
         icon?.let {
             AsyncImage(model = iconUrl(it), contentDescription = null, filterQuality = FilterQuality.None, modifier = Modifier.fillMaxSize())
@@ -287,7 +287,7 @@ private fun GameIcon(icon: String?, iconUrl: (String) -> String, size: Dp) {
     }
 }
 
-private fun number(value: Float) = if (value == value.toInt().toFloat()) value.toInt().toString() else "%.1f".format(value)
+internal fun number(value: Float) = if (value == value.toInt().toFloat()) value.toInt().toString() else "%.1f".format(value)
 
 private fun amountSuffix(amount: Float, unit: String?) = when {
     unit != null -> " ${number(amount)}$unit"

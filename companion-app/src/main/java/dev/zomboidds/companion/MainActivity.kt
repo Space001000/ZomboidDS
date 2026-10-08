@@ -76,6 +76,7 @@ class MainActivity : ComponentActivity() {
             val mapPlacement by container.settings.mapPlacement.collectAsStateWithLifecycle()
             val whatsNewSeen by container.settings.whatsNewSeen.collectAsStateWithLifecycle()
             val mapSymbols by container.settings.mapSymbols.collectAsStateWithLifecycle()
+            val craftMode by container.settings.craftMode.collectAsStateWithLifecycle()
             // The map files are read once, the first time a game shows the map.
             val mapShown = state.mapPosition?.shown == true
             LaunchedEffect(mapShown) { if (mapShown) container.worldMap.load() }
@@ -91,6 +92,9 @@ class MainActivity : ComponentActivity() {
                 },
                 events = gateway.events,
                 crafting = gateway,
+                building = gateway,
+                craftMode = craftMode,
+                onCraftModeChange = container.settings::setCraftMode,
                 deckCommands = deckCommands,
                 onDeckCommandsChange = container.settings::setDeckCommands,
                 // On a new install and after every update, until closed.

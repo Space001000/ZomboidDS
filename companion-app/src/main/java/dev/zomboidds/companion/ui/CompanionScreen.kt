@@ -1,6 +1,7 @@
 package dev.zomboidds.companion.ui
 
 import dev.zomboidds.companion.setup.AppUpdateState
+import dev.zomboidds.companion.domain.Building
 import dev.zomboidds.companion.domain.Crafting
 import dev.zomboidds.companion.domain.GameControls
 import dev.zomboidds.companion.domain.GameSpeed
@@ -9,6 +10,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.zomboidds.companion.ContainerLayout
+import dev.zomboidds.companion.CraftMode
 import dev.zomboidds.companion.InventoryLayout
 import dev.zomboidds.companion.MapPlacement
 import dev.zomboidds.companion.domain.BridgeInfo
@@ -81,6 +91,10 @@ fun CompanionScreen(
     onInventoryDisplayChange: (InventoryDisplay) -> Unit,
     events: Flow<GameEvent>,
     crafting: Crafting? = null,
+    building: Building? = null,
+    /** What the Craft tab shows (its ▾ menu), and how to change it. */
+    craftMode: CraftMode = CraftMode.CRAFT,
+    onCraftModeChange: (CraftMode) -> Unit = {},
     /** The Command deck's buttons (deck command ids, in order), and how to change them. */
     deckCommands: List<String> = emptyList(),
     onDeckCommandsChange: (List<String>) -> Unit = {},
@@ -97,7 +111,7 @@ fun CompanionScreen(
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
                     InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting,
-                        deckCommands, onDeckCommandsChange, map)
+                        building, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange, map)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     var licences by remember { mutableStateOf(false) }
@@ -139,6 +153,9 @@ private fun InGame(
     onInventoryDisplayChange: (InventoryDisplay) -> Unit,
     events: Flow<GameEvent>,
     crafting: Crafting?,
+    building: Building?,
+    craftMode: CraftMode,
+    onCraftModeChange: (CraftMode) -> Unit,
     deckCommands: List<String>,
     onDeckCommandsChange: (List<String>) -> Unit,
     loadedMap: MapDisplay?,
@@ -149,6 +166,9 @@ private fun InGame(
     var editingDeck by rememberSaveable { mutableStateOf(false) }
     // Craft only with a mod that can craft.
     val canCraft = crafting != null && "craft" in state.session?.capabilities.orEmpty()
+    // The Craft tab's modes: Build only with a mod that can build.
+    val craftModes = CraftMode.entries.filter { it != CraftMode.BUILD || (building != null && "build" in state.session?.capabilities.orEmpty()) }
+    val mode = craftMode.takeIf { it in craftModes } ?: CraftMode.CRAFT
     val mapTab = map?.placement == MapPlacement.OWN_TAB
     val tabs = Tab.entries.filter { (it != Tab.CRAFT || canCraft) && (it != Tab.MAP || mapTab) }
     var tab by rememberSaveable { mutableStateOf(Tab.INVENTORY) }
@@ -185,7 +205,22 @@ private fun InGame(
     }
 
     Column(Modifier.fillMaxSize()) {
-        TabBar(tabs, shown, iconUrl, title = { if (it == Tab.HERE && driving != null) "Vehicle" else it.title }, onSelect = { tab = it })
+        TabBar(
+            tabs, shown, iconUrl,
+            title = {
+                when {
+                    it == Tab.HERE && driving != null -> "Vehicle"
+                    it == Tab.CRAFT -> mode.title
+                    else -> it.title
+                }
+            },
+            onSelect = { tab = it },
+            craftModes = craftModes, craftMode = mode,
+            onCraftMode = {
+                onCraftModeChange(it)
+                tab = Tab.CRAFT
+            },
+        )
         Box(Modifier.fillMaxSize().padding(10.dp)) {
             when (shown) {
                 Tab.HERE -> WithMap(map, state, onPlacementChange, iconUrl) {
@@ -205,7 +240,11 @@ private fun InGame(
                     CommandDeckScreen(state.time, state.deck, deckCommands, controls, iconUrl, onEdit = { editingDeck = true })
                 }
                 Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
-                Tab.CRAFT -> crafting?.let { CraftScreen(it, iconUrl, changes = state.inventory to state.containers) }
+                Tab.CRAFT -> if (mode == CraftMode.BUILD && building != null) {
+                    BuildScreen(building, iconUrl, changes = state.inventory to state.containers, placing = state.placing)
+                } else {
+                    crafting?.let { CraftScreen(it, iconUrl, changes = state.inventory to state.containers) }
+                }
             }
         }
     }
@@ -215,24 +254,48 @@ private fun InGame(
  * The app's main navigation. Material's tab row gives every tab the same width, which squeezed
  * "Inventory" onto two lines once the Map tab was added. Here the text tabs share the width and
  * Map is a narrow tab with the game's own sidebar map icon. Looks like Material's primary tabs.
+ * With more than one [craftModes], the Craft tab is named after the mode and has a ▾: tapping the
+ * arrow, or the tab while it's open, shows the modes.
  */
 @Composable
-private fun TabBar(tabs: List<Tab>, selected: Tab, iconUrl: (String) -> String, title: (Tab) -> String, onSelect: (Tab) -> Unit) {
+private fun TabBar(
+    tabs: List<Tab>,
+    selected: Tab,
+    iconUrl: (String) -> String,
+    title: (Tab) -> String,
+    onSelect: (Tab) -> Unit,
+    craftModes: List<CraftMode> = emptyList(),
+    craftMode: CraftMode = CraftMode.CRAFT,
+    onCraftMode: (CraftMode) -> Unit = {},
+) {
     val color = MaterialTheme.colorScheme.primary
     Column {
         Row(Modifier.fillMaxWidth().height(48.dp)) {
             tabs.forEach { tab ->
                 val isSelected = tab == selected
+                val withMenu = tab == Tab.CRAFT && craftModes.size > 1
+                var menuOpen by remember { mutableStateOf(false) }
                 var labelWidth by remember { mutableIntStateOf(0) }
                 val width = if (tab == Tab.MAP) Modifier.width(64.dp) else Modifier.weight(1f)
                 Box(
-                    width.fillMaxHeight().selectable(isSelected, role = Role.Tab, onClick = { onSelect(tab) }),
+                    width.fillMaxHeight().selectable(isSelected, role = Role.Tab, onClick = {
+                        if (withMenu && isSelected) menuOpen = true else onSelect(tab)
+                    }),
                     contentAlignment = Alignment.Center,
                 ) {
                     val measured = Modifier.onSizeChanged { labelWidth = it.width }
                     if (tab == Tab.MAP) {
                         val icon = if (isSelected) "Sidebar/128/Map_On_128" else "Sidebar/128/Map_Off_128"
                         AsyncImage(iconUrl(icon), tab.title, measured.size(30.dp))
+                    } else if (withMenu) {
+                        Row(measured.fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(title(tab), color = color, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                            // The arrow opens the menu from any tab.
+                            Box(
+                                Modifier.fillMaxHeight().width(22.dp).clickable { menuOpen = true },
+                                contentAlignment = Alignment.Center,
+                            ) { Chevron(color) }
+                        }
                     } else {
                         Text(title(tab), measured, color = color, style = MaterialTheme.typography.titleSmall, maxLines = 1)
                     }
@@ -242,10 +305,48 @@ private fun TabBar(tabs: List<Tab>, selected: Tab, iconUrl: (String) -> String, 
                                 .background(color, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)),
                         )
                     }
+                    if (withMenu) {
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            craftModes.forEach { mode ->
+                                DropdownMenuItem(
+                                    text = { Text(mode.title) },
+                                    leadingIcon = { AsyncImage(iconUrl(mode.icon), null, Modifier.size(32.dp, 24.dp)) },
+                                    trailingIcon = if (mode == craftMode) {
+                                        { Text("✓", color = color) }
+                                    } else null,
+                                    onClick = {
+                                        menuOpen = false
+                                        onCraftMode(mode)
+                                    },
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
         HorizontalDivider()
+    }
+}
+
+/** The game's sidebar icon for each mode: its crafting window's and its build window's. */
+private val CraftMode.icon: String
+    get() = when (this) {
+        CraftMode.CRAFT -> "Sidebar/64/Carpentry_On_64"
+        CraftMode.BUILD -> "Sidebar/64/Build_On_64"
+    }
+
+/** A small ▾. */
+@Composable
+private fun Chevron(color: Color) {
+    Canvas(Modifier.size(10.dp, 6.dp)) {
+        val stroke = 1.7.dp.toPx()
+        val path = Path().apply {
+            moveTo(stroke / 2, stroke / 2)
+            lineTo(size.width / 2, size.height - stroke / 2)
+            lineTo(size.width - stroke / 2, stroke / 2)
+        }
+        drawPath(path, color, style = Stroke(stroke, cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }
 

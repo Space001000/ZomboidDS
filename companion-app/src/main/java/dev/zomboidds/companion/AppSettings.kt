@@ -16,6 +16,9 @@ enum class ContainerLayout { SPLIT, SIDE_BY_SIDE, SINGLE }
 /** Where the map sits: beside the Here/Vehicle tab's content, or on a tab of its own. */
 enum class MapPlacement { LEFT_OF_HERE, RIGHT_OF_HERE, OWN_TAB }
 
+/** What the Craft tab shows: the game's crafting window or its build window (the tab's ▾ menu). */
+enum class CraftMode(val title: String) { CRAFT("Craft"), BUILD("Build") }
+
 /** The user's display choices, kept across app restarts. */
 class AppSettings(context: Context) {
 
@@ -49,6 +52,15 @@ class AppSettings(context: Context) {
     fun setMapPlacement(placement: MapPlacement) {
         prefs.edit().putString(KEY_MAP_PLACEMENT, placement.name).apply()
         _mapPlacement.value = placement
+    }
+
+    private val _craftMode = MutableStateFlow(
+        CraftMode.entries.firstOrNull { it.name == prefs.getString(KEY_CRAFT_MODE, null) } ?: CraftMode.CRAFT)
+    val craftMode: StateFlow<CraftMode> = _craftMode.asStateFlow()
+
+    fun setCraftMode(mode: CraftMode) {
+        prefs.edit().putString(KEY_CRAFT_MODE, mode.name).apply()
+        _craftMode.value = mode
     }
 
     private val _mapSymbols = MutableStateFlow(prefs.getBoolean(KEY_MAP_SYMBOLS, false))
@@ -92,5 +104,6 @@ class AppSettings(context: Context) {
         private const val KEY_MAP_PLACEMENT = "mapPlacement"
         private const val KEY_WHATS_NEW_SEEN = "whatsNewSeen"
         private const val KEY_MAP_SYMBOLS = "mapSymbols"
+        private const val KEY_CRAFT_MODE = "craftMode"
     }
 }
