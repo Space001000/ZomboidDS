@@ -98,7 +98,7 @@ android {
         minSdk = 30 // same as Zomdroid
         targetSdk = 36
         versionCode = 8
-        versionName = "1.3.2"
+        versionName = "1.4.0"
 
         buildConfigField("String", "BRIDGE_HOST", "\"$bridgeHost\"")
         buildConfigField("int", "BRIDGE_PORT", bridgePort)

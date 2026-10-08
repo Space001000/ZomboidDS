@@ -11,7 +11,7 @@ data class Release(val version: String, val title: String, val date: String?, va
  * releasing, give it its final version (same as versionName), date and title.
  */
 val RELEASES = listOf(
-    Release("1.3.2", "Fixes", null, listOf(
+    Release("1.4.0", "Build, Tailor and Here", "8 Oct 2026", listOf(
         "**Build:** tap **Craft ▾** and pick Build for the game's build menu. Wood Chair (Shoddy, Poor, Good) is one tile; pick the version in its panel. **Place** brings up the game's cursor on the top screen: d-pad moves, LB/RB turn, A builds, B stops.",
         "**Tailor:** **Craft ▾** → Tailor shows your clothes, worn and in your bags, with their holes and patches, and your needle, thread and fabric. Tap one to see each body part it covers, then tap a part to patch a hole, add padding or remove a patch, as in the game's Inspect window. **Inspect** in an item's panel opens it too.",
         "**Here** holds still: each object keeps its place as you move. What's in front of you goes on top once you've faced it for a second, and the one before stays right under it. **Disassemble** and loose actions sit in a row at the bottom, and lists open over the cards. While you touch the screen, nothing moves.",
