@@ -39,8 +39,6 @@ function isServer() return false end
 local trunk = container("TruckBed")
 local forced
 lootPage.setForceSelectedContainer = function(_, c) forced = c end
-local refreshed = 0
-lootPage.refreshBackpacks = function() refreshed = refreshed + 1 end
 local car = { getPartById = function(_, id) return id == "TruckBed" and
     { getItemContainer = function() return trunk end, getIndex = function() return 3 end } or nil end,
   canAccessContainer = function() return true end }
@@ -70,7 +68,7 @@ check(#opened == 0 and shown[2].container == ids["Inventory"], "Inventory shows 
 openDoor("TrunkDoor"):selectContainerInLootWindow()
 check(#opened == 0 and shown[3].container == require("ZomboidDS/Adapters/B42/Containers").idOf(trunk),
   "opening a trunk shows it in the app instead of the game's loot window, with the snapshot's id")
-check(forced == trunk and refreshed == 1, "and the hidden loot window selects it and refreshes its list right away")
+check(forced == trunk, "and the game's loot window still selects it")
 openDoor("DoorFrontLeft"):selectContainerInLootWindow()
 check(opened[1] == "trunk:DoorFrontLeft" and #shown == 3, "other doors keep the game's behaviour (a quiet pre-select)")
 table.remove(opened, 1)

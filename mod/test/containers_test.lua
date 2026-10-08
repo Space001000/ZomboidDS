@@ -173,4 +173,24 @@ check(B42.commands.select_container(player, { id = byName2["Shelves"].id }) == t
 check(B42.commands.select_container(player, { id = byName2["Inventory"].id }) == false and #selectedCalls == 1,
   "your own bags aren't loot: not selected there")
 check(B42.commands.select_container(player, { id = "c999" }) == false, "out of reach: refused")
+
+-- The game's windows refresh their container lists only when drawn; hidden, the snapshot does it.
+local refreshes = 0
+ISInventoryPage = { renderDirty = true, dirtyUI = function() refreshes = refreshes + 1 end }
+B42.snapshotContainers(player)
+check(refreshes == 1 and ISInventoryPage.renderDirty == false,
+  "a container changed (renderDirty) while the windows are hidden: the snapshot refreshes their lists first")
+B42.snapshotContainers(player)
+check(refreshes == 1, "nothing changed since: no refresh")
+local pageDirty = true
+player.isInvPageDirty = function() return pageDirty end
+player.setInvPageDirty = function(_, v) pageDirty = v end
+B42.snapshotContainers(player)
+check(refreshes == 2 and pageDirty == false, "the player's own inventory changed (invPageDirty): refreshed too")
+ISInventoryPage.renderDirty = true
+lootPage.getIsVisible = function() return true end
+B42.snapshotContainers(player)
+check(refreshes == 2, "a visible window refreshes itself when drawn: left to the game")
+lootPage.getIsVisible = nil
+ISInventoryPage = nil
 print("ALL LUA CHECKS PASSED")

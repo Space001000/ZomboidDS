@@ -48,11 +48,34 @@ local function describeContainer(player, button, kind)
 end
 
 --- The containers a player can use right now, as the game's inventory and loot windows list them.
+--- What the game's inventory windows do when they're drawn (ISInventoryPage, 42.20): when a container
+--- appeared, went or changed (OnContainerUpdate sets ISInventoryPage.renderDirty; the player's
+--- invPageDirty), refresh both windows' container lists. While the app is connected they stay
+--- hidden and aren't drawn, so their lists waited for the player to move or turn: an opened or
+--- closed trunk showed late. Visible windows do it themselves.
+local function refreshHiddenWindows(player, pages)
+    if ISInventoryPage == nil or ISInventoryPage.dirtyUI == nil then
+        return
+    end
+    for _, source in ipairs(pages) do
+        if try(source.page, "getIsVisible") == true then
+            return
+        end
+    end
+    if not ISInventoryPage.renderDirty and try(player, "isInvPageDirty") ~= true then
+        return
+    end
+    ISInventoryPage.renderDirty = false
+    try(player, "setInvPageDirty", false)
+    ISInventoryPage.dirtyUI()
+end
+
 function Containers.snapshot(player)
     local playerNum = player:getPlayerNum()
     local pages = {}
     if getPlayerInventory then pages[#pages + 1] = { page = getPlayerInventory(playerNum), onCharacter = true } end
     if getPlayerLoot then pages[#pages + 1] = { page = getPlayerLoot(playerNum), onCharacter = false } end
+    refreshHiddenWindows(player, pages)
 
     local list = {}
     local seen = {}
