@@ -15,6 +15,8 @@ val RELEASES = listOf(
         "**Build:** tap **Craft ▾** and pick Build for the game's build menu. Wood Chair (Shoddy, Poor, Good) is one tile; pick the version in its panel. **Place** brings up the game's cursor on the top screen: d-pad moves, LB/RB turn, A builds, B stops.",
         "**Fixed:** Android could say ZomboidDS isn't responding when you pressed controller buttons while the game wasn't running.",
         "**Fixed:** opening a car's trunk opened the game's loot window on the top screen. It opens on the bottom screen now, like Loot.",
+        "**Fixed:** a container that appeared or went away nearby (like an opened or closed trunk) showed up in the app only after you moved or turned.",
+        "**Fixed:** with the Thor's focus setting on Automatic, the layout menus (inventory layout, map position) took the controller away from the game.",
         "**Fixed:** food didn't age while you used the app instead of the game's inventory window. Frozen food never thawed, and playing without the mod made everything rot at once. Food ages, freezes and thaws as in the game again (and wet clothes in your bags dry).",
     )),
     Release("1.3.1", "Food, drinks and stacks", "3 Oct 2026", listOf(
