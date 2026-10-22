@@ -3,6 +3,7 @@
   <a href="https://github.com/Space001000/ZomboidDS/releases/latest"><img src="https://img.shields.io/github/v/release/Space001000/ZomboidDS?color=8b0000" alt="Latest release"></a>
   <a href="https://github.com/Space001000/ZomboidDS/releases"><img src="https://img.shields.io/github/downloads/Space001000/ZomboidDS/total" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/Project%20Zomboid-Build%2042-5a6b3c" alt="Project Zomboid Build 42">
+  <a href="https://discord.gg/NEJeAHgWss"><img src="https://img.shields.io/badge/Discord-join%20us-5865F2?logo=discord&logoColor=white" alt="Join the Discord"></a>
   <a href="https://ko-fi.com/space000"><img src="https://img.shields.io/badge/Ko--fi-support-ff5e5b?logo=ko-fi&logoColor=white" alt="Support on Ko-fi"></a>
 </p>
 
@@ -48,130 +49,29 @@ detail, launching both screens together with Cocoon, how to use each tab, and tr
 ZombieBuddy has an official fix, there's a workaround: see
 [Troubleshooting](docs/USER_GUIDE.md#troubleshooting) in the user guide. 42.20 works as before.
 
+## Community
+
+Questions, bug reports, screenshots of your runs, or ideas for the next tab: come say hi on the
+[ZomboidDS Discord](https://discord.gg/NEJeAHgWss). Bugs can also go in
+[GitHub issues](https://github.com/Space001000/ZomboidDS/issues).
+
 ## Support
 
 ZomboidDS is free and stays free: donations never unlock anything. If it makes your runs better and
 you'd like to say thanks: [ko-fi.com/space000](https://ko-fi.com/space000).
 
-## What it can access
+## Privacy
 
-- **The game, on the same device only.** The mod's bridge listens on `127.0.0.1` (loopback), so
-  nothing else on your network can reach it; the app connects to it there and nowhere else. Release
-  builds allow unencrypted traffic to `127.0.0.1` alone
-  ([network_security_config.xml](companion-app/src/main/res/xml/network_security_config.xml)).
-- **GitHub, for downloads.** The setup checklist asks this repository's releases whether there's a
-  newer version of the app (at most once a day, while the checklist is on screen) and downloads it
-  when you tap Download. It can also download ZombieBuddy from
-  [its own GitHub releases](https://github.com/zed-0xff/ZombieBuddy/releases) when you ask (a pinned
-  version, checked against SHA-256 hashes built into the app). Nothing else is downloaded or sent;
-  no analytics, no accounts.
-- **Permissions:** `INTERNET` (needed for all of the above, even the local connection); installing
-  apps (`REQUEST_INSTALL_PACKAGES`), only used to hand a downloaded update to Android's installer,
-  which asks you first and only accepts an update signed with the same key; and seeing whether
-  Zomdroid (`com.zomdroid`) is installed. No storage permission: the mod is installed through
-  Android's folder picker, into the folder you choose, and the ZombieBuddy download is saved to
-  Downloads.
+ZomboidDS talks to the game on your own device and nowhere else. The only time it goes online is to
+check GitHub for app updates and to download ZombieBuddy when you ask. No analytics, no accounts.
+The details, and every permission it asks for, are in
+[What the app can access](docs/DEVELOPMENT.md#what-the-app-can-access).
 
-## How it fits together
+## Under the hood
 
-The design, and how the game works as checked against its own files, are in
-[docs/DESIGN.md](docs/DESIGN.md).
-
-```
-Top screen: Zomdroid → Project Zomboid (B42)
-  ├─ ZombieBuddy (Java mod loader, installed by the user through Zomdroid)
-  └─ ZomboidDS mod
-       ├─ Java (bridge/): WebSocket + HTTP server on 127.0.0.1:7786
-       └─ Lua (mod/):     reads game state, runs commands on the game thread
-Bottom screen: ZomboidDS Companion (companion-app/), Kotlin + Compose
-```
-
-The two sides only share [the protocol](protocol/PROTOCOL.md). Everything game-version specific
-lives in adapters (`bridge/adapter-b42`, `mod/ZomboidDS/42/`), so another build (e.g. B41) is an
-added adapter, not a change to the core or the app.
-
-| Folder | What |
-|---|---|
-| `protocol/` | Protocol spec and example messages, used as test fixtures by both sides |
-| `bridge/core` | Version-neutral server: state hub, command queue, icon extraction from `.pack` files |
-| `bridge/adapter-b42` | B42 adapter + ZombieBuddy entry point; builds `ZomboidDS.jar` and the mod zip |
-| `bridge/mock-server` | The real bridge with a fake game, for app development and end-to-end tests |
-| `mod/ZomboidDS` | The mod: Lua core in `common/`, B42 adapter and `mod.info` in `42/` |
-| `mod/test` | Lua tests against a fake game |
-| `companion-app` | The Android app, including the setup wizard that installs the mod |
-| `tools` | Dev scripts |
-
-## Building
-
-Requirements:
-
-- Android Studio (or the Android SDK) and a JDK 21+ to run Gradle.
-- A **JDK 25** for the bridge: 42.20's class files need it. Gradle finds one installed by
-  IntelliJ/Android Studio (`~/.jdks`), or downloads it.
-- **Project Zomboid (B42)** on the build machine; the bridge compiles against its
-  `projectzomboid.jar`. Put the folder that contains it in `local.properties` (not committed):
-
-  ```properties
-  pz.gameDir=C\:/Steam/steamapps/common/ProjectZomboid
-  ```
-
-Then:
-
-```bash
-./gradlew :companion-app:assembleDebug
-```
-
-This also builds the mod zip (`bridge/adapter-b42/build/distributions/ZomboidDS.zip`) and bundles
-it into the APK. ZombieBuddy isn't bundled: the app downloads the version pinned in
-`gradle.properties` from ZombieBuddy's GitHub when the user asks, and checks its hashes.
-
-Release builds (`./gradlew :companion-app:assembleRelease`) are shrunk with R8 and signed with the
-key described by a `keystore.properties` in the project root (`storeFile`, `storePassword`,
-`keyAlias`, `keyPassword`; never committed). Without it they build unsigned. Updates only install
-over an app signed with the same key, so releases must always use the same one.
-
-**Test kits** (development only): the debug build and a `dev` build (`assembleDev`: the release
-build signed with the same key, version `-dev`) add test kits, one tap on the Deck that gives a
-feature's test setup (the Tailor kit: needle, thread, fabric, clothes with holes). They live in
-`mod/dev` and `companion-app/src/devtools`, which the release build never includes; the release
-build fails if its mod zip has any. `python tools/check-release-apk.py <apk>` checks an APK.
-
-## Tests
-
-```bash
-./gradlew :bridge:core:test :bridge:adapter-b42:test :companion-app:testDebugUnitTest
-pip install lupa && python tools/test-lua.py
-```
-
-- `bridge/*`: server, state hub, protocol codec, `.pack` reader, Kahlua conversion (against the
-  game's real Kahlua classes).
-- `companion-app`: protocol mapping, inventory stacking, mod list editing, ZombieBuddy packaging,
-  and end-to-end tests of the app's gateway against the real bridge with the mock game.
-- `mod/test`: the Lua core and B42 adapter against a fake of the game's API.
-
-## Developing on a device
-
-- **App against a fake game:** `./gradlew :bridge:mock-server:run` on the PC, then
-  `adb reverse tcp:7786 tcp:7786` so the app on the device reaches it on `127.0.0.1`. The console
-  lets you change the fake game (enter/leave a vehicle, take damage, add items). Add
-  `-Pmock.args="inventory=full,gameDir=<PZ folder>"` for a 64-item inventory with the game's real
-  icons. The emulator works too: set it to the Thor's bottom screen (landscape) with
-  `adb shell wm size 1240x1080` and `adb shell wm density 369`. When a Thor is also connected, run
-  the mock on another port (`-Pmock.args=port=7787,...`) and `adb -s emulator-5554 reverse tcp:7786
-  tcp:7787`, so the Thor's `adb forward` on 7786 keeps working. Stopping the Gradle task can leave the
-  mock's `java.exe` running and holding the port: end it before starting a new one.
-- **Icons look stale or missing in the app:** icons are cached on disk (Coil). A debug build logs
-  every failed icon (logcat tag `RealImageLoader`); `adb shell run-as dev.zomboidds.companion rm -rf
-  cache/icons` clears the cache.
-- **Talk to the game without the app:** `adb forward tcp:7786 tcp:7786`, then
-  `python tools/bridge-client.py` lists the containers around the player and moves items
-  (`take`, `put`, `takeall`).
-- **Mod changes on the device:** `tools/deploy-mod.sh` builds the mod and installs it into Zomdroid
-  through the companion app (which holds the folder permission; grant it once in the app).
-  Restart the game afterwards. The mod's log goes to logcat under the tag `zomdroid-main`
-  (look for `[ZomboidDS]`).
-- On the AYN Thor the bottom screen is display 4:
-  `adb shell am start --display 4 -n dev.zomboidds.companion/.MainActivity`.
+ZomboidDS is a Lua + Java mod inside the game and a Kotlin + Compose app on the second screen,
+talking over a local WebSocket. How it fits together, building it, tests and device tips are in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md); the design is in [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Credits
 
