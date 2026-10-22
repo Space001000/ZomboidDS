@@ -1,13 +1,11 @@
 package dev.zomboidds.companion.ui
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,23 +19,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import dev.zomboidds.companion.AppSettings
 import dev.zomboidds.companion.domain.DeckCommand
-import kotlin.math.roundToInt
 
 private val EditorRowHeight = 52.dp
 private val EditorRowGap = 6.dp
@@ -66,49 +54,17 @@ fun DeckEditor(
             Button(onClick = onDone, modifier = Modifier.padding(start = 8.dp)) { Text("Done") }
         }
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(EditorRowGap)) {
-            ReorderableRows(onDeck, iconUrl, onMove = { from, to ->
+            // The Deck's own commands, draggable by the handle.
+            DragRows(onDeck, key = { it.id }, rowHeight = EditorRowHeight, gap = EditorRowGap, onMove = { from, to ->
                 val ids = onDeck.map { it.id }.toMutableList()
                 ids.add(to, ids.removeAt(from))
                 onChange(ids + unknown)
-            }, onSwitch = { command -> onChange(chosen - command.id) })
+            }) { command, handle, lifted ->
+                CommandRow(command, iconUrl, on = true, onSwitch = { onChange(chosen - command.id) }, handle = handle, lifted = lifted)
+            }
             rest.forEach { command ->
                 CommandRow(command, iconUrl, on = false, onSwitch = { onChange(chosen + command.id) }, handle = Modifier)
             }
-        }
-    }
-}
-
-/** The Deck's own commands, draggable by the handle (long press, then move up or down). */
-@Composable
-private fun ReorderableRows(
-    rows: List<DeckCommand>,
-    iconUrl: (String) -> String,
-    onMove: (from: Int, to: Int) -> Unit,
-    onSwitch: (DeckCommand) -> Unit,
-) {
-    val step = with(LocalDensity.current) { (EditorRowHeight + EditorRowGap).toPx() }
-    var dragging by remember { mutableStateOf<String?>(null) }
-    var offset by remember { mutableFloatStateOf(0f) }
-    rows.forEachIndexed { index, command ->
-        val isDragged = dragging == command.id
-        val handle = Modifier.pointerInput(command.id, rows.size) {
-            detectDragGesturesAfterLongPress(
-                onDragStart = { dragging = command.id; offset = 0f },
-                onDragEnd = {
-                    val target = (index + (offset / step).roundToInt()).coerceIn(0, rows.lastIndex)
-                    if (target != index) onMove(index, target)
-                    dragging = null; offset = 0f
-                },
-                onDragCancel = { dragging = null; offset = 0f },
-                onDrag = { change, amount -> change.consume(); offset += amount.y },
-            )
-        }
-        Box(
-            Modifier
-                .zIndex(if (isDragged) 1f else 0f)
-                .offset { IntOffset(0, if (isDragged) offset.roundToInt() else 0) },
-        ) {
-            CommandRow(command, iconUrl, on = true, onSwitch = { onSwitch(command) }, handle = handle, lifted = isDragged)
         }
     }
 }

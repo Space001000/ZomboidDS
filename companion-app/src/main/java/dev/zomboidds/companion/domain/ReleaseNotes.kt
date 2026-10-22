@@ -11,6 +11,10 @@ data class Release(val version: String, val title: String, val date: String?, va
  * releasing, give it its final version (same as versionName), date and title.
  */
 val RELEASES = listOf(
+    Release("1.5.0", "Your tab order", null, listOf(
+        "**Your tab order:** hold any tab to arrange the tabs. Drag a tab by its ⋮⋮ handle, like the Deck's commands. **Reset** goes back to the default order.",
+        "The app opens on the tab you used last.",
+    )),
     Release("1.4.0", "Build, Tailor and Here", "8 Oct 2026", listOf(
         "**Build:** tap **Craft ▾** and pick Build for the game's build menu. Wood Chair (Shoddy, Poor, Good) is one tile; pick the version in its panel. **Place** brings up the game's cursor on the top screen: d-pad moves, LB/RB turn, A builds, B stops.",
         "**Tailor:** **Craft ▾** → Tailor shows your clothes, worn and in your bags, with their holes and patches, and your needle, thread and fabric. Tap one to see each body part it covers, then tap a part to patch a hole, add padding or remove a patch, as in the game's Inspect window. **Inspect** in an item's panel opens it too.",

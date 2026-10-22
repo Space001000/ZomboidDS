@@ -3,6 +3,7 @@ package dev.zomboidds.companion.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -49,6 +49,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -74,6 +76,8 @@ import dev.zomboidds.companion.domain.PlayerStatus
 import dev.zomboidds.companion.domain.SessionInfo
 import dev.zomboidds.companion.domain.Tailoring
 import dev.zomboidds.companion.domain.Vehicle
+import dev.zomboidds.companion.domain.orderTabs
+import dev.zomboidds.companion.domain.reorderShown
 import dev.zomboidds.companion.setup.AppUpdateState
 import dev.zomboidds.companion.setup.SetupReport
 import kotlinx.coroutines.flow.Flow
@@ -106,6 +110,7 @@ fun CompanionScreen(
     deckCommands: List<String> = emptyList(),
     onDeckCommandsChange: (List<String>) -> Unit = {},
     map: MapDisplay? = null,
+    tabSettings: TabSettings = TabSettings(),
     /** "What's new" opens by itself (a new install or an update); [onWhatsNewSeen] when it's closed. */
     whatsNewDue: Boolean = false,
     onWhatsNewSeen: () -> Unit = {},
@@ -118,7 +123,7 @@ fun CompanionScreen(
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
                     InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting,
-                        building, tailoring, devTools, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange, map)
+                        building, tailoring, devTools, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange, map, tabSettings)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     var licences by remember { mutableStateOf(false) }
@@ -144,9 +149,21 @@ fun CompanionScreen(
 }
 
 /**
+ * The player's tab order (tab ids, empty for the default), the tab that was open last (where the
+ * app opens), and how to change them.
+ */
+class TabSettings(
+    val order: List<String> = emptyList(),
+    val onOrderChange: (List<String>) -> Unit = {},
+    val lastTab: String? = null,
+    val onTabChosen: (String) -> Unit = {},
+)
+
+/**
  * At most five, so each stays big enough to hit (the bottom screen is small); Map is a sixth only
  * when the player moves the map onto its own tab. While driving, Here is titled Vehicle: the
- * dashboard, with Here's actions (the car's among them) below it.
+ * dashboard, with Here's actions (the car's among them) below it. This is the default order;
+ * holding a tab opens the card to change it.
  */
 private enum class Tab(val title: String) { INVENTORY("Inventory"), HERE("Here"), DECK("Deck"), STATUS("Status"), CRAFT("Craft"), MAP("Map") }
 
@@ -168,6 +185,7 @@ private fun InGame(
     deckCommands: List<String>,
     onDeckCommandsChange: (List<String>) -> Unit,
     loadedMap: MapDisplay?,
+    tabSettings: TabSettings,
 ) {
     // The map only where the save allows it (or the player asked for it in the game's mod options).
     val map = loadedMap?.takeIf { state.mapPosition?.shown == true }
@@ -186,12 +204,19 @@ private fun InGame(
     }
     val mode = craftMode.takeIf { it in craftModes } ?: CraftMode.CRAFT
     val mapTab = map?.placement == MapPlacement.OWN_TAB
-    val tabs = Tab.entries.filter { (it != Tab.CRAFT || canCraft) && (it != Tab.MAP || mapTab) }
-    var tab by rememberSaveable { mutableStateOf(Tab.INVENTORY) }
+    val order = orderTabs(Tab.entries, tabSettings.order) { it.name }
+    val tabs = order.filter { (it != Tab.CRAFT || canCraft) && (it != Tab.MAP || mapTab) }
+    // Opens on the tab the player last chose (not one the game switched to, like Inventory for Y).
+    var tab by rememberSaveable { mutableStateOf(Tab.entries.firstOrNull { it.name == tabSettings.lastTab } ?: Tab.INVENTORY) }
+    val choose: (Tab) -> Unit = {
+        tab = it
+        tabSettings.onTabChosen(it.name)
+    }
+    var arranging by rememberSaveable { mutableStateOf(false) }
     // Moving the map takes you along: to its tab, or back to Here where it now sits.
     val onPlacementChange: (MapPlacement) -> Unit = { placement ->
         map?.onPlacementChange(placement)
-        if (placement == MapPlacement.OWN_TAB) tab = Tab.MAP else if (tab == Tab.MAP) tab = Tab.HERE
+        if (placement == MapPlacement.OWN_TAB) choose(Tab.MAP) else if (tab == Tab.MAP) choose(Tab.HERE)
     }
     var tabBeforeVehicle by rememberSaveable { mutableStateOf(Tab.INVENTORY) }
 
@@ -225,57 +250,79 @@ private fun InGame(
         }
     }
 
-    Column(Modifier.fillMaxSize()) {
-        TabBar(
-            tabs, shown, iconUrl,
-            title = {
-                when {
-                    it == Tab.HERE && driving != null -> "Vehicle"
-                    it == Tab.CRAFT -> mode.title
-                    else -> it.title
-                }
-            },
-            onSelect = { tab = it },
-            craftModes = craftModes, craftMode = mode,
-            onCraftMode = {
-                onCraftModeChange(it)
-                tab = Tab.CRAFT
-            },
-        )
-        Box(Modifier.fillMaxSize().padding(10.dp)) {
-            when (shown) {
-                Tab.HERE -> WithMap(map, state, onPlacementChange, iconUrl) {
-                    if (driving != null) {
-                        VehicleTab(driving, state.here, controls, actions, iconUrl)
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            TabBar(
+                tabs, shown, iconUrl,
+                title = {
+                    when {
+                        it == Tab.HERE && driving != null -> "Vehicle"
+                        it == Tab.CRAFT -> mode.title
+                        else -> it.title
+                    }
+                },
+                onSelect = choose,
+                onArrange = { arranging = true },
+                craftModes = craftModes, craftMode = mode,
+                onCraftMode = {
+                    onCraftModeChange(it)
+                    choose(Tab.CRAFT)
+                },
+            )
+            Box(Modifier.fillMaxSize().padding(10.dp)) {
+                when (shown) {
+                    Tab.HERE -> WithMap(map, state, onPlacementChange, iconUrl) {
+                        if (driving != null) {
+                            VehicleTab(driving, state.here, controls, actions, iconUrl)
+                        } else {
+                            HereScreen(state.here, controls, actions, iconUrl)
+                        }
+                    }
+                    Tab.MAP -> map?.let { PlayerMiniMap(it, state, onPlacementChange, iconUrl, Modifier.fillMaxSize()) }
+                    Tab.INVENTORY -> InventoryScreen(state.inventory, state.containers, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange,
+                        show = showRequest, onShowHandled = { showRequest = null })
+                    Tab.DECK -> if (editingDeck && state.deck != null) {
+                        DeckEditor(state.deck.commands, deckCommands, iconUrl, onChange = onDeckCommandsChange,
+                            onDone = { editingDeck = false })
                     } else {
-                        HereScreen(state.here, controls, actions, iconUrl)
+                        CommandDeckScreen(state.time, state.deck, deckCommands, controls, iconUrl, onEdit = { editingDeck = true },
+                            extra = { devTools?.DeckSection(capabilities) })
+                    }
+                    Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
+                    Tab.CRAFT -> when {
+                        mode == CraftMode.BUILD && building != null ->
+                            BuildScreen(building, iconUrl, changes = state.inventory to state.containers, placing = state.placing)
+                        mode == CraftMode.TAILOR && tailoring != null ->
+                            TailorScreen(tailoring, actions, iconUrl, changes = state.inventory to state.containers,
+                                time = state.time, onUnpause = unpause)
+                        else -> crafting?.let { CraftScreen(it, iconUrl, changes = state.inventory to state.containers) }
                     }
                 }
-                Tab.MAP -> map?.let { PlayerMiniMap(it, state, onPlacementChange, iconUrl, Modifier.fillMaxSize()) }
-                Tab.INVENTORY -> InventoryScreen(state.inventory, state.containers, iconUrl, actions, inventoryDisplay, onInventoryDisplayChange,
-                    show = showRequest, onShowHandled = { showRequest = null })
-                Tab.DECK -> if (editingDeck && state.deck != null) {
-                    DeckEditor(state.deck.commands, deckCommands, iconUrl, onChange = onDeckCommandsChange,
-                        onDone = { editingDeck = false })
-                } else {
-                    CommandDeckScreen(state.time, state.deck, deckCommands, controls, iconUrl, onEdit = { editingDeck = true },
-                        extra = { devTools?.DeckSection(capabilities) })
-                }
-                Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
-                Tab.CRAFT -> when {
-                    mode == CraftMode.BUILD && building != null ->
-                        BuildScreen(building, iconUrl, changes = state.inventory to state.containers, placing = state.placing)
-                    mode == CraftMode.TAILOR && tailoring != null ->
-                        TailorScreen(tailoring, actions, iconUrl, changes = state.inventory to state.containers,
-                            time = state.time, onUnpause = unpause)
-                    else -> crafting?.let { CraftScreen(it, iconUrl, changes = state.inventory to state.containers) }
+                val shownGarment = garmentShown
+                if (shownGarment != null && tailoring != null) {
+                    GarmentPanel(tailoring, actions, shownGarment, iconUrl, changes = state.inventory to state.containers,
+                        time = state.time, onUnpause = unpause, onClose = { garmentShown = null })
                 }
             }
-            val shownGarment = garmentShown
-            if (shownGarment != null && tailoring != null) {
-                GarmentPanel(tailoring, actions, shownGarment, iconUrl, changes = state.inventory to state.containers,
-                    time = state.time, onUnpause = unpause, onClose = { garmentShown = null })
-            }
+        }
+        if (arranging) {
+            TabOrderCard(
+                tabs.map {
+                    when (it) {
+                        Tab.HERE -> TabChoice(it.name, it.title, hint = "Vehicle while driving")
+                        Tab.CRAFT -> TabChoice(it.name, it.title, hint = craftModes.takeIf { m -> m.size > 1 }?.joinToString(" · ") { m -> m.title })
+                        Tab.MAP -> TabChoice(it.name, it.title, icon = "Sidebar/128/Map_Off_128")
+                        else -> TabChoice(it.name, it.title)
+                    }
+                },
+                iconUrl,
+                onMove = { from, to ->
+                    val moved = tabs.toMutableList().apply { add(to, removeAt(from)) }
+                    tabSettings.onOrderChange(reorderShown(order, moved).map { it.name })
+                },
+                onReset = { tabSettings.onOrderChange(emptyList()) },
+                onClose = { arranging = false },
+            )
         }
     }
 }
@@ -285,7 +332,7 @@ private fun InGame(
  * "Inventory" onto two lines once the Map tab was added. Here the text tabs share the width and
  * Map is a narrow tab with the game's own sidebar map icon. Looks like Material's primary tabs.
  * With more than one [craftModes], the Craft tab is named after the mode and has a ▾: tapping the
- * arrow, or the tab while it's open, shows the modes.
+ * arrow, or the tab while it's open, shows the modes. Holding any tab opens the tab order ([onArrange]).
  */
 @Composable
 private fun TabBar(
@@ -294,6 +341,7 @@ private fun TabBar(
     iconUrl: (String) -> String,
     title: (Tab) -> String,
     onSelect: (Tab) -> Unit,
+    onArrange: () -> Unit = {},
     craftModes: List<CraftMode> = emptyList(),
     craftMode: CraftMode = CraftMode.CRAFT,
     onCraftMode: (CraftMode) -> Unit = {},
@@ -308,9 +356,11 @@ private fun TabBar(
                 var labelWidth by remember { mutableIntStateOf(0) }
                 val width = if (tab == Tab.MAP) Modifier.width(64.dp) else Modifier.weight(1f)
                 Box(
-                    width.fillMaxHeight().selectable(isSelected, role = Role.Tab, onClick = {
-                        if (withMenu && isSelected) menuOpen = true else onSelect(tab)
-                    }),
+                    width.fillMaxHeight()
+                        .semantics { this.selected = isSelected }
+                        .combinedClickable(role = Role.Tab, onLongClick = onArrange, onClick = {
+                            if (withMenu && isSelected) menuOpen = true else onSelect(tab)
+                        }),
                     contentAlignment = Alignment.Center,
                 ) {
                     val measured = Modifier.onSizeChanged { labelWidth = it.width }

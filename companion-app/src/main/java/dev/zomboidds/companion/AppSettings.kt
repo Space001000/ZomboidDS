@@ -94,6 +94,24 @@ class AppSettings(context: Context) {
         _deckCommands.value = ids
     }
 
+    private val _tabOrder = MutableStateFlow(
+        prefs.getString(KEY_TAB_ORDER, null)?.split(',')?.filter { it.isNotBlank() } ?: emptyList())
+
+    /** The tabs in the player's order (tab ids); empty for the default order. */
+    val tabOrder: StateFlow<List<String>> = _tabOrder.asStateFlow()
+
+    fun setTabOrder(ids: List<String>) {
+        prefs.edit().putString(KEY_TAB_ORDER, ids.joinToString(",")).apply()
+        _tabOrder.value = ids
+    }
+
+    /** The tab the player last had open, where the app opens next time; null on a new install. */
+    val lastTab: String? get() = prefs.getString(KEY_LAST_TAB, null)
+
+    fun setLastTab(id: String) {
+        prefs.edit().putString(KEY_LAST_TAB, id).apply()
+    }
+
     companion object {
         /** A new install's Deck (the user's pick, 2026-09-26; Weapons added first). */
         val DEFAULT_DECK_COMMANDS = listOf("weapons", "zoom_in", "zoom_out", "search_mode", "flashlight")
@@ -105,5 +123,7 @@ class AppSettings(context: Context) {
         private const val KEY_WHATS_NEW_SEEN = "whatsNewSeen"
         private const val KEY_MAP_SYMBOLS = "mapSymbols"
         private const val KEY_CRAFT_MODE = "craftMode"
+        private const val KEY_TAB_ORDER = "tabOrder"
+        private const val KEY_LAST_TAB = "lastTab"
     }
 }

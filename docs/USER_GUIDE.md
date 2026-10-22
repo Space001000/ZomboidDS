@@ -133,6 +133,9 @@ your character:
   for the game's choices there (Patch Hole or Add Padding with a fabric, Remove Patch); your character
   sews it, and the part shows the progress. **Inspect** in a garment's item panel opens the same view.
 
+**Your own tab order:** hold any tab to arrange the tabs. Drag a tab by its ⋮⋮ handle; the tab bar
+follows along. **Reset** goes back to the default order. The app opens on the tab you used last.
+
 The **Loot / Inventory button (Y)** opens the container on the bottom screen instead of the game's
 windows on the top screen, and so does opening a car's trunk (without the app, both work as usual). The gamepad keeps controlling the game
 while you use the bottom screen.

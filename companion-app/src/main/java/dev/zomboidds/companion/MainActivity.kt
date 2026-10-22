@@ -26,6 +26,7 @@ import dev.zomboidds.companion.ui.CompanionScreen
 import dev.zomboidds.companion.ui.InventoryDisplay
 import dev.zomboidds.companion.ui.MapDisplay
 import dev.zomboidds.companion.ui.SetupActions
+import dev.zomboidds.companion.ui.TabSettings
 import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -81,6 +82,8 @@ class MainActivity : ComponentActivity() {
             val whatsNewSeen by container.settings.whatsNewSeen.collectAsStateWithLifecycle()
             val mapSymbols by container.settings.mapSymbols.collectAsStateWithLifecycle()
             val craftMode by container.settings.craftMode.collectAsStateWithLifecycle()
+            val tabOrder by container.settings.tabOrder.collectAsStateWithLifecycle()
+            val lastTab = remember { container.settings.lastTab }
             // The map files are read once, the first time a game shows the map.
             val mapShown = state.mapPosition?.shown == true
             LaunchedEffect(mapShown) { if (mapShown) container.worldMap.load() }
@@ -109,6 +112,7 @@ class MainActivity : ComponentActivity() {
                 map = (worldMap as? WorldMapState.Loaded)?.let {
                     MapDisplay(it.map, mapPlacement, container.settings::setMapPlacement, mapSymbols, container.settings::setMapSymbols)
                 },
+                tabSettings = TabSettings(tabOrder, container.settings::setTabOrder, lastTab, container.settings::setLastTab),
             )
         }
     }
