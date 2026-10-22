@@ -37,7 +37,7 @@ added adapter, not a change to the core or the app.
 Requirements:
 
 - Android Studio (or the Android SDK) and a JDK 21+ to run Gradle.
-- A **JDK 25** for the bridge: 42.20's class files need it. Gradle finds one installed by
+- A **JDK 25** for the bridge: Build 42's class files need it. Gradle finds one installed by
   IntelliJ/Android Studio (`~/.jdks`), or downloads it.
 - **Project Zomboid (B42)** on the build machine; the bridge compiles against its
   `projectzomboid.jar`. Put the folder that contains it in `local.properties` (not committed):

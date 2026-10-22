@@ -159,9 +159,10 @@ the game runs. The **Mr. Purple Turnip** driver, version **T30**, fixes that on 
   the ZombieBuddy step in the checklist, and that ZombieBuddy is switched on in Zomdroid's
   Optimization settings.
 - **On Build 42.21 that message shows even though everything is green.** The 42.21 update broke
-  ZombieBuddy for every Java mod, not just ZomboidDS (ZombieBuddy
-  [issue #53](https://github.com/zed-0xff/ZombieBuddy/issues/53)), and there's no official fix yet.
-  The Zomdroid developer posted a workaround with a community fix from the Workshop:
+  ZombieBuddy 2.3.3 for every Java mod, not just ZomboidDS (ZombieBuddy
+  [issue #53](https://github.com/zed-0xff/ZombieBuddy/issues/53)). ZombieBuddy 2.3.4 fixes it, and
+  the next ZomboidDS update will download that version. Until then, the Zomdroid developer posted a
+  workaround with a community fix from the Workshop:
   [ZombieBuddy mods on Build 42.21](https://www.reddit.com/r/zomdroid/comments/1wu7a1l/zombiebuddy_mods_on_build_4221_theres_a_fix_and/).
   On 42.20 ZombieBuddy works as before.
 - **"The game is paused"** when tapping an item or Here: unpause first (Treat has its own
