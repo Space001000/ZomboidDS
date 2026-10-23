@@ -12,11 +12,10 @@ data class Release(val version: String, val title: String, val date: String?, va
  */
 val RELEASES = listOf(
     Release("1.5.0", "Your tab order", null, listOf(
-        "**Your tab order:** hold any tab to arrange the tabs, then drag them into place. **Reset** goes back to the default order.",
-        "The app opens on the tab you used last.",
-        "The setup checklist tells you when your **ZombieBuddy** is older than the one this app downloads, with an **Update** button.",
-        "Moving commands under **Add or edit** on the Deck: the others make room as you drag.",
-        "**Fixed:** while waiting for the game, the setup screen jumped every few seconds.",
+        "Tabs can now be reordered: hold any tab.",
+        "The app opens on the tab you were on last.",
+        "The setup list now tells you when ZombieBuddy needs an update.",
+        "**Fixed:** the setup screen flickered every few seconds.",
     )),
     Release("1.4.0", "Build, Tailor and Here", "8 Oct 2026", listOf(
         "**Build:** tap **Craft ▾** and pick Build for the game's build menu. Wood Chair (Shoddy, Poor, Good) is one tile; pick the version in its panel. **Place** brings up the game's cursor on the top screen: d-pad moves, LB/RB turn, A builds, B stops.",
