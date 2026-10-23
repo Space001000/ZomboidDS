@@ -83,7 +83,9 @@ class WebSocketGameGateway(
     private suspend fun connectLoop() {
         var failures = 0
         while (coroutineContext.isActive) {
-            _connection.value = ConnectionStatus.Connecting
+            // A retry while waiting stays Waiting: flipping to Connecting for a moment every few
+            // seconds made the setup screen's header change and everything below it jump.
+            if (_connection.value !is ConnectionStatus.Waiting) _connection.value = ConnectionStatus.Connecting
             val closed = CompletableDeferred<String>()
             val socket = client.newWebSocket(Request.Builder().url(url).build(), Listener(closed, onOpen = { failures = 0 }))
             val reason = try {
