@@ -29,10 +29,11 @@ import dev.zomboidds.companion.setup.AppUpdater
 
 private const val SOURCE_URL = "https://github.com/${AppUpdater.REPOSITORY}"
 private const val KO_FI_URL = "https://ko-fi.com/space000"
+private const val DISCORD_URL = "https://discord.gg/NEJeAHgWss"
 
 /**
  * Who made this and under which terms: version, licence, source, the open-source licences of what
- * it includes, and a Ko-fi link. Donating never unlocks anything (The Indie Stone's modding policy).
+ * it includes, the Discord, and a Ko-fi link. Donating never unlocks anything (The Indie Stone's modding policy).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -47,6 +48,7 @@ fun AboutCard(openUrl: (String) -> Unit, onLicences: () -> Unit, onWhatsNew: () 
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onWhatsNew) { Text("What's new") }
+                OutlinedButton(onClick = { openUrl(DISCORD_URL) }) { Text("Join the Discord") }
                 OutlinedButton(onClick = { openUrl(SOURCE_URL) }) { Text("Source on GitHub") }
                 OutlinedButton(onClick = onLicences) { Text("Open-source licences") }
                 OutlinedButton(onClick = { openUrl(KO_FI_URL) }) { Text("Support on Ko-fi") }

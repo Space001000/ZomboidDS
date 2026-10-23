@@ -16,6 +16,7 @@ val RELEASES = listOf(
         "**Tabs can now be reordered:** hold any tab, then drag them into the order you like. **Reset** puts them back.",
         "The app opens on the tab you were on last.",
         "The setup list now tells you when ZombieBuddy needs an update, and gets it for you.",
+        "There's a ZomboidDS Discord now: **Join the Discord** in the About card.",
         "**Fixed:** the setup screen flickered every few seconds.",
     )),
     Release("1.4.0", "Build, Tailor and Here", "8 Oct 2026", listOf(
