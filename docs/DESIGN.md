@@ -70,9 +70,10 @@ the bridge and drained in the game's tick (`OnTickEvenPaused`, so the app can un
 Network I/O happens only on bridge threads. State messages are full snapshots, sent only when they
 change, and replayed to a client that (re)connects.
 
-## How each feature talks to the game (42.20)
+## How each feature talks to the game (Build 42)
 
-Everything below was checked against the game's Lua sources and `projectzomboid.jar`.
+Everything below was checked against the game's Lua sources and `projectzomboid.jar` (42.20; the
+mod's calls were checked again against 42.21).
 
 | Feature | The game's own code it uses |
 |---|---|
@@ -92,6 +93,7 @@ Everything below was checked against the game's Lua sources and `projectzomboid.
 | Crafting | Java `HandcraftLogic` with the crafting window's default query (`InHandCraft;AnySurfaceCraft`), its containers and manual input selection; crafting runs the window's own `startHandcraft` with a stand-in for its craft control (fetch ingredients, walk to a surface, queue the actions, put items back). |
 | Building | Java `BuildLogic` (the build window's, same base as `HandcraftLogic`) with `getAllBuildableRecipes`. Versions of one thing (Shoddy, Poor, Good) are entities named `<thing>_Lvl<n>` and share a tile. Place does what the window's Build button does (`ISBuildPanel:createBuildIsoEntity`): it turns on the game's placement cursor, which the player moves, turns and places with the controller; after each placement the logic re-checks what's in reach and the cursor comes back. |
 | Tailoring | The Inspect window (`ISGarmentUI`): a garment's covered parts (`Clothing:getCoveredParts`) with `getDefForPart`, holes, blood and patches; its per-part menu from `ISGarmentUI:doContextMenu` on a window that's built but never shown, so patching runs the game's own `repairClothing` / `removePatch` (which also move the garment and kit into the main inventory). Inspect in the item menu opens the app's panel instead of the window while the app is connected (`onInspectClothingUI`). |
+| Devices | The Device Options window (`ISRadioWindow`), one window for every TV, radio, walkie-talkie, CD player and car radio, built from parts (power or mains, volume and headphones, microphone, CD/VHS slot, presets or TV channels) that the app shows the same way. Every way the game opens it goes through `ISRadioWindow.activate` (Here, an item's menu, the car, the controller prompt, clicking the device), so with the app connected it opens the app's panel instead. Controls queue the game's own actions (`ISRadioAction`, `ISDeviceBatteryAction`, `ISDeviceMediaAction`) after walking to the device as the window does, or from a distance with a TV remote. A tape or CD from a nearby container is fetched first (`transferIfNeeded`), like the window's media slot. While a tape plays the device picks up no broadcast, so picking a channel stops it. |
 | Map | The app reads the game's own map files from the player's copy (`worldmap.xml.bin` and the forest file, the format of `WorldMapBinary`) and draws them in the minimap's style (`MapUtils.initDefaultStyleV1`: colours, and detail fading out by zoom). Shown only where `ISMiniMap.IsAllowed` (or with the mod option "Map on every save", never without the world map). Explored areas are the game's `WorldMapVisited` bits; symbols are the player's own from `MapItem`'s symbol list plus the game's labels from each map's `worldmap-annotations.lua`, shown like the minimap's Symbols option (off by default, handwriting, each label's zoom range, with zoom converted by `MapProjection`). Zoom stops between the game's zoom levels 15.5 and 20. |
 | Icons | The bridge serves loose textures (`media/textures`, `media/ui`), item and UI packs, and world-object sprites from `Tiles1x.pack`, cropped to their visible pixels; a missing icon is never cached. |
 
