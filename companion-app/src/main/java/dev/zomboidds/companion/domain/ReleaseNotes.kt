@@ -12,9 +12,9 @@ data class Release(val version: String, val title: String, val date: String?, va
  */
 val RELEASES = listOf(
     Release("1.5.0", "Your tab order", null, listOf(
-        "Tabs can now be reordered: hold any tab.",
+        "**Tabs can now be reordered:** hold any tab, then drag them into the order you like. **Reset** puts them back.",
         "The app opens on the tab you were on last.",
-        "The setup list now tells you when ZombieBuddy needs an update.",
+        "The setup list now tells you when ZombieBuddy needs an update, and gets it for you.",
         "**Fixed:** the setup screen flickered every few seconds.",
     )),
     Release("1.4.0", "Build, Tailor and Here", "8 Oct 2026", listOf(
