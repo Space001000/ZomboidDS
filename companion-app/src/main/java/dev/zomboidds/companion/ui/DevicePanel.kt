@@ -1,6 +1,10 @@
 package dev.zomboidds.companion.ui
 
 import android.os.SystemClock
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -92,6 +96,9 @@ private val LcdText = Color(0xFFB8E07A)
 private val LcdDim = Color(0xFF7F9B57)
 
 private val SlotSize = 34.dp
+
+/** Where the finger is on a dragged drawer row (px from its corner): the row is drawn there. */
+private val FingerOnRow = Offset(40f, 30f)
 private const val VOLUME_STEPS = 10
 
 /** Where a dragged drawer item can be dropped: each slot's place on screen. */
@@ -173,7 +180,21 @@ internal fun BoxScope.DevicePanel(devices: Devices, iconUrl: (String) -> String,
                                 Controls(d, iconUrl, act, targets, dragging, dragAt, onTune = { tuning = true })
                             }
                             Drawer(d.drawer, d, iconUrl, Modifier.width(196.dp).fillMaxHeight(),
-                                onInsert = { act(DeviceControl.Insert(it.id)) },
+                                onInsert = { item, from ->
+                                    // A tap flies the item into its slot, like a drag would put it there.
+                                    if (dragging == null) scope.launch {
+                                        val target = targets.rects[item.fits]?.center
+                                        if (target != null) {
+                                            dragging = item
+                                            Animatable(from, Offset.VectorConverter).animateTo(target, tween(260, easing = FastOutSlowInEasing)) {
+                                                dragAt = value
+                                            }
+                                            delay(120) // the slot lights up as it lands
+                                        }
+                                        act(DeviceControl.Insert(item.id))
+                                        dragging = null
+                                    }
+                                },
                                 onDrag = { item, at -> dragging = item; dragAt = at },
                                 onDrop = { item ->
                                     // Once per drag: the row leaving the list after the insert ends its gesture again.
@@ -193,9 +214,9 @@ internal fun BoxScope.DevicePanel(devices: Devices, iconUrl: (String) -> String,
                         act(DeviceControl.AddPreset(it))
                     })
             }
-            // The dragged item follows the finger.
+            // The dragged item follows the finger (or flies to its slot after a tap).
             dragging?.let { item ->
-                Box(Modifier.offset { (dragAt - panelAt).let { IntOffset(it.x.roundToInt() - 40, it.y.roundToInt() - 30) } }.width(180.dp)) {
+                Box(Modifier.offset { (dragAt - panelAt - FingerOnRow).let { IntOffset(it.x.roundToInt(), it.y.roundToInt()) } }.width(180.dp)) {
                     DrawerRow(item, iconUrl, lifted = true)
                 }
             }
@@ -493,7 +514,8 @@ private fun Drawer(
     d: DeviceState,
     iconUrl: (String) -> String,
     modifier: Modifier,
-    onInsert: (DrawerItem) -> Unit,
+    /** A tap: the item and where its row is (as the dragged row is drawn, at the finger). */
+    onInsert: (DrawerItem, Offset) -> Unit,
     onDrag: (DrawerItem, Offset) -> Unit,
     onDrop: (DrawerItem) -> Unit,
 ) {
@@ -518,7 +540,7 @@ private fun Drawer(
                     Box(
                         Modifier.onGloballyPositioned { rowAt = it.positionInRoot() }
                             // Before the drag detector, so the drag's events reach the drag first.
-                            .clickable { if (SystemClock.uptimeMillis() - droppedAt > 400) onInsert(item) }
+                            .clickable { if (SystemClock.uptimeMillis() - droppedAt > 400) onInsert(item, rowAt + FingerOnRow) }
                             .pointerInput(item.id) {
                                 var at = Offset.Zero
                                 detectDragGesturesAfterLongPress(
