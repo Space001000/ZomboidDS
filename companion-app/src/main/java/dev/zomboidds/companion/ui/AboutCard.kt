@@ -85,6 +85,7 @@ fun AboutCard(openUrl: (String) -> Unit, onLicences: () -> Unit, onWhatsNew: () 
 /** The splash line under the name, one picked each time the card shows. Add your own. */
 private val SPLASHES = listOf(
     "Most of it started as someone's idea, so keep them coming.",
+    "This is how you died. Now on two screens.",
     "This is how you thrived.",
     "Day one: tune in to Life and Living TV.",
     "Now with 100% more screens.",
