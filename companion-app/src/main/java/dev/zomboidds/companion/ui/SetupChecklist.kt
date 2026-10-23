@@ -81,16 +81,19 @@ fun SetupChecklist(report: SetupReport, update: AppUpdateState, gameStep: String
 
             val hasInstance = report.hasAccess && report.instance != null
             val zombieBuddyOk = report.zombieBuddy == ZombieBuddyStatus.OK
+            val outdated = report.zombieBuddy == ZombieBuddyStatus.OUTDATED
             val idle = report.busy == null
             val download = report.zombieBuddyDownload
             Step(
                 when { zombieBuddyOk -> Check.OK; hasInstance -> Check.TODO; else -> Check.BLOCKED },
                 "ZombieBuddy",
                 when {
-                    zombieBuddyOk -> "Installed."
+                    zombieBuddyOk -> "Installed" + (report.zombieBuddyVersion?.let { " ($it)." } ?: ".")
                     !hasInstance -> "Grant access first."
                     download != null ->
                         "Saved '$download' to Downloads. In Zomdroid: Optimization → ZombieBuddy → select that file → Install. This list updates by itself."
+                    outdated ->
+                        "Version ${report.zombieBuddyVersion} installed, this app has ${BuildConfig.ZOMBIE_BUDDY_VERSION}. Get the update, then install it in Zomdroid:"
                     report.zombieBuddy == ZombieBuddyStatus.JAR_ONLY ->
                         "Only half installed (the GitHub download lacks the mod folder), so the game can't enable mods that need it. Get the complete version:"
                     report.zombieBuddy == ZombieBuddyStatus.MOD_FOLDER_ONLY ->
@@ -100,13 +103,14 @@ fun SetupChecklist(report: SetupReport, update: AppUpdateState, gameStep: String
                 action = when {
                     zombieBuddyOk || !hasInstance || !idle -> null
                     download != null -> "Open Zomdroid"
+                    outdated -> "Update"
                     else -> "Download"
                 },
                 onAction = if (download != null) actions::openZomdroid else actions::getZombieBuddy,
             )
 
             // The mod needs ZombieBuddy: without it the game won't enable (or load) ZomboidDS.
-            val canInstall = hasInstance && zombieBuddyOk
+            val canInstall = hasInstance && report.zombieBuddyInstalled
             Step(
                 when { report.modUpToDate -> Check.OK; canInstall -> Check.TODO; else -> Check.BLOCKED },
                 "ZomboidDS mod",

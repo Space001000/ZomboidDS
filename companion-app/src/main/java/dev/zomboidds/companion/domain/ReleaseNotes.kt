@@ -14,6 +14,7 @@ val RELEASES = listOf(
     Release("1.5.0", "Your tab order", null, listOf(
         "**Your tab order:** hold any tab to arrange the tabs. Drag a tab by its ⋮⋮ handle, like the Deck's commands. **Reset** goes back to the default order.",
         "The app opens on the tab you used last.",
+        "The setup checklist tells you when your **ZombieBuddy** is older than the one this app downloads, with an **Update** button.",
     )),
     Release("1.4.0", "Build, Tailor and Here", "8 Oct 2026", listOf(
         "**Build:** tap **Craft ▾** and pick Build for the game's build menu. Wood Chair (Shoddy, Poor, Good) is one tile; pick the version in its panel. **Place** brings up the game's cursor on the top screen: d-pad moves, LB/RB turn, A builds, B stops.",

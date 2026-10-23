@@ -69,6 +69,22 @@ class ZombieBuddyPackageTest {
         ZombieBuddyPackage.extractModFiles(ByteArrayInputStream(zip("ZombieBuddy-2.3.3/42/../../evil.lua" to "x")))
     }
 
+    @Test
+    fun `reads the jar's version from its manifest`() {
+        // Like the real jar: the main section, then one section per signed class.
+        val manifest = "Manifest-Version: 1.0\r\nPremain-Class: me.zed_0xff.zombie_buddy.Agent\r\n" +
+            "Implementation-Version: 2.3.4\r\n\r\nName: a/B.class\r\nImplementation-Version: 9.9.9\r\n"
+        val jar = zip("META-INF/MANIFEST.MF" to manifest, "a/B.class" to "class")
+        assertEquals("2.3.4", ZombieBuddyPackage.jarVersion(ByteArrayInputStream(jar)))
+    }
+
+    @Test
+    fun `no version without a manifest or the attribute`() {
+        assertEquals(null, ZombieBuddyPackage.jarVersion(ByteArrayInputStream(zip("a/B.class" to "class"))))
+        val bare = zip("META-INF/MANIFEST.MF" to "Manifest-Version: 1.0\r\n\r\nName: a/B.class\r\nImplementation-Version: 1.0\r\n")
+        assertEquals(null, ZombieBuddyPackage.jarVersion(ByteArrayInputStream(bare)))
+    }
+
     private fun zip(vararg entries: Pair<String, String>): ByteArray {
         val out = ByteArrayOutputStream()
         ZipOutputStream(out).use { zip ->

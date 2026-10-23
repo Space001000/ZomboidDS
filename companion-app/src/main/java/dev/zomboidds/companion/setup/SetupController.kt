@@ -108,13 +108,17 @@ class SetupController(private val context: Context, private val scope: Coroutine
         val instance = selectedInstance(storage)
             ?: return SetupReport(installed, hasAccess = true, instances.map { it.name }, bundledModVersion = bundled)
         val mods = storage.modsDir(instance)
+        val zombieBuddyVersion = zombieBuddyJar(storage, instance)?.let { jar ->
+            runCatching { storage.open(jar.id).use(ZombieBuddyPackage::jarVersion) }.getOrNull()
+        }
 
         return SetupReport(
             zomdroidInstalled = installed,
             hasAccess = true,
             instances = instances.map { it.name },
             instance = instance.name,
-            zombieBuddy = zombieBuddyStatus(storage, instance, mods),
+            zombieBuddy = zombieBuddyStatus(storage, instance, mods, zombieBuddyVersion),
+            zombieBuddyVersion = zombieBuddyVersion,
             installedModVersion = mods?.let { installedModVersion(storage, it) },
             bundledModVersion = bundled,
             enabledForNewGames = mods?.let { dir ->
@@ -130,11 +134,23 @@ class SetupController(private val context: Context, private val scope: Coroutine
         return instances.firstOrNull { it.name == saved } ?: instances.firstOrNull()
     }
 
-    private fun zombieBuddyStatus(storage: ZomdroidStorage, instance: ZomdroidStorage.Entry, mods: ZomdroidStorage.Entry?): ZombieBuddyStatus {
-        // Zomdroid puts the jar in the instance's game folder; the game needs the mod folder too.
-        val jar = storage.child(instance.id, "game")?.let { storage.child(it.id, "ZombieBuddy.jar") } != null
+    /** Zomdroid puts ZombieBuddy's jar in the instance's game folder. */
+    private fun zombieBuddyJar(storage: ZomdroidStorage, instance: ZomdroidStorage.Entry): ZomdroidStorage.Entry? =
+        storage.child(instance.id, "game")?.let { storage.child(it.id, "ZombieBuddy.jar") }
+
+    private fun zombieBuddyStatus(
+        storage: ZomdroidStorage,
+        instance: ZomdroidStorage.Entry,
+        mods: ZomdroidStorage.Entry?,
+        version: String?,
+    ): ZombieBuddyStatus {
+        // The game needs the mod folder too.
+        val jar = zombieBuddyJar(storage, instance) != null
         val modFolder = mods?.let { storage.child(it.id, ZOMBIE_BUDDY) } != null
         return when {
+            // A jar without a version (someone's own build) counts as up to date.
+            jar && modFolder && version != null && AppUpdater.isNewer(BuildConfig.ZOMBIE_BUDDY_VERSION, version) ->
+                ZombieBuddyStatus.OUTDATED
             jar && modFolder -> ZombieBuddyStatus.OK
             jar -> ZombieBuddyStatus.JAR_ONLY
             modFolder -> ZombieBuddyStatus.MOD_FOLDER_ONLY

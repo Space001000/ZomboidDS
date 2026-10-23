@@ -51,6 +51,22 @@ object ZombieBuddyPackage {
         return digest.digest().toHex()
     }
 
+    /**
+     * The version a ZombieBuddy jar names in its manifest (`Implementation-Version`), or null. Reads
+     * only the manifest's first section: the jar is signed, so the rest lists every class (MBs).
+     */
+    fun jarVersion(jar: InputStream): String? {
+        ZipInputStream(jar).use { zip ->
+            while (true) {
+                val entry = zip.nextEntry ?: return null
+                if (entry.name != "META-INF/MANIFEST.MF") continue
+                val lines = zip.bufferedReader().lineSequence().takeWhile { it.isNotBlank() }
+                return lines.firstOrNull { it.startsWith("Implementation-Version:") }
+                    ?.substringAfter(':')?.trim()?.takeIf { it.isNotEmpty() }
+            }
+        }
+    }
+
     fun sha256(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
         file.inputStream().use { input ->

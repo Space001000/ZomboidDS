@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
+import java.io.InputStream
 
 /**
  * Zomdroid's files, reached through the folder permission the user granted in the system picker
@@ -44,8 +45,10 @@ class ZomdroidStorage(private val resolver: ContentResolver, val tree: Uri) {
     fun path(parentId: String, vararg names: String): Entry? =
         names.fold<String, Entry?>(Entry(parentId, "", true)) { dir, name -> dir?.let { child(it.id, name) } }
 
-    fun readBytes(documentId: String): ByteArray =
-        resolver.openInputStream(uri(documentId))!!.use { it.readBytes() }
+    fun readBytes(documentId: String): ByteArray = open(documentId).use { it.readBytes() }
+
+    /** For reading only part of a file; the caller closes it. */
+    fun open(documentId: String): InputStream = resolver.openInputStream(uri(documentId))!!
 
     fun readText(documentId: String): String = readBytes(documentId).decodeToString()
 
