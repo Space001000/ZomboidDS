@@ -42,6 +42,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -543,7 +544,7 @@ private fun Drawer(
             groups.forEach { group ->
                 Text(if (group.onYou) "On you" else group.name ?: "Nearby", Modifier.padding(start = 4.dp, top = 4.dp, bottom = 2.dp),
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                group.items.forEach { item ->
+                group.items.forEach { item -> key(item.id) {
                     var rowAt by remember { mutableStateOf(Offset.Zero) }
                     // Lifting the finger after a drag also counts as a tap on the row: not a second insert.
                     var droppedAt by remember { mutableLongStateOf(0L) }
@@ -561,7 +562,7 @@ private fun Drawer(
                                 )
                             },
                     ) { DrawerRow(item, iconUrl, lifted = false) }
-                }
+                } }
             }
         }
     }

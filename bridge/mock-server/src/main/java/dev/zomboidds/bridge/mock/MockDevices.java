@@ -200,19 +200,17 @@ final class MockDevices {
         return s;
     }
 
-    private Thing take(long id) {
+    /** The thing with [id], left where it is, or null. */
+    private Thing find(long id) {
         for (List<Thing> list : List.of(onYou, shelves)) {
             for (Thing t : list) {
-                if (t.id == id) {
-                    list.remove(t);
-                    return t;
-                }
+                if (t.id == id) return t;
             }
         }
         return null;
     }
 
-    private static long nextId = 71000;
+    private long nextId = 71000;
 
     /** A {@code device_control}; null when done, or the reason it can't be. */
     String control(Map<String, Object> args) {
@@ -250,12 +248,11 @@ final class MockDevices {
                 d.headphones = null;
             }
             case "insert" -> {
-                Thing t = args.get("itemId") instanceof Number n ? take(n.longValue()) : null;
+                Thing t = args.get("itemId") instanceof Number n ? find(n.longValue()) : null;
                 String fit = t == null ? null : fits(d, t);
-                if (fit == null) {
-                    if (t != null) onYou.add(t);
-                    return "That doesn't fit";
-                }
+                if (fit == null) return "That doesn't fit";
+                onYou.remove(t);
+                shelves.remove(t);
                 switch (fit) {
                     case "media" -> {
                         if (d.media != null) control(Map.of("control", "eject"));

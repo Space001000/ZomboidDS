@@ -33,7 +33,7 @@ local function current(player)
 end
 
 --- Whether the window would still be open (ISRadioWindow:update): an item in your hands or on your
---- back, a car part that still has its radio, an object within REACH.
+--- back, a car part that still has its radio, an object or car within REACH.
 local function stillThere(player, entry)
     local device = entry.device
     if entry.kind == "InventoryItem" then
@@ -45,13 +45,25 @@ local function stillThere(player, entry)
         if itemType ~= nil and not try(itemType, "isEmpty") and try(device, "getInventoryItem") == nil then
             return false
         end
-        return try(player, "getVehicle") == try(device, "getVehicle")
     end
     if try(device, "getSquare") == nil then
         return false
     end
     local dx, dy = player:getX() - device:getX(), player:getY() - device:getY()
     return dx > -REACH and dx < REACH and dy > -REACH and dy < REACH
+end
+
+--- The device is gone (ISRadioWindow:update closing): a radio you put away is switched off, so it
+--- doesn't run its battery down in your bag.
+local function forget(player, entry)
+    open[player:getPlayerNum()] = nil
+    if entry.kind == "InventoryItem" then
+        local data = try(entry.device, "getDeviceData")
+        if data ~= nil then
+            data:setIsTurnedOn(false)
+            entry.device:setActivated(false)
+        end
+    end
 end
 
 --- RWMPanel:doWalkTo: true when the player can act now (queueing a walk to an object first).
@@ -209,7 +221,7 @@ function Devices.state(player)
         return false, "No device open"
     end
     if not stillThere(player, entry) then
-        open[player:getPlayerNum()] = nil
+        forget(player, entry)
         return true, nil, { gone = true }
     end
     local data = try(entry.device, "getDeviceData")
@@ -390,7 +402,7 @@ function controls.add_preset(player, entry, data, args)
     local frequency = tonumber(args.value)
     local list = try(data, "getDevicePresets")
     local min, max = try(data, "getMinChannelRange"), try(data, "getMaxChannelRange")
-    if frequency == nil or list == nil or min == nil or frequency < min or frequency > max then
+    if frequency == nil or list == nil or min == nil or max == nil or frequency < min or frequency > max then
         return false, "Out of range"
     end
     local all = try(list, "getPresets")
@@ -418,7 +430,11 @@ Devices.commands = {
     end,
     device_control = function(player, args)
         local entry = current(player)
-        if entry == nil or not stillThere(player, entry) then
+        if entry == nil then
+            return false, "No device open"
+        end
+        if not stillThere(player, entry) then
+            forget(player, entry)
             return false, "No device open"
         end
         local data = try(entry.device, "getDeviceData")
@@ -447,6 +463,9 @@ function Devices.redirect(onShow)
             return kind ~= nil and onShow(playerNum, { panel = "device" })
         end)
         if ok and handled then
+            -- What activate does besides the window: opening Device Options ends exercising.
+            player:setVariable("ExerciseStarted", false)
+            player:setVariable("ExerciseEnded", true)
             return nil
         end
         open[playerNum] = previous

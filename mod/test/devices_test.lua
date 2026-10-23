@@ -77,7 +77,8 @@ local hand
 local player = { classes = {}, getPlayerNum = function() return 0 end, getInventory = function() return inventory end,
   getX = function() return 10 end, getY = function() return 10 end,
   getPrimaryHandItem = function() return hand end, getSecondaryHandItem = function() return nil end,
-  getClothingItem_Back = function() return nil end, getVehicle = function() return nil end }
+  getClothingItem_Back = function() return nil end, getVehicle = function() return nil end, vars = {} }
+function player:setVariable(name, value) self.vars[name] = value end
 
 -- The game's loot window lists the shelves (Containers.nearby comes from its snapshot).
 getPlayerInventory = function() return { backpacks = { { inventory = inventory, name = "Inventory", onclick = function() end } } } end
@@ -109,6 +110,7 @@ local function deviceData(o)
   function d:getMediaData() return self.media and { getTranslatedItemDisplayName = function() return self.media end } end
   function d:canPlayerRemoteInteract() return false end
   function d:transmitPresets() self.transmitted = true end
+  function d:setIsTurnedOn(on) self.on = on end
   local presetList = {}
   for _, p in ipairs(d.presets) do presetList[#presetList + 1] = { getName = function() return p[1] end, getFrequency = function() return p[2] end } end
   d.presetList = presetList
@@ -136,6 +138,7 @@ local walkieData = deviceData({ name = "Walkie Talkie", battery = true, power = 
 local walkie = item({ name = "Walkie Talkie", type = "Base.WalkieTalkie3", icon = "WalkieTalkieCivilian2" })
 walkie.classes.Radio = true
 walkie.getDeviceData = function() return walkieData end
+walkie.setActivated = function(self, on) self.activated = on end
 
 local B42 = require("ZomboidDS/Adapters/B42")
 B42.snapshotContainers(player)
@@ -148,6 +151,7 @@ B42.redirectGameWindows(function(_, show) if not appThere then return false end 
 check(not B42.commands.device_state(player, {}), "no device open: nothing to show")
 ISRadioWindow.activate(player, tv, true)
 check(shown and shown.panel == "device" and gameWindow == nil, "Device Options: the app's panel, the game's window stays shut")
+check(player.vars.ExerciseStarted == false and player.vars.ExerciseEnded == true, "opening Device Options ends exercising, as the game's does")
 
 -- A TV with a tape playing
 local ok, _, s = B42.commands.device_state(player, {})
@@ -224,6 +228,20 @@ B42.commands.device_control(player, { control = "mic", value = true })
 check(queued[1] == "MuteMicrophone true", "mute the microphone")
 hand = nil
 check(select(3, B42.commands.device_state(player, {})).gone, "put away: gone, like the game's window closes")
+check(walkieData.on == false and walkie.activated == false, "and switched off, as the game does, so it doesn't drain in a bag")
+
+-- A car radio: open while near the car, in it or not; gone once the radio is taken out
+local carData = deviceData({ name = "Car Radio", battery = false, grid = true, on = true, channel = 93200, min = 88000, max = 108000 })
+local car = { name = "car" }
+local carRadioItem = item({ name = "Radio", type = "Base.RadioCar", icon = "Radio" })
+local part = { classes = { VehiclePart = true }, getDeviceData = function() return carData end, getVehicle = function() return car end,
+  getSquare = function() return { name = "car square" } end, getX = function() return 14 end, getY = function() return 10 end,
+  getItemType = function() return { isEmpty = function() return false end } end, getInventoryItem = function() return carRadioItem end }
+ISRadioWindow.activate(player, part)
+check(select(3, B42.commands.device_state(player, {})).where == "vehicle", "the car radio, from outside the car")
+check(not B42.commands.device_control(player, { control = "power" }), "its buttons need you in the car, as in the game")
+part.getInventoryItem = function() return nil end
+check(select(3, B42.commands.device_state(player, {})).gone, "radio taken out of the car: gone")
 
 -- Without the app: the game's own window
 appThere = false

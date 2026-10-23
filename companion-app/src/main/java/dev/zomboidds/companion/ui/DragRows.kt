@@ -52,7 +52,7 @@ internal fun <T> DragRows(
         keyed(id) {
             val isDragged = dragging == id
             val handle = Modifier.pointerInput(id, afterLongPress) {
-                // Where the row is now: moves happen before the list recomposes.
+                // Where the row is (or will be once the list recomposes after a move).
                 var at = 0
                 val onStart = { _: Offset ->
                     at = currentRows.indexOfFirst { key(it) == id }
@@ -63,7 +63,10 @@ internal fun <T> DragRows(
                     change.consume()
                     offset += amount.y
                     val to = (at + (offset / step).roundToInt()).coerceIn(0, currentRows.lastIndex)
-                    if (at >= 0 && to != at) {
+                    // One move per recomposition: [onMove] works on the list it was composed with, so the
+                    // next move waits until the rows show the last one.
+                    val settled = currentRows.indexOfFirst { key(it) == id } == at
+                    if (at >= 0 && to != at && settled) {
                         currentOnMove(at, to)
                         offset -= (to - at) * step
                         at = to
