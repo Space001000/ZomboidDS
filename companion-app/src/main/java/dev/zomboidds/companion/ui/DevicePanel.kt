@@ -67,6 +67,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -99,11 +100,18 @@ private val SlotSize = 34.dp
 
 /** Where the finger is on a dragged drawer row (px from its corner): the row is drawn there. */
 private val FingerOnRow = Offset(40f, 30f)
+private val DrawerRowHeight = 42.dp
+private val DraggedRowWidth = 180.dp
 private const val VOLUME_STEPS = 10
 
-/** Where a dragged drawer item can be dropped: each slot's place on screen. */
+/** Where a dragged drawer item can be dropped: each slot's place on screen, and the slot a tapped item is landing in. */
 private class DropTargets {
     val rects = mutableStateMapOf<DrawerFit, Rect>()
+    var landing by mutableStateOf<DrawerFit?>(null)
+
+    /** Whether a dragged [item] is over the [fit] slot, or a tapped one is landing there. */
+    fun over(fit: DrawerFit, item: DrawerItem?, at: Offset) =
+        item?.fits == fit && (landing == fit || rects[fit]?.contains(at) == true)
 }
 
 /**
@@ -152,6 +160,7 @@ internal fun BoxScope.DevicePanel(devices: Devices, iconUrl: (String) -> String,
     var dragging by remember { mutableStateOf<DrawerItem?>(null) }
     var dragAt by remember { mutableStateOf(Offset.Zero) }
     var panelAt by remember { mutableStateOf(Offset.Zero) }
+    val rowMiddle = with(LocalDensity.current) { Offset(DraggedRowWidth.toPx() / 2, DrawerRowHeight.toPx() / 2) }
 
     Box(
         Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
@@ -183,13 +192,16 @@ internal fun BoxScope.DevicePanel(devices: Devices, iconUrl: (String) -> String,
                                 onInsert = { item, from ->
                                     // A tap flies the item into its slot, like a drag would put it there.
                                     if (dragging == null) scope.launch {
-                                        val target = targets.rects[item.fits]?.center
+                                        // The row's middle onto the slot's middle (the row is drawn around the finger).
+                                        val target = targets.rects[item.fits]?.center?.let { it - rowMiddle + FingerOnRow }
                                         if (target != null) {
                                             dragging = item
                                             Animatable(from, Offset.VectorConverter).animateTo(target, tween(260, easing = FastOutSlowInEasing)) {
                                                 dragAt = value
                                             }
+                                            targets.landing = item.fits
                                             delay(120) // the slot lights up as it lands
+                                            targets.landing = null
                                         }
                                         act(DeviceControl.Insert(item.id))
                                         dragging = null
@@ -216,7 +228,7 @@ internal fun BoxScope.DevicePanel(devices: Devices, iconUrl: (String) -> String,
             }
             // The dragged item follows the finger (or flies to its slot after a tap).
             dragging?.let { item ->
-                Box(Modifier.offset { (dragAt - panelAt - FingerOnRow).let { IntOffset(it.x.roundToInt(), it.y.roundToInt()) } }.width(180.dp)) {
+                Box(Modifier.offset { (dragAt - panelAt - FingerOnRow).let { IntOffset(it.x.roundToInt(), it.y.roundToInt()) } }.width(DraggedRowWidth)) {
                     DrawerRow(item, iconUrl, lifted = true)
                 }
             }
@@ -380,9 +392,8 @@ private fun Slot(
     dragAt: Offset,
     onClick: () -> Unit,
 ) {
-    val rect = targets.rects[fit]
     val wanted = dragging?.fits == fit
-    val over = wanted && rect?.contains(dragAt) == true
+    val over = targets.over(fit, dragging, dragAt)
     val shape = RoundedCornerShape(8.dp)
     Box(
         Modifier.size(SlotSize)
@@ -457,9 +468,8 @@ private fun MediaRow(
     dragging: DrawerItem?,
     dragAt: Offset,
 ) {
-    val rect = targets.rects[DrawerFit.MEDIA]
     val wanted = dragging?.fits == DrawerFit.MEDIA
-    val over = wanted && rect?.contains(dragAt) == true
+    val over = targets.over(DrawerFit.MEDIA, dragging, dragAt)
     val shape = RoundedCornerShape(10.dp)
     val icon = if (media.kind == MediaKind.VHS) "Item_Cassette3" else "Item_Disc"
     val has = media.name != null
@@ -563,7 +573,7 @@ private fun DrawerRow(item: DrawerItem, iconUrl: (String) -> String, lifted: Boo
         shape = RoundedCornerShape(8.dp),
         color = if (lifted) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerHigh,
         shadowElevation = if (lifted) 8.dp else 0.dp,
-        modifier = Modifier.fillMaxWidth().height(42.dp),
+        modifier = Modifier.fillMaxWidth().height(DrawerRowHeight),
     ) {
         Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GameIcon(item.icon, iconUrl, 28.dp)

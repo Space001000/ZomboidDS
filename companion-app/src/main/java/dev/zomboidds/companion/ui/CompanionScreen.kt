@@ -142,7 +142,8 @@ fun CompanionScreen(
                         AboutCard(openUrl = setupActions::openUrl, onLicences = { licences = true }, onWhatsNew = { whatsNewOpen = true })
                     }
                     if (setupScroll.canScrollForward) {
-                        ScrollToEndButton(Modifier.align(Alignment.TopEnd).padding(12.dp)) {
+                        // Lined up with the header's title: the page's 24dp margin, centred on its 36dp line.
+                        ScrollToEndButton(Modifier.align(Alignment.TopEnd).padding(top = 20.dp, end = 24.dp)) {
                             scope.launch { setupScroll.animateScrollTo(setupScroll.maxValue) }
                         }
                     }
