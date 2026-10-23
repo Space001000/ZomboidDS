@@ -24,6 +24,15 @@ import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.ItemAction
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.MapPosition
+import dev.zomboidds.companion.domain.MediaSlot
+import dev.zomboidds.companion.domain.MediaKind
+import dev.zomboidds.companion.domain.HeadphoneSlot
+import dev.zomboidds.companion.domain.GridPower
+import dev.zomboidds.companion.domain.DrawerItem
+import dev.zomboidds.companion.domain.DrawerFit
+import dev.zomboidds.companion.domain.DeviceWhere
+import dev.zomboidds.companion.domain.DeviceControl
+import dev.zomboidds.companion.domain.DeviceBattery
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -454,5 +463,56 @@ class ProtocolV1Test {
     @Test(expected = IllegalArgumentException::class)
     fun `other protocol versions are rejected`() {
         ProtocolV1.apply(GameState(), """{"v":2,"type":"hello","data":{}}""")
+    }
+
+    private fun deviceFixture(name: String) =
+        ProtocolV1.deviceState((ProtocolV1.decode(fixture(name)) as ProtocolV1.ServerMessage.Reply).data)
+
+    @Test
+    fun `Device Options opens the device panel`() {
+        assertEquals(GameEvent.ShowDevice, (ProtocolV1.decode(fixture("show_device.json")) as ProtocolV1.ServerMessage.Event).event)
+    }
+
+    @Test
+    fun `a TV with a tape playing`() {
+        val tv = deviceFixture("device_state_tv.json")
+        assertEquals("ValuTech Television", tv.name)
+        assertTrue(tv.tv && tv.on && tv.powered)
+        assertEquals(GridPower(true, "Has power."), tv.grid)
+        assertEquals(MediaSlot(MediaKind.VHS, "VHS: Breaking Points", playing = true, empty = "- NO TAPE -"), tv.media)
+        assertEquals(listOf("Triple-N", "WBLN News", "Life and Living TV"), tv.presets.map { it.name })
+        // The tape is what's on: no channel is marked while it plays.
+        assertNull(tv.tunedPreset)
+        assertNull(tv.range)
+        assertNull(tv.headphones)
+        assertEquals(listOf(true, false), tv.drawer.map { it.onYou })
+        assertEquals("Shelves", tv.drawer[1].name)
+        assertEquals(DrawerItem(503, "VHS: Home Invaders 2", "Item_Cassette3", DrawerFit.MEDIA), tv.drawer[1].items.single())
+    }
+
+    @Test
+    fun `a radio in your hand on batteries`() {
+        val radio = deviceFixture("device_state_radio.json")
+        assertEquals(DeviceWhere.HAND, radio.where)
+        assertEquals(DeviceBattery(0.63f, true), radio.battery)
+        assertEquals(88000..108000, radio.range)
+        assertEquals("NNR Radio", radio.presets[1].name)
+        assertEquals("LBMW - Kentucky Radio", radio.tunedPreset?.name)
+        assertEquals(HeadphoneSlot(), radio.headphones)
+        assertNull(radio.media)
+        assertEquals(3, radio.drawer[0].items[0].count)
+        assertEquals(DrawerFit.HEADPHONES, radio.drawer[0].items[1].fits)
+    }
+
+    @Test
+    fun `a device the player walked away from`() {
+        assertTrue(deviceFixture("device_state_gone.json").gone)
+    }
+
+    @Test
+    fun `device controls`() {
+        assertEquals("""{"control":"channel","value":201}""", ProtocolV1.deviceControlRequest(DeviceControl.Channel(201)).args.toString())
+        assertEquals("""{"control":"insert","itemId":503}""", ProtocolV1.deviceControlRequest(DeviceControl.Insert(503)).args.toString())
+        assertEquals("""{"control":"mic","value":true}""", ProtocolV1.deviceControlRequest(DeviceControl.Microphone(true)).args.toString())
     }
 }

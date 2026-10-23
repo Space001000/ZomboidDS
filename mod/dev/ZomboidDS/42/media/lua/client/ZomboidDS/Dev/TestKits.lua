@@ -149,6 +149,34 @@ kit("medic", "Medic", "A scratch on the left hand, a cut on the right forearm, g
         setSkill(player, Perks.Doctor, 4)
     end)
 
+--- A tape or CD with a title from its category, as the game's loot gives one.
+local function recorded(container, fullType)
+    local item = add(container, fullType)
+    if item:getRecordedMediaIndex() < 0 then
+        local category = item:getScriptItem():getRecordedMediaCat()
+        local media = getZomboidRadio():getRecordedMedia():getRandomFromCategory(category)
+        if media ~= nil then item:setRecordedMediaData(media) end
+    end
+    return item
+end
+
+kit("devices", "Devices", "A CD Player in your hand; a ValuTech Radio and a walkie-talkie; 3 VHS tapes and 3 CDs "
+    .. "(one CD in a backpack); 4 batteries; headphones and earbuds. Find a TV for the tapes.",
+    function(player)
+        local inventory = player:getInventory()
+        local cdPlayer = add(inventory, "Base.CDplayer")
+        player:setPrimaryHandItem(cdPlayer)
+        add(inventory, "Base.RadioBlack")
+        add(inventory, "Base.WalkieTalkie3")
+        for _ = 1, 3 do recorded(inventory, "Base.VHS_Retail") end
+        for _ = 1, 2 do recorded(inventory, "Base.Disc_Retail") end
+        local bag = add(inventory, "Base.Bag_Schoolbag")
+        recorded(bag:getInventory(), "Base.Disc_Retail")
+        add(inventory, "Base.Battery", 4)
+        add(inventory, "Base.Headphones")
+        add(inventory, "Base.Earbuds")
+    end)
+
 B42.commands.dev_kits = function(_player, _args)
     local list = {}
     for _, id in ipairs(order) do

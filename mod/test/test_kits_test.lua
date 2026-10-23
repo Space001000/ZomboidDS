@@ -34,6 +34,9 @@ local function newContainer()
     function item:setCooked(v) self.cooked = v end
     function item:setBurnt(v) self.burnt = v end
     function item:setUnwanted(_, v) self.unwanted = v end
+    function item:getRecordedMediaIndex() return self.media and 1 or -1 end
+    function item:getScriptItem() local i = self return { getRecordedMediaCat = function() return i.type == "Base.VHS_Retail" and "Retail-VHS" or "CDs" end } end
+    function item:setRecordedMediaData(media) self.media = media end
     function item:getFluidContainer()
       if self.type ~= "Base.Pot" and self.type ~= "Base.WaterBottle" then return nil end
       local i = self
@@ -56,7 +59,10 @@ end
 local player = { getInventory = function() return inventory end, getPlayerNum = function() return 0 end,
   getBodyDamage = function() return { getBodyPart = function(_, id) return bodyPart(id) end } end,
   setPerkLevelDebug = function(_, perk, level) levels[perk] = level end,
-  getXp = function() return { setXPToLevel = function(_, perk, level) levels[perk .. "xp"] = level end } end }
+  getXp = function() return { setXPToLevel = function(_, perk, level) levels[perk .. "xp"] = level end } end,
+  setPrimaryHandItem = function(self, item) self.hand = item end }
+getZomboidRadio = function() return { getRecordedMedia = function() return {
+  getRandomFromCategory = function(_, category) return { category = category } end } end } end
 function instanceItem(fullType) return { type = fullType } end
 local queued = {}
 ISTimedActionQueue = { add = function(action) queued[#queued + 1] = action end }
@@ -107,4 +113,13 @@ check(inventory:find("Base.Bread").unwanted, "bread set Unwanted")
 check(B42.commands.dev_kit(player, { kit = "medic" }), "gives the Medic kit")
 check(injuries.Hand_L == "scratch" and injuries.ForeArm_R == "cut" and injuries.UpperLeg_L == "glass", "three injuries to treat")
 check(inventory:count("Base.Bandage") == 3 and levels.Doctor == 4, "bandages and First Aid 4")
+
+check(B42.commands.dev_kit(player, { kit = "devices" }), "gives the Devices kit")
+check(player.hand and player.hand.type == "Base.CDplayer", "a CD player in hand")
+local tapes, cds = 0, 0
+for _, i in ipairs(inventory.items) do
+  if i.type == "Base.VHS_Retail" and i.media and i.media.category == "Retail-VHS" then tapes = tapes + 1 end
+  if i.type == "Base.Disc_Retail" and i.media and i.media.category == "CDs" then cds = cds + 1 end
+end
+check(tapes == 3 and cds == 2 and inventory:count("Base.Battery") == 4, "titled tapes and CDs (one more in the bag), batteries")
 print("ALL LUA CHECKS PASSED")

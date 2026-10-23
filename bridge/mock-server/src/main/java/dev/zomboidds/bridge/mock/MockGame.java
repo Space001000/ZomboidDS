@@ -67,6 +67,9 @@ final class MockGame {
     /** The fake Inspect window (tailor_garments.json). */
     private final MockTailoring tailoring = new MockTailoring(fixtureData("tailor_garments.json"));
 
+    /** The fake TVs and radios (console t, r, k, c open one, like the game's Device Options). */
+    private final MockDevices devices = new MockDevices();
+
     MockGame(BridgeContext bridge, String inventoryFixture) {
         this.bridge = bridge;
         this.inventory = fixtureData(inventoryFixture);
@@ -147,6 +150,12 @@ final class MockGame {
                 case "h" -> gameThread.execute(() -> adjustHealth(+15));
                 case "i" -> gameThread.execute(this::addRandomItem);
                 case "w" -> gameThread.execute(this::walk);
+                case "t", "r", "k", "c" -> {
+                    String key = cmd;
+                    gameThread.execute(() -> {
+                        if (devices.open(key)) bridge.state().publish("show", Map.of("panel", "device"));
+                    });
+                }
                 case "q" -> { return; }
                 case "" -> { }
                 default -> printHelp();
@@ -161,6 +170,7 @@ final class MockGame {
                 Mock game running. Commands:
                   v  enter/leave vehicle     d  take damage     h  heal
                   i  add an item             w  walk away from / back to the furniture
+                  t  TV's Device Options     r  radio     k  walkie-talkie     c  CD player
                   q  quit""");
     }
 
@@ -356,6 +366,19 @@ final class MockGame {
                     yield refused;
                 }
                 data[0] = result;
+                yield null;
+            }
+            case "device_state" -> {
+                Map<String, Object> state = devices.state();
+                if (state == null) {
+                    yield "No device open";
+                }
+                data[0] = state;
+                yield null;
+            }
+            case "device_control" -> devices.control(command.args());
+            case "device_close" -> {
+                devices.close();
                 yield null;
             }
             case "build_stop" -> {

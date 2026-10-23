@@ -17,6 +17,7 @@ local containerIds = {} -- ItemContainer -> short id, stable while the container
 local nextContainerId = 0
 local reachable = {}    -- id -> ItemContainer, from the latest snapshot (commands resolve ids here)
 local lockedIds = {}    -- id -> true for locked containers in the latest snapshot
+local nearbyList = {}   -- { container, name } of the unlocked containers around, in the loot window's order
 
 function Containers.idOf(container)
     local id = containerIds[container]
@@ -80,6 +81,7 @@ function Containers.snapshot(player)
     local list = {}
     local seen = {}
     local locked = {}
+    local nearby = {}
     for _, source in ipairs(pages) do
         local buttons = source.page and source.page.backpacks or {}
         -- The loot window's selected container: the one the game outlines in the world.
@@ -99,12 +101,22 @@ function Containers.snapshot(player)
                 seen[entry.id] = container
                 locked[entry.id] = entry.locked
                 list[#list + 1] = entry
+                if not source.onCharacter and not entry.locked then
+                    nearby[#nearby + 1] = { container = container, name = entry.name }
+                end
             end
         end
     end
     reachable = seen
     lockedIds = locked
+    nearbyList = nearby
     return { containers = list }
+end
+
+--- The unlocked containers around the player (not on them) from the latest snapshot, in the loot
+--- window's order: `{ container, name }`.
+function Containers.nearby()
+    return nearbyList
 end
 
 --- A container from the latest snapshot, or nil if it's no longer within reach (or locked when

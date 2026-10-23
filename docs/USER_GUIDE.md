@@ -132,6 +132,13 @@ your character:
   each body part it covers with its Bite and Scratch protection, holes, blood and patches. Tap a part
   for the game's choices there (Patch Hole or Add Padding with a fabric, Remove Patch); your character
   sews it, and the part shows the progress. **Inspect** in a garment's item panel opens the same view.
+- **TVs, radios, walkie-talkies and CD players**: **Device Options** (on a Here card, in an item's
+  panel, in the car, or the controller button when you face the device) opens the device on the bottom
+  screen. Turn it on or off, set the volume or mute it, and pick a channel; on a radio, **Tune…** opens
+  a number pad to tune to any frequency, and **Save preset** adds it to your list. A tape or CD that's
+  playing is what's on: picking a channel stops it. On the right are the tapes, CDs, batteries and
+  headphones that fit, on you and in the containers around you: tap one to put it in (your character
+  fetches it first), or hold and drag it onto its slot. Tap the battery or headphones to take them out.
 
 **Your own tab order:** hold any tab to arrange the tabs, then drag them into place; the tab bar
 follows along. **Reset** goes back to the default order. The app opens on the tab you used last.

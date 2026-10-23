@@ -12,6 +12,7 @@ data class Release(val version: String, val title: String, val date: String?, va
  */
 val RELEASES = listOf(
     Release("1.5.0", "Your tab order", null, listOf(
+        "**TVs, radios and CD players:** Device Options now opens on the bottom screen. Turn it on, pick a channel, set the volume, or tune a radio with the number pad and save the station. Tapes, CDs, batteries and headphones on you or nearby are listed on the right: tap one to put it in, or drag it onto its slot.",
         "**Tabs can now be reordered:** hold any tab, then drag them into the order you like. **Reset** puts them back.",
         "The app opens on the tab you were on last.",
         "The setup list now tells you when ZombieBuddy needs an update, and gets it for you.",

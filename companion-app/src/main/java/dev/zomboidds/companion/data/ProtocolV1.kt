@@ -13,6 +13,13 @@ import dev.zomboidds.companion.domain.Cooking
 import dev.zomboidds.companion.domain.DeckClock
 import dev.zomboidds.companion.domain.DeckCommand
 import dev.zomboidds.companion.domain.DeckState
+import dev.zomboidds.companion.domain.DeviceBattery
+import dev.zomboidds.companion.domain.DeviceControl
+import dev.zomboidds.companion.domain.DeviceState
+import dev.zomboidds.companion.domain.DeviceWhere
+import dev.zomboidds.companion.domain.DrawerFit
+import dev.zomboidds.companion.domain.DrawerGroup
+import dev.zomboidds.companion.domain.DrawerItem
 import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.ExploredAreas
 import dev.zomboidds.companion.domain.Fabric
@@ -24,6 +31,8 @@ import dev.zomboidds.companion.domain.GameState
 import dev.zomboidds.companion.domain.Garment
 import dev.zomboidds.companion.domain.GarmentPart
 import dev.zomboidds.companion.domain.GarmentSummary
+import dev.zomboidds.companion.domain.GridPower
+import dev.zomboidds.companion.domain.HeadphoneSlot
 import dev.zomboidds.companion.domain.Health
 import dev.zomboidds.companion.domain.HealthLine
 import dev.zomboidds.companion.domain.HealthTone
@@ -37,6 +46,8 @@ import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenu
 import dev.zomboidds.companion.domain.MapPosition
 import dev.zomboidds.companion.domain.MapSymbol
+import dev.zomboidds.companion.domain.MediaKind
+import dev.zomboidds.companion.domain.MediaSlot
 import dev.zomboidds.companion.domain.MenuOption
 import dev.zomboidds.companion.domain.MenuPill
 import dev.zomboidds.companion.domain.Moodle
@@ -44,6 +55,7 @@ import dev.zomboidds.companion.domain.MoodleTone
 import dev.zomboidds.companion.domain.Moodles
 import dev.zomboidds.companion.domain.Placing
 import dev.zomboidds.companion.domain.PlayerStatus
+import dev.zomboidds.companion.domain.Preset
 import dev.zomboidds.companion.domain.RecipeCategory
 import dev.zomboidds.companion.domain.RecipeDetails
 import dev.zomboidds.companion.domain.RecipeInput
@@ -57,6 +69,7 @@ import dev.zomboidds.companion.domain.SewingKit
 import dev.zomboidds.companion.domain.SkillNeed
 import dev.zomboidds.companion.domain.TailorList
 import dev.zomboidds.companion.domain.TimeState
+import dev.zomboidds.companion.domain.TwoWay
 import dev.zomboidds.companion.domain.Vehicle
 import java.io.ByteArrayOutputStream
 import java.util.Base64
@@ -365,6 +378,7 @@ object ProtocolV1 {
             return when (dto.panel) {
                 "inventory" -> ServerMessage.Event(GameEvent.ShowInventory(dto.container))
                 "garment" if dto.item != null -> ServerMessage.Event(GameEvent.ShowGarment(dto.item))
+                "device" -> ServerMessage.Event(GameEvent.ShowDevice)
                 else -> ServerMessage.StateUpdate { it } // a panel from a newer mod: nothing to show
             }
         }
@@ -630,6 +644,121 @@ object ProtocolV1 {
                     part.hole, part.blood, part.patch?.takeIf(String::isNotBlank),
                     part.sewing?.let { Sewing(it.name, it.progress) })
             },
+        )
+    }
+
+    fun deviceStateRequest() = Request("device_state", buildJsonObject { })
+
+    fun deviceCloseRequest() = Request("device_close", buildJsonObject { })
+
+    fun deviceControlRequest(control: DeviceControl) = Request("device_control", buildJsonObject {
+        when (control) {
+            DeviceControl.Power -> put("control", "power")
+            is DeviceControl.Volume -> { put("control", "volume"); put("value", control.level) }
+            DeviceControl.Mute -> put("control", "mute")
+            is DeviceControl.Unmute -> { put("control", "unmute"); put("value", control.level) }
+            is DeviceControl.Channel -> { put("control", "channel"); put("value", control.frequency) }
+            DeviceControl.Play -> put("control", "play")
+            DeviceControl.Eject -> put("control", "eject")
+            DeviceControl.BatteryOut -> put("control", "battery_out")
+            DeviceControl.HeadphonesOut -> put("control", "headphones_out")
+            is DeviceControl.Insert -> { put("control", "insert"); put("itemId", control.itemId) }
+            is DeviceControl.Microphone -> { put("control", "mic"); put("value", control.muted) }
+            is DeviceControl.AddPreset -> { put("control", "add_preset"); put("value", control.frequency) }
+        }
+    })
+
+    @Serializable
+    private data class DeviceStateDto(
+        val gone: Boolean = false,
+        val name: String = "",
+        val icon: String? = null,
+        val where: String? = null,
+        val on: Boolean = false,
+        val tv: Boolean = false,
+        val battery: BatteryDto? = null,
+        val grid: GridDto? = null,
+        val volume: Float = 0f,
+        val channel: Int? = null,
+        val channelName: String? = null,
+        val presets: List<PresetDto> = emptyList(),
+        val range: RangeDto? = null,
+        val maxPresets: Int? = null,
+        val headphones: HeadphonesDto? = null,
+        val twoWay: TwoWayDto? = null,
+        val media: MediaDto? = null,
+        val drawer: List<DrawerGroupDto> = emptyList(),
+    )
+
+    @Serializable
+    private data class BatteryDto(val level: Float = 0f, val has: Boolean = false)
+
+    @Serializable
+    private data class GridDto(val power: Boolean = false, val text: String = "")
+
+    @Serializable
+    private data class PresetDto(val name: String? = null, val frequency: Int? = null)
+
+    @Serializable
+    private data class RangeDto(val min: Int? = null, val max: Int? = null)
+
+    @Serializable
+    private data class HeadphonesDto(val slot: Boolean = false, val name: String? = null, val icon: String? = null)
+
+    @Serializable
+    private data class TwoWayDto(val range: Int? = null, val micMuted: Boolean = false)
+
+    @Serializable
+    private data class MediaDto(val type: String = "", val name: String? = null, val playing: Boolean = false, val empty: String = "")
+
+    @Serializable
+    private data class DrawerGroupDto(val name: String? = null, val onYou: Boolean = false, val items: List<DrawerItemDto> = emptyList())
+
+    @Serializable
+    private data class DrawerItemDto(val id: Long? = null, val name: String = "", val icon: String? = null, val fits: String = "", val count: Int? = null)
+
+    /** The `data` of a `device_state` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun deviceState(data: JsonElement?): DeviceState {
+        requireNotNull(data) { "the game sent no device" }
+        val dto = json.decodeFromJsonElement<DeviceStateDto>(lenient(data))
+        if (dto.gone) return DeviceState(gone = true)
+        return DeviceState(
+            name = dto.name.ifEmpty { "?" },
+            icon = dto.icon,
+            where = when (dto.where) {
+                "hand" -> DeviceWhere.HAND
+                "back" -> DeviceWhere.BACK
+                "floor" -> DeviceWhere.FLOOR
+                "vehicle" -> DeviceWhere.VEHICLE
+                else -> null
+            },
+            on = dto.on,
+            tv = dto.tv,
+            battery = dto.battery?.let { DeviceBattery(it.level, it.has) },
+            grid = dto.grid?.let { GridPower(it.power, it.text) },
+            volume = dto.volume,
+            channel = dto.channel,
+            channelName = dto.channelName?.takeIf(String::isNotBlank),
+            presets = dto.presets.mapNotNull { p -> p.frequency?.let { Preset(p.name?.takeIf(String::isNotBlank) ?: "$it", it) } },
+            range = dto.range?.let { r -> if (r.min != null && r.max != null && r.min <= r.max) r.min..r.max else null },
+            maxPresets = dto.maxPresets,
+            headphones = dto.headphones?.takeIf { it.slot }?.let { HeadphoneSlot(it.name, it.icon) },
+            twoWay = dto.twoWay?.let { TwoWay(it.range, it.micMuted) },
+            media = dto.media?.let { m ->
+                val kind = when (m.type) { "cd" -> MediaKind.CD; "vhs" -> MediaKind.VHS; else -> null }
+                kind?.let { MediaSlot(it, m.name?.takeIf(String::isNotBlank), m.playing, m.empty) }
+            },
+            drawer = dto.drawer.map { g ->
+                DrawerGroup(g.name, g.onYou, g.items.mapNotNull { i ->
+                    val fits = when (i.fits) {
+                        "media" -> DrawerFit.MEDIA
+                        "battery" -> DrawerFit.BATTERY
+                        "headphones" -> DrawerFit.HEADPHONES
+                        else -> null
+                    }
+                    if (i.id == null || fits == null) null else DrawerItem(i.id, i.name.ifEmpty { "?" }, i.icon, fits, i.count ?: 1)
+                })
+            }.filter { it.items.isNotEmpty() },
         )
     }
 

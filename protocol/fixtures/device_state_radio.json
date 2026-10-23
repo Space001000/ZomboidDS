@@ -1,0 +1,60 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 81,
+ "data": {
+  "id": "c-91",
+  "ok": true,
+  "data": {
+   "name": "ValuTech Radio",
+   "icon": "Item_RadioBlack",
+   "where": "hand",
+   "on": true,
+   "volume": 0.4,
+   "channel": 93200,
+   "channelName": "LBMW - Kentucky Radio",
+   "presets": [
+    {
+     "name": "LBMW - Kentucky Radio",
+     "frequency": 93200
+    },
+    {
+     "name": "NNR Radio",
+     "frequency": 98000
+    }
+   ],
+   "range": {
+    "min": 88000,
+    "max": 108000
+   },
+   "maxPresets": 10,
+   "battery": {
+    "level": 0.63,
+    "has": true
+   },
+   "headphones": {
+    "slot": true
+   },
+   "drawer": [
+    {
+     "onYou": true,
+     "items": [
+      {
+       "id": 601,
+       "name": "Battery",
+       "icon": "Item_Battery",
+       "fits": "battery",
+       "count": 3
+      },
+      {
+       "id": 602,
+       "name": "Earbuds",
+       "icon": "Item_Earbuds",
+       "fits": "headphones"
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

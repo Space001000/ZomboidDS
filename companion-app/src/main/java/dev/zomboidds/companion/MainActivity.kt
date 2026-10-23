@@ -101,6 +101,7 @@ class MainActivity : ComponentActivity() {
                 crafting = gateway,
                 building = gateway,
                 tailoring = gateway,
+                devices = gateway,
                 devTools = remember { DevTools(gateway) },
                 craftMode = craftMode,
                 onCraftModeChange = container.settings::setCraftMode,

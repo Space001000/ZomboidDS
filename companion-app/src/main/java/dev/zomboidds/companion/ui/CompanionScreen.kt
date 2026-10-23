@@ -64,6 +64,7 @@ import dev.zomboidds.companion.domain.BridgeInfo
 import dev.zomboidds.companion.domain.Building
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ConnectionStatus
+import dev.zomboidds.companion.domain.Devices
 import dev.zomboidds.companion.domain.Crafting
 import dev.zomboidds.companion.domain.GameControls
 import dev.zomboidds.companion.domain.GameEvent
@@ -101,6 +102,7 @@ fun CompanionScreen(
     crafting: Crafting? = null,
     building: Building? = null,
     tailoring: Tailoring? = null,
+    devices: Devices? = null,
     /** The development builds' tools (test kits); empty in a release build. */
     devTools: DevTools? = null,
     /** What the Craft tab shows (its ▾ menu), and how to change it. */
@@ -123,7 +125,7 @@ fun CompanionScreen(
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
                     InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting,
-                        building, tailoring, devTools, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange, map, tabSettings)
+                        building, tailoring, devices, devTools, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange, map, tabSettings)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     var licences by remember { mutableStateOf(false) }
@@ -179,6 +181,7 @@ private fun InGame(
     crafting: Crafting?,
     building: Building?,
     tailoring: Tailoring?,
+    devices: Devices?,
     devTools: DevTools?,
     craftMode: CraftMode,
     onCraftModeChange: (CraftMode) -> Unit,
@@ -238,6 +241,8 @@ private fun InGame(
     val unpause: () -> Unit = { scope.launch { controls.setSpeed(GameSpeed.PLAY) } }
     // Inspect on a garment in the game: its garment panel here, over whatever tab is open.
     var garmentShown by remember { mutableStateOf<Long?>(null) }
+    // Device Options in the game: the device panel, over whatever tab is open.
+    var deviceShown by remember { mutableStateOf(false) }
     LaunchedEffect(events) {
         events.collect { event ->
             when (event) {
@@ -246,6 +251,7 @@ private fun InGame(
                     showRequest = ShowRequest(event.containerId)
                 }
                 is GameEvent.ShowGarment -> garmentShown = event.itemId
+                GameEvent.ShowDevice -> deviceShown = true
             }
         }
     }
@@ -302,6 +308,9 @@ private fun InGame(
                 if (shownGarment != null && tailoring != null) {
                     GarmentPanel(tailoring, actions, shownGarment, iconUrl, changes = state.inventory to state.containers,
                         time = state.time, onUnpause = unpause, onClose = { garmentShown = null })
+                }
+                if (deviceShown && devices != null) {
+                    DevicePanel(devices, iconUrl, onClose = { deviceShown = false })
                 }
             }
         }

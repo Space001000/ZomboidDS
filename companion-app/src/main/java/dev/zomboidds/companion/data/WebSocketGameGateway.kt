@@ -4,6 +4,8 @@ import android.util.Log
 import dev.zomboidds.companion.domain.BuildList
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ConnectionStatus
+import dev.zomboidds.companion.domain.DeviceControl
+import dev.zomboidds.companion.domain.DeviceState
 import dev.zomboidds.companion.domain.Fetched
 import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameGateway
@@ -160,6 +162,15 @@ class WebSocketGameGateway(
 
     override suspend fun garmentMenu(itemId: Long, partId: String): ItemMenuResult =
         menuFrom(send(ProtocolV1.tailorMenuRequest(itemId, partId)))
+
+    override suspend fun deviceState(): Fetched<DeviceState> =
+        fetched(send(ProtocolV1.deviceStateRequest()), "The device couldn't be read", ProtocolV1::deviceState)
+
+    override suspend fun deviceControl(control: DeviceControl): CommandResult = send(ProtocolV1.deviceControlRequest(control)).result
+
+    override suspend fun closeDevice() {
+        send(ProtocolV1.deviceCloseRequest())
+    }
 
     private fun <T> fetched(reply: ProtocolV1.ServerMessage.Reply, unreadable: String, parse: (JsonElement?) -> T): Fetched<T> =
         when (val result = reply.result) {

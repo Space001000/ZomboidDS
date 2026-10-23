@@ -1,0 +1,72 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 80,
+ "data": {
+  "id": "c-90",
+  "ok": true,
+  "data": {
+   "name": "ValuTech Television",
+   "icon": "appliances_television_01_0_Icon",
+   "on": true,
+   "tv": true,
+   "volume": 0.6,
+   "channel": 200,
+   "channelName": "Triple-N",
+   "presets": [
+    {
+     "name": "Triple-N",
+     "frequency": 200
+    },
+    {
+     "name": "WBLN News",
+     "frequency": 201
+    },
+    {
+     "name": "Life and Living TV",
+     "frequency": 203
+    }
+   ],
+   "grid": {
+    "power": true,
+    "text": "Has power."
+   },
+   "media": {
+    "type": "vhs",
+    "name": "VHS: Breaking Points",
+    "playing": true,
+    "empty": "- NO TAPE -"
+   },
+   "drawer": [
+    {
+     "onYou": true,
+     "items": [
+      {
+       "id": 501,
+       "name": "VHS: Pleistocene Land",
+       "icon": "Item_Cassette3",
+       "fits": "media"
+      },
+      {
+       "id": 502,
+       "name": "VHS: Eagle Down",
+       "icon": "Item_Cassette3",
+       "fits": "media"
+      }
+     ]
+    },
+    {
+     "name": "Shelves",
+     "items": [
+      {
+       "id": 503,
+       "name": "VHS: Home Invaders 2",
+       "icon": "Item_Cassette3",
+       "fits": "media"
+      }
+     ]
+    }
+   ]
+  }
+ }
+}
