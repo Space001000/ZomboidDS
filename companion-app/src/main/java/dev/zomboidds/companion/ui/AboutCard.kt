@@ -101,6 +101,7 @@ private val SPLASHES = listOf(
     "Don't trust the fridge after day seven.",
     "Bugs go in the Discord, not in your arm.",
     "Built on a lot of coffee.",
+    "Like it? Buy me a coffee on Ko-fi.",
     "Tap, hold, drag. No more digging through menus.",
     "The other screen finally pulls its weight.",
     "Sneak more, sprint less.",

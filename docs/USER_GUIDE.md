@@ -64,11 +64,11 @@ your character:
 - **Inventory**: your inventory and bags, and every container around you (drawers, shelves, the
   floor, ...). Yours are on top and the ones around you below, or side by side (yours on the left),
   or one container at a time. The open container's tab shows its name and weight; the others show
-  the game's icon (tap one to open it). Opening a container's tab outlines it in the game.
+  their icon (tap one to open it). Opening a container's tab outlines it on the top screen.
   - Tap an item: on the left **Move to**, every container it can go to, one tap each (your bags,
-    then the ones around you, the open one outlined). On the right the game's own menu for it: its
+    then the ones around you, the open one outlined). On the right its menu: its
     main uses as buttons on top (eat, drink, wear, read, apply bandage, reload, turn on, ...; equip
-    and attach for weapons), the rest below. Buttons with **›** unfold the game's choices (Eat: all,
+    and attach for weapons), the rest below. Buttons with **›** unfold the choices (Eat: all,
     half, quarter).
   - Or **hold an item a moment and drag it** onto a container's tab, or onto the other open
     container's items. The places it can go light up green.
@@ -77,21 +77,21 @@ your character:
     one, and each can be tapped, picked or dragged on its own. Tap **×5 ▴** to fold it again.
   - **Several at once:** hold an item and let go without moving to pick it; then tap more to add
     or remove them. Or draw a box from empty space over the items. **N selected ›** opens the panel
-    for all of them (Move to, the game's menu for the lot), dragging one of them takes them all,
+    for all of them (Move to, the menu for the lot), dragging one of them takes them all,
     and **✕** or a tap on empty space lets go.
   - Your worn clothes are folded into one **Worn** tile: tap it to show them, tap again to fold.
   - A thin bar under an item means it's damaged (green, yellow, red); undamaged items have none.
-  - Food is named the way the game names it: "Steak (Fresh, Cooked)". In the list the words are
+  - Food says how fresh and cooked it is in its name: "Steak (Fresh, Cooked)". In the list the words are
     coloured (green fresh, yellow stale or uncooked, red rotten or burnt); on a tile a dot shows
     how fresh and the corner says Cooked, Uncooked or Burnt. While food heats in an oven or on a
     stove, a bar along its bottom fills while it cooks and turns red once it's burning.
   - Bottles, pots and other fluid containers show how full they are: "0.3 / 0.6 L" in the list, a
-    bar along the tile's bottom, and in the panel what's in them in the game's colour.
-  - Read books and magazines, watched tapes and heard CDs get the game's tick. Items you set
-    Unwanted in the game (the item's menu, under More) are faded, like the game greys them.
+    bar along the tile's bottom, and in the panel what's in them, in its colour.
+  - Read books and magazines, watched tapes and heard CDs get a tick. Items you set
+    Unwanted (the item's menu, under More) are faded.
   - **Take all** and **Put all** move everything, so they ask first: tap once (the button turns red
     and asks), tap again within 3 seconds to do it. Take all puts things in the bag you have open in
-    your half (your main inventory if none), like the game's Loot all.
+    your half (your main inventory if none), same as Loot all.
   - The two small buttons at the top right pick the layout (top and bottom, side by side, one at a
     time) and switch between grid and list.
 - **Here**: what you can do where you stand (open a door, sit, drink, ...), as cards per object,
@@ -102,35 +102,35 @@ your character:
   **In a vehicle** this tab becomes **Vehicle**: speed, engine and fuel, and the car's own menu (the
   one the controller's radial menu shows) as big buttons: start the engine, headlights, heater,
   horn, windows, doors, sleep, switch seat, get out, ...
-- **Deck**, your command deck: the game's speed buttons (pause, play, fast forward, wait), the time
-  and your alarm (with a watch, as in the game), and the commands you choose. **Add or edit** lists
+- **Deck**, your command deck: the speed buttons (pause, play, fast forward, wait), the time
+  and your alarm (if you wear a watch), and the commands you choose. **Add or edit** lists
   them all: zoom in and out, search mode, flashlight, map, sit, drop bag (asks first), shout,
   **Weapons** (your hotbar: tap an item on your belt or back to draw it; on by default) and **Alarm** (set your
   watch). Switch them on and drag them into your order; a green dot shows a mode that's on.
-- **Status**: your moodles along the top, like in the game (hungry, thirsty, bleeding, ...; tap one
+- **Status**: your moodles along the top (hungry, thirsty, bleeding, ...; tap one
   for what it means). Below, your body with injured parts in colour, what's wrong with each (as your
-  First Aid skill lets you see it), and **Treat ›** for the game's own treatments (bandage,
+  First Aid skill lets you see it), and **Treat ›** for the treatments (bandage,
   disinfect, ...). While the game is paused, the treatments wait: tap **Unpause** and they appear.
 - **Map**, on saves that allow the game's minimap (Sandbox options, Map, Allow Mini-Map): the
   minimap, beside **Here** or on a tab of its own (the button in the map's top-left corner moves it).
-  It follows you and only shows what you've explored, like the game's minimap. **+** and **−** zoom,
+  It follows you and only shows what you've explored. **+** and **−** zoom,
   dragging looks around (it comes back after a few seconds, or with **⌖**), and the **star** shows
-  your map symbols and notes and the game's place names. To have it on every save, tick **Map on
+  your map symbols and notes and place names. To have it on every save, tick **Map on
   every save** in the game's Options → Mods → ZomboidDS.
-- **Craft**: the game's recipes, by default only the ones you can make now with what's in reach
+- **Craft**: the recipes, by default only the ones you can make now with what's in reach
   (your bags and the containers around you); categories along the top. Tap one to see what it needs
   (✓ have, ✗ missing), what it makes and how long it takes, then **Craft** (− / + for several). Your
-  character fetches the ingredients and does it, like with the game's crafting window.
-- **Build**: tap the arrow on **Craft ▾** and pick Build for the game's build menu (Craft ▾ switches
+  character fetches the ingredients and does it.
+- **Build**: tap the arrow on **Craft ▾** and pick Build for the build menu (Craft ▾ switches
   back). Things that come in versions (Wood Chair Shoddy, Poor, Good) are one tile; pick the version
-  in its panel. **Place** brings up the game's cursor on the top screen: the d-pad moves it, LB/RB
+  in its panel. **Place** brings up the placement cursor on the top screen: the d-pad moves it, LB/RB
   turn it, A builds, B stops. The cursor stays up for the next one. While it's up, the bottom screen
   says what you're placing (red when something runs out), with **Stop**.
 - **Tailor** (Craft ▾ → Tailor): your clothes, worn ones first, then what's in your bags. Red corners
   count holes; ✕ means the game can't repair it (boots, helmets). The line above shows your needle,
-  thread and fabrics (Rag, Denim Strips, Leather Strips). Tap a garment for the game's Inspect view:
+  thread and fabrics (Rag, Denim Strips, Leather Strips). Tap a garment for its Inspect view:
   each body part it covers with its Bite and Scratch protection, holes, blood and patches. Tap a part
-  for the game's choices there (Patch Hole or Add Padding with a fabric, Remove Patch); your character
+  for what you can do there (Patch Hole or Add Padding with a fabric, Remove Patch); your character
   sews it, and the part shows the progress. **Inspect** in a garment's item panel opens the same view.
 - **TVs, radios, walkie-talkies and CD players**: **Device Options** (on a Here card, in an item's
   panel, in the car, or the controller button when you face the device) opens the device on the bottom

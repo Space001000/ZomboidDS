@@ -11,19 +11,19 @@
 
 Nintendo DS-style dual-screen play for Project Zomboid on handhelds like the AYN Thor. The game
 runs on the top screen (through [Zomdroid](https://github.com/udarmolota/zomdroid)); the
-**ZomboidDS Companion** app on the bottom screen, in the game's own art:
+**ZomboidDS Companion** app on the bottom screen, in the game's art:
 
 - **Inventory**: your bags and every container around you, with the game's icons; move items with a
-  tap or by dragging, and use them through the game's own item menu (read, eat, apply, craft, ...).
+  tap or by dragging, and use them through their menu (read, eat, apply, craft, ...).
 - **Here**: what you can do where you stand (open, sit, drink, ...); in a car, the car's own menu.
-- **Deck**: the game's speed buttons, the time, and your own commands: zoom, search mode, flashlight,
+- **Deck**: the speed buttons, the time, and your own commands: zoom, search mode, flashlight,
   map, your hotbar weapons, your watch's alarm, ...
-- **Status**: the game's moodles, your body with its injuries, and the game's treatments.
+- **Status**: your moodles, your body with its injuries, and how to treat them.
 - **Craft**: the recipes you can make with what's in reach, what each needs, and crafting them.
-- **Build**: the game's build menu (Craft ▾ → Build); pick something, then place it with the game's
-  own cursor and the controller.
-- **Tailor**: your clothes with their holes and patches (Craft ▾ → Tailor), and the game's Inspect
-  view to patch them part by part.
+- **Build**: the build menu (Craft ▾ → Build); pick something, then place it on the top screen with
+  the controller.
+- **Tailor**: your clothes with their holes and patches (Craft ▾ → Tailor), and the Inspect view to
+  patch them part by part.
 - **Vehicle**: while you drive, speed, engine and fuel with the car's controls.
 
 ## Install
