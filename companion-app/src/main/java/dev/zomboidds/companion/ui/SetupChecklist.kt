@@ -5,6 +5,14 @@ import java.io.File
 import dev.zomboidds.companion.setup.AppUpdateState
 import dev.zomboidds.companion.setup.AppRelease
 import dev.zomboidds.companion.BuildConfig
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,13 +52,36 @@ private enum class Check { OK, TODO, BLOCKED }
 
 /**
  * Every step the user needs, top to bottom. Each unmet step says what to do, with a button when
- * the app can do it itself. Later steps stay greyed out until the earlier ones are done.
+ * the app can do it itself. Later steps stay greyed out until the earlier ones are done. Once
+ * everything is done it folds into one line ("All set"), so the About card below shows too; a tap
+ * unfolds the steps. It unfolds by itself when something needs doing again (an update, a new mod).
  */
 @Composable
 fun SetupChecklist(report: SetupReport, update: AppUpdateState, gameStep: String, actions: SetupActions) {
+    val allSet = report.ready && report.zombieBuddy == ZombieBuddyStatus.OK && report.busy == null && report.error == null &&
+        (update is AppUpdateState.Disabled || update is AppUpdateState.Checking || update is AppUpdateState.UpToDate)
+    var unfolded by rememberSaveable { mutableStateOf(false) }
+    if (allSet && !unfolded) {
+        Card(Modifier.fillMaxWidth().clickable { unfolded = true }) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("✓", Modifier.width(28.dp), color = Good, fontWeight = FontWeight.Bold)
+                Column(Modifier.weight(1f)) {
+                    Text("All set", fontWeight = FontWeight.SemiBold)
+                    Text(gameStep, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Box(Modifier.padding(start = 12.dp).size(32.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.scale(1.5f)) { Chevron(MaterialTheme.colorScheme.primary) }
+                }
+            }
+        }
+        return
+    }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Setup", style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Setup", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                if (allSet) TextButton(onClick = { unfolded = false }) { Text("Hide") }
+            }
             report.busy?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
             report.error?.let { Text(it, color = ErrorText) }
 

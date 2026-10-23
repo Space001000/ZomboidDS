@@ -438,7 +438,7 @@ private val CraftMode.icon: String
 
 /** A small ▾. */
 @Composable
-private fun Chevron(color: Color) {
+internal fun Chevron(color: Color) {
     Canvas(Modifier.size(10.dp, 6.dp)) {
         val stroke = 1.7.dp.toPx()
         val path = Path().apply {
