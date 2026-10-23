@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -41,6 +42,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -129,13 +131,20 @@ fun CompanionScreen(
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     var licences by remember { mutableStateOf(false) }
+                    val setupScroll = rememberScrollState()
+                    val scope = rememberCoroutineScope()
                     Column(
-                        Modifier.padding(24.dp).verticalScroll(rememberScrollState()),
+                        Modifier.padding(24.dp).verticalScroll(setupScroll),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         StatusHeader(state, connection)
                         SetupChecklist(setup, update, gameStep(connection), setupActions)
                         AboutCard(openUrl = setupActions::openUrl, onLicences = { licences = true }, onWhatsNew = { whatsNewOpen = true })
+                    }
+                    if (setupScroll.canScrollForward) {
+                        ScrollToEndButton(Modifier.align(Alignment.TopEnd).padding(12.dp)) {
+                            scope.launch { setupScroll.animateScrollTo(setupScroll.maxValue) }
+                        }
                     }
                     if (licences) LicencesPanel(onClose = { licences = false })
                 }
@@ -437,6 +446,22 @@ private fun Chevron(color: Color) {
             lineTo(size.width - stroke / 2, stroke / 2)
         }
         drawPath(path, color, style = Stroke(stroke, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+/** A round ▾ in the corner: straight down to the end of a long page (the About card below the checklist). */
+@Composable
+private fun ScrollToEndButton(modifier: Modifier, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 4.dp,
+        modifier = modifier.size(44.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Box(Modifier.scale(1.8f)) { Chevron(MaterialTheme.colorScheme.primary) }
+        }
     }
 }
 
