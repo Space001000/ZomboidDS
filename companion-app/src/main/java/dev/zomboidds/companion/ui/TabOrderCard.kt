@@ -37,8 +37,8 @@ private val TabRowGap = 6.dp
 internal class TabChoice(val id: String, val title: String, val icon: String? = null, val hint: String? = null)
 
 /**
- * The tab order, opened by holding a tab: one row per tab, dragged by its handle like the Deck
- * editor's. Changes apply at once, so the tab bar above the dim follows along. Sits just below
+ * The tab order, opened by holding a tab: one row per tab; drag a row (no hold needed) to move it.
+ * Changes apply while dragging, so the tab bar above the dim follows along. Sits just below
  * the tab bar to keep it in view; tapping the dimmed part closes it, like Done.
  */
 @Composable
@@ -74,7 +74,7 @@ internal fun BoxScope.TabOrderCard(
             ) {
                 // A column for icons only when a tab has one (Map on its own tab).
                 val icons = tabs.any { it.icon != null }
-                DragRows(tabs, key = { it.id }, rowHeight = TabRowHeight, gap = TabRowGap, onMove = onMove) { tab, handle, lifted ->
+                DragRows(tabs, key = { it.id }, rowHeight = TabRowHeight, gap = TabRowGap, onMove = onMove, afterLongPress = false) { tab, handle, lifted ->
                     TabOrderRow(tab, iconUrl, icons, handle, lifted)
                 }
             }
@@ -88,10 +88,11 @@ private fun TabOrderRow(tab: TabChoice, iconUrl: (String) -> String, icons: Bool
         shape = RoundedCornerShape(10.dp),
         color = if (lifted) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerHigh,
         shadowElevation = if (lifted) 6.dp else 0.dp,
-        modifier = Modifier.fillMaxWidth().height(TabRowHeight),
+        // The whole row drags, at once: the card is only for reordering.
+        modifier = handle.fillMaxWidth().height(TabRowHeight),
     ) {
         Row(Modifier.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(handle.width(28.dp).height(TabRowHeight), contentAlignment = Alignment.Center) {
+            Box(Modifier.width(28.dp).height(TabRowHeight), contentAlignment = Alignment.Center) {
                 Text("⋮⋮", color = MaterialTheme.colorScheme.outline)
             }
             if (icons) {
