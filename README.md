@@ -45,10 +45,8 @@ not affiliated with or endorsed by The Indie Stone.
 The app tells you when there's a new version. The [user guide](docs/USER_GUIDE.md) has every step in
 detail, launching both screens together with Cocoon, how to use each tab, and troubleshooting.
 
-**Build 42.21:** the update broke ZombieBuddy 2.3.3 for all Java mods, ZomboidDS included.
-ZombieBuddy 2.3.4 fixes it, and the next ZomboidDS update will download that version. Until then
-there's a workaround: see [Troubleshooting](docs/USER_GUIDE.md#troubleshooting) in the user guide.
-42.20 works as before.
+**Build 42.21** needs ZombieBuddy 2.3.4 or newer (2.3.3 can't load Java mods there). The app
+downloads 2.3.4, and its checklist offers **Update** when you have an older one.
 
 ## Community
 
