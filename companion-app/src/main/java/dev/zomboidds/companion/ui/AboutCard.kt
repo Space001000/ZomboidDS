@@ -104,6 +104,7 @@ private val SPLASHES = listOf(
     "Like it? Buy me a coffee on Ko-fi.",
     "Tap, hold, drag. No more digging through menus.",
     "The other screen finally pulls its weight.",
+    "All hands on deck.",
     "Sneak more, sprint less.",
     "One more day in Knox County.",
     "Braaains?",
