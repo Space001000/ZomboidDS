@@ -5,7 +5,7 @@ and vehicle on the bottom screen.
 
 ## What you need
 
-- An **AYN Thor** (other dual-screen handhelds may work, but aren't tested).
+- A **dual-screen Android device**, like the AYN Thor or a foldable phone.
 - **Your own copy of Project Zomboid** (Build 42): ZomboidDS is a mod, it doesn't include the game.
   Tested on 42.20 and 42.21. On 42.21 it needs ZombieBuddy 2.3.4 or newer, which the app gets for
   you.

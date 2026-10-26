@@ -9,9 +9,10 @@
 
 # ZomboidDS
 
-Nintendo DS-style dual-screen play for Project Zomboid on handhelds like the AYN Thor. The game
-runs on the top screen (through [Zomdroid](https://github.com/udarmolota/zomdroid)); the
-**ZomboidDS Companion** app on the bottom screen, in the game's art:
+Nintendo DS-style play for Project Zomboid on dual-screen Android devices, like the AYN Thor or
+a foldable phone. The game runs on the top screen (through
+[Zomdroid](https://github.com/udarmolota/zomdroid)); the **ZomboidDS Companion** app on the bottom
+screen, in the game's art:
 
 - **Inventory**: your bags and every container around you, with the game's icons; move items with a
   tap or by dragging, and use them through their menu (read, eat, apply, craft, ...).
