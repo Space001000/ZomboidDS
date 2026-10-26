@@ -192,5 +192,29 @@ lootPage.getIsVisible = function() return true end
 B42.snapshotContainers(player)
 check(refreshes == 2, "a visible window refreshes itself when drawn: left to the game")
 lootPage.getIsVisible = nil
+
+-- Something was moved (the game's actions set these flags, walking doesn't): inventory and
+-- containers are re-snapshotted on the next tick; the containers snapshot clears the flags.
+pageDirty = false
+ISInventoryPage.renderDirty = false
+check(B42.dirtyChannels(player) == nil, "nothing flagged: no channel")
+ISInventoryPage.renderDirty = true
+local channels = B42.dirtyChannels(player)
+check(channels ~= nil and channels[1] == "inventory" and channels[2] == "containers", "renderDirty: inventory and containers")
+B42.snapshotContainers(player)
+check(B42.dirtyChannels(player) == nil, "and the containers snapshot cleared it")
+pageDirty = true
+check(B42.dirtyChannels(player) ~= nil, "invPageDirty too")
+B42.snapshotContainers(player)
+check(B42.dirtyChannels(player) == nil and pageDirty == false, "cleared as well")
+ISInventoryPage.dirtyUI = nil
+ISInventoryPage.renderDirty = true
+check(B42.dirtyChannels(player) == nil, "without the game's refresh nothing could clear the flags: not used")
 ISInventoryPage = nil
+check(B42.dirtyChannels(player) == nil, "no inventory windows at all: no channel")
+local inventoryEvents = table.concat(B42.dirtyEvents.inventory, ",")
+check(not inventoryEvents:find("OnRefreshInventoryWindowContainers", 1, true),
+  "the inventory doesn't follow the containers refresh (every step)")
+check(table.concat(B42.dirtyEvents.containers, ","):find("OnRefreshInventoryWindowContainers", 1, true) ~= nil,
+  "the containers still do")
 print("ALL LUA CHECKS PASSED")

@@ -26,8 +26,9 @@ local B42 = {
     capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop", "item_menu",
                      "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "build", "tailor", "devices", "deck", "map" },
     dirtyEvents = {
-        inventory = { "OnContainerUpdate", "OnRefreshInventoryWindowContainers", "OnClothingUpdated",
-                      "OnEquipPrimary", "OnEquipSecondary" },
+        -- Not OnRefreshInventoryWindowContainers: it fires on every step, and walking doesn't change
+        -- what you carry. Moves into the inventory are caught by dirtyChannels below.
+        inventory = { "OnContainerUpdate", "OnClothingUpdated", "OnEquipPrimary", "OnEquipSecondary" },
         vehicle = { "OnEnterVehicle", "OnExitVehicle", "OnSwitchVehicleSeat" },
         -- The game refreshes its container lists when you move or turn (OnRefreshInventoryWindowContainers).
         containers = { "OnContainerUpdate", "OnRefreshInventoryWindowContainers" },
@@ -48,6 +49,13 @@ B42.snapshotHere = Here.snapshot
 B42.snapshotDeck = Deck.snapshot
 B42.snapshotMap = Map.snapshot
 B42.snapshotBuilding = Building.snapshot
+
+--- Something was moved, taken or dropped: the game flags its inventory windows for a refresh
+--- without an event (see Containers.windowsDirty). Both channels at once, on the next tick.
+local MOVED = { "inventory", "containers" }
+function B42.dirtyChannels(player)
+    return Containers.windowsDirty(player) and MOVED or nil
+end
 
 -- Player ---------------------------------------------------------------------
 

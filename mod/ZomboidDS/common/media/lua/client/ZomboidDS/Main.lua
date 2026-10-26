@@ -4,10 +4,12 @@ local Bridge = require("ZomboidDS/Core/Bridge")
 local Commands = require("ZomboidDS/Core/Commands")
 local Config = require("ZomboidDS/Core/Config")
 local Emitter = require("ZomboidDS/Core/Emitter")
+local Perf = require("ZomboidDS/Core/Perf")
 
 local state = {
     adapter = nil,
     emitter = nil,
+    perf = nil,
     hadClients = false,
 }
 
@@ -17,19 +19,32 @@ local function onTick()
         return
     end
 
-    Commands.pump(Bridge, state.adapter, player, Config.maxCommandsPerTick)
+    local perf = state.perf
+    if perf then perf:beginTick() end
+
+    Commands.pump(Bridge, state.adapter, player, Config.maxCommandsPerTick, perf)
 
     -- Skip all snapshot work while nobody is listening. When someone connects, resend everything
     -- so they don't get stale state the bridge retained from earlier.
     if Bridge.clients() == 0 then
         state.hadClients = false
-        return
+    else
+        if not state.hadClients then
+            state.hadClients = true
+            state.emitter:invalidate()
+        end
+        if state.adapter.dirtyChannels then
+            local ok, channels = pcall(state.adapter.dirtyChannels, player)
+            if ok and channels then
+                for _, channel in ipairs(channels) do
+                    state.emitter:markDirty(channel)
+                end
+            end
+        end
+        state.emitter:update(player)
     end
-    if not state.hadClients then
-        state.hadClients = true
-        state.emitter:invalidate()
-    end
-    state.emitter:update(player)
+
+    if perf then perf:endTick() end
 end
 
 local function wireDirtyEvents(adapter, emitter)
@@ -81,7 +96,11 @@ local function onGameStart()
     end
     print("[ZomboidDS] using adapter " .. adapter.id .. " for game version " .. versionText)
 
-    local emitter = Emitter.new(Bridge)
+    if Config.perfReportMs then
+        state.perf = Perf.new(Bridge.clockMs, Config.perfReportMs, nil, Bridge.gcCount() and Bridge.gcCount or nil)
+        print("[ZomboidDS] timings on: a summary every " .. Config.perfReportMs .. " ms")
+    end
+    local emitter = Emitter.new(Bridge, nil, state.perf)
     emitter:addChannel("player", adapter.snapshotPlayer, Config.intervalsMs.player)
     emitter:addChannel("inventory", adapter.snapshotInventory, Config.intervalsMs.inventory)
     -- Channels an adapter may leave out (an older game build without them).

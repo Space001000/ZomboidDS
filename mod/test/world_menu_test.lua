@@ -146,4 +146,23 @@ check(B42.snapshotHere(player).watching == false, "watching expires unless the a
 B42.commands.watch_here(player, { on = true })
 B42.commands.watch_here(player, { on = false })
 check(B42.snapshotHere(player).watching == false, "the app stops watching when the Deck closes")
+
+-- With the Java bridge the options are compared there (a stand-in comparing like it does).
+local compared = {}
+local Signature = require("ZomboidDS/Core/Signature")
+local savedBridge = ZomboidDSBridge
+ZomboidDSBridge = { sameAsLast = function(key, data)
+  local s = Signature.of(data)
+  local same = compared[key] == s
+  compared[key] = s
+  return same
+end }
+B42.commands.watch_here(player, { on = true })
+dir = "E"
+local viaJava = B42.snapshotHere(player)
+check(compared.worldMenu ~= nil and viaJava.menuId ~= sel.menuId, "compared in Java: nothing to compare with yet, so a new id")
+dir = "N"
+local viaJava2 = B42.snapshotHere(player)
+check(builds == 8 and viaJava2.menuId == viaJava.menuId, "the same options keep their id when Java compares")
+ZomboidDSBridge = savedBridge
 print("ALL LUA CHECKS PASSED")

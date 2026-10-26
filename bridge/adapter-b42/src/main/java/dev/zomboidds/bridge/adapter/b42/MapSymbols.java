@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import zombie.Lua.LuaManager;
 import zombie.ZomboidFileSystem;
 import zombie.core.Translator;
@@ -26,17 +28,23 @@ import zombie.worldMap.symbols.WorldMapTextureSymbol;
  * symbol list only the player's own ({@code userDefined}): the labels are read from their files.
  *
  * <p>Position, colour and scale are package-private fields of {@code WorldMapBaseSymbol}, read by
- * reflection; only ever read. Called on the game thread.
+ * reflection; only ever read. Called on the game thread; the label files are read on a background one.
  */
 final class MapSymbols {
 
     private static final long CHECK_EVERY_MS = 2_000;
 
     private final Map<String, Field> fields = new LinkedHashMap<>();
+    private final Executor background;
     private boolean broken;
     private List<Map<String, Object>> lastSent;
-    private List<Map<String, Object>> labels;
+    /** The labels, read once per game on [background]: reading every map's file took ~130 ms on the Thor. */
+    private CompletableFuture<List<Map<String, Object>>> labels;
     private long nextCheck;
+
+    MapSymbols(Executor background) {
+        this.background = background;
+    }
 
     /** The player's symbols if they changed since the last call that returned them, at most every 2 s. */
     Map<String, Object> changed(long now) {
@@ -51,9 +59,14 @@ final class MapSymbols {
                 return null;
             }
             if (labels == null) {
-                labels = readLabels();
+                List<String> files = labelFiles();
+                labels = CompletableFuture.supplyAsync(() -> readLabels(files), background);
             }
-            List<Map<String, Object>> list = new ArrayList<>(labels);
+            if (!labels.isDone()) {
+                nextCheck = now; // look again on the next call, not in 2 s
+                return null;
+            }
+            List<Map<String, Object>> list = new ArrayList<>(labels.getNow(List.of()));
             for (int i = 0; i < symbols.getSymbolCount(); i++) {
                 Map<String, Object> symbol = describe(symbols.getSymbolByIndex(i));
                 if (symbol != null) {
@@ -113,20 +126,34 @@ final class MapSymbols {
     }
 
     /**
-     * Every map's labels, like the game's MapUtils.initDefaultAnnotations: the map folders in use
-     * (mods first), resolved through the game's file system so mod maps are found too.
+     * Every map's label file, like the game's MapUtils.initDefaultAnnotations: the map folders in use
+     * (mods first), resolved through the game's file system so mod maps are found too. Game thread.
      */
-    private static List<Map<String, Object>> readLabels() {
-        List<Map<String, Object>> all = new ArrayList<>();
+    private static List<String> labelFiles() {
+        List<String> files = new ArrayList<>();
         for (String dir : LuaManager.GlobalObject.getLotDirectories()) {
+            String path = ZomboidFileSystem.instance.getString("media/maps/" + dir + "/worldmap-annotations.lua");
+            if (path != null) {
+                files.add(path);
+            }
+        }
+        return files;
+    }
+
+    /**
+     * The labels in [files]. Runs on the background thread: it only reads the files, translations
+     * and symbol definitions, which the game loaded before any game starts and doesn't change.
+     */
+    private static List<Map<String, Object>> readLabels(List<String> files) {
+        List<Map<String, Object>> all = new ArrayList<>();
+        for (String path : files) {
             try {
-                String path = ZomboidFileSystem.instance.getString("media/maps/" + dir + "/worldmap-annotations.lua");
-                Path file = path != null ? Path.of(path) : null;
-                if (file != null && Files.isRegularFile(file)) {
+                Path file = Path.of(path);
+                if (Files.isRegularFile(file)) {
                     all.addAll(MapLabels.parse(Files.readString(file), key -> Translator.getText(key), MapSymbols::iconName));
                 }
             } catch (IOException | RuntimeException e) {
-                Log.error("can't read the map labels of " + dir, e);
+                Log.error("can't read the map labels in " + path, e);
             }
         }
         return all;

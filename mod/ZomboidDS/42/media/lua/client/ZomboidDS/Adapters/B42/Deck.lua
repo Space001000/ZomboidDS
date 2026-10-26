@@ -2,6 +2,7 @@
 --- binding does in the game (42.20 Lua, checked per command below). Names are the game's own key
 --- binding texts, so they follow the player's language.
 local Util = require("ZomboidDS/Adapters/B42/Util")
+local Signature = require("ZomboidDS/Core/Signature")
 local try = Util.try
 
 local Deck = {}
@@ -258,7 +259,8 @@ local function ordered(keys, known)
 end
 
 --- The wheel's groups (not Shout, a command of its own): { id, name, icon, emotes = { { id, name, icon } } }.
---- Built once per wheel menu (it only changes when the game rebuilds it).
+--- Built once per wheel menu (it only changes when the game rebuilds it), and marked as never
+--- changing, so the Deck's change check (every 500 ms) doesn't go through it again either.
 local builtFor, builtGroups
 local function emoteGroups()
     local menu = emoteMenu()
@@ -278,7 +280,7 @@ local function emoteGroups()
         end
         table.insert(groups, { id = key, name = group.name, icon = uiIcon(icons[key]), emotes = emotes })
     end
-    builtFor, builtGroups = menu, groups
+    builtFor, builtGroups = menu, Signature.constant(groups)
     return groups
 end
 

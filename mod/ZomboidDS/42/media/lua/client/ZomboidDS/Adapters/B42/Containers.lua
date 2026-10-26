@@ -71,6 +71,18 @@ local function refreshHiddenWindows(player, pages)
     ISInventoryPage.dirtyUI()
 end
 
+--- Whether the game has flagged its inventory windows for a refresh: what its timed actions do after
+--- moving, taking or dropping something (ISInventoryTransferAction, ISGrabItemAction, ...:
+--- ISInventoryPage.renderDirty; the player's invPageDirty). Walking sets neither. The containers
+--- snapshot clears them (refreshHiddenWindows), as a visible game window does when it's drawn.
+--- Called every tick: two reads.
+function Containers.windowsDirty(player)
+    if ISInventoryPage == nil or ISInventoryPage.dirtyUI == nil then
+        return false -- refreshHiddenWindows couldn't clear them either
+    end
+    return ISInventoryPage.renderDirty == true or try(player, "isInvPageDirty") == true
+end
+
 function Containers.snapshot(player)
     local playerNum = player:getPlayerNum()
     local pages = {}

@@ -8,6 +8,10 @@ local Config = {
     -- Commands executed per tick at most, so a burst from the app can't stall a frame.
     maxCommandsPerTick = 8,
 
+    -- How often (ms) to write the mod's timings to the game log (Core/Perf.lua); nil = off. Only
+    -- the dev builds set it (mod/dev, Dev/Perf.lua).
+    perfReportMs = nil,
+
     -- How often each channel is re-sampled even without a change event. Unchanged data isn't
     -- re-sent, so these mostly bound how stale polled values (health, speed) can get.
     intervalsMs = {

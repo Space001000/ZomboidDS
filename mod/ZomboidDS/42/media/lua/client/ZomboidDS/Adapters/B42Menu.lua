@@ -11,6 +11,7 @@
 ---   * a click is option.onSelect(option.target, option.param1, ..., option.param10)
 --- The game reuses ONE menu object per player and wipes its option tables when the next menu
 --- opens, so we copy what we need instead of keeping references to them.
+local Bridge = require("ZomboidDS/Core/Bridge")
 local Signature = require("ZomboidDS/Core/Signature")
 local Util = require("ZomboidDS/Adapters/B42/Util")
 
@@ -411,6 +412,23 @@ local function markWorld(player, prompts, options, calls)
 end
 
 --- Returns true, nil, { menuId, options } or false, reason.
+--- The id for a new world (or vehicle) menu: the last one's if its options are the same (standing
+--- still), so the app sees no change; else a new one. Compared in Java when the bridge can (walking the
+--- options in Lua cost as much as copying them); else with a Signature, returned to keep for next time.
+local function worldMenuId(options)
+    local previous = menus.world
+    local same, signature = Bridge.sameAsLast("worldMenu", options), nil
+    if same == nil then
+        signature = Signature.of(options)
+        same = previous ~= nil and previous.signature == signature
+    end
+    if previous ~= nil and same then
+        return previous.id, signature
+    end
+    nextMenuId = nextMenuId + 1
+    return "m" .. nextMenuId, signature
+end
+
 function B42Menu.openWorld(player)
     local playerNum = player:getPlayerNum()
     local prompts = getButtonPrompts and getButtonPrompts(playerNum)
@@ -448,16 +466,7 @@ function B42Menu.openWorld(player)
         print("[ZomboidDS] Here: could not mark the world menu: " .. tostring(err))
     end
 
-    -- Same options as the last world menu (standing still): keep its id, so the app sees no change.
-    local signature = Signature.of(options)
-    local previous = menus.world
-    local id
-    if previous ~= nil and previous.signature == signature then
-        id = previous.id
-    else
-        nextMenuId = nextMenuId + 1
-        id = "m" .. nextMenuId
-    end
+    local id, signature = worldMenuId(options)
     menus.world = { id = id, created = getTimestampMs(), calls = calls, signature = signature, world = true,
                     square = square, dir = player:getDir() }
     return true, nil, { menuId = id, options = options }
@@ -495,15 +504,7 @@ function B42Menu.openVehicle(player, vehicle)
     name = name and getText("IGUI_VehicleName" .. name) or "Vehicle"
     local options = { { id = "1", name = name, enabled = true, children = children } }
 
-    local signature = Signature.of(options)
-    local previous = menus.world
-    local id
-    if previous ~= nil and previous.signature == signature then
-        id = previous.id
-    else
-        nextMenuId = nextMenuId + 1
-        id = "m" .. nextMenuId
-    end
+    local id, signature = worldMenuId(options)
     menus.world = { id = id, created = getTimestampMs(), calls = calls, signature = signature, vehicle = vehicle }
     return true, nil, { menuId = id, options = options }
 end

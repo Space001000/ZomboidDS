@@ -26,14 +26,17 @@ local function describeArgs(args)
     return table.concat(parts, " ")
 end
 
-function Commands.pump(bridge, adapter, player, max)
+--- @param perf optional Perf (Core/Perf.lua) that times each command
+function Commands.pump(bridge, adapter, player, max, perf)
     local batch = bridge.poll(max)
     if batch == nil then
         return
     end
     for i = 1, #batch do
         local command = batch[i]
+        local started = perf and perf:now()
         local ok, reason, data = execute(adapter, player, command)
+        if perf then perf:command(tostring(command.name), perf:now() - started) end
         -- One line per command, so a report like "it didn't move" can be checked in the game log.
         print("[ZomboidDS] command " .. tostring(command.name) .. " " .. describeArgs(command.args)
             .. " -> " .. (ok and "ok" or ("failed: " .. tostring(reason))))

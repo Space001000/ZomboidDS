@@ -4,9 +4,18 @@ local try, round = Util.try, Util.round
 
 local Items = {}
 
+-- Texture path -> the name the bridge's /icons endpoint knows it by. A handful of paths, looked up
+-- for every item of every snapshot: two string replacements each saved.
+local iconNames = {}
+
 --- Texture name as the bridge's /icons endpoint knows it (e.g. "Item_Axe").
 local function iconName(item)
-    local name = Util.textureFileName(try(try(item, "getTex"), "getName"))
+    local path = try(try(item, "getTex"), "getName")
+    local name = path and iconNames[path]
+    if name == nil and path ~= nil then
+        name = Util.textureFileName(path)
+        iconNames[path] = name
+    end
     if name then
         return name
     end
@@ -17,9 +26,13 @@ local function iconName(item)
     return nil
 end
 
-local function equippedSlot(player, item)
-    local primary = try(player, "getPrimaryHandItem")
-    local secondary = try(player, "getSecondaryHandItem")
+--- What's in the player's hands: read once per container, not once per item.
+local function handsOf(player)
+    return { primary = try(player, "getPrimaryHandItem"), secondary = try(player, "getSecondaryHandItem") }
+end
+
+local function equippedSlot(player, item, hands)
+    local primary, secondary = hands.primary, hands.secondary
     if item == primary and item == secondary then
         return "both"
     elseif item == primary then
@@ -69,16 +82,24 @@ local function actionsFor(item, equipped)
     return actions
 end
 
+-- Category -> its translated name; the game's translations don't change during a game.
+local categoryNames = {}
+
 --- The category as the game's inventory list shows it ("Cooking", not "CookingWeapon").
 local function categoryName(item)
     local category = try(item, "getDisplayCategory") or try(item, "getCategory")
     if category == nil then
         return nil
     end
+    local cached = categoryNames[category]
+    if cached ~= nil then
+        return cached
+    end
     local ok, text = pcall(getText, "IGUI_ItemCat_" .. category)
     if not ok or text == nil or text == "IGUI_ItemCat_" .. category then
-        return category -- no translation (e.g. a mod's category)
+        text = category -- no translation (e.g. a mod's category)
     end
+    categoryNames[category] = text
     return text
 end
 
@@ -184,14 +205,15 @@ end
 
 --- An item as the app shows it. `inInventory`: whether it's in the player's main inventory, the
 --- only place the quick actions (equip, wear, drop) apply; elsewhere the app moves it first.
-function Items.describe(player, item, inInventory)
+--- `hands`: optional, what's in the player's hands (handsOf), when describing many items at once.
+function Items.describe(player, item, inInventory, hands)
     -- Food ages, freezes and thaws only when something asks (Food:updateAge catches up on the hours
     -- since it last did); in single player that's the game's inventory window, which does this for
     -- every item it draws (42.20 ISInventoryPane:renderdetails). With that window closed and only
     -- the app open, food stayed frozen and fresh, then rotted at once without the mod.
     try(item, "updateAge")
     if instanceof(item, "Clothing") then try(item, "updateWetness") end
-    local equipped = equippedSlot(player, item)
+    local equipped = equippedSlot(player, item, hands or handsOf(player))
     local plainName = try(item, "getDisplayName")
     -- The name as the game's inventory list shows it: "Steak (Fresh, Cooked)", "Water Bottle (Water)".
     local name = try(item, "getName", player) or plainName
@@ -222,10 +244,11 @@ end
 function Items.of(player, container, inInventory)
     local items = container:getItems()
     local list = {}
+    local hands = handsOf(player)
     for i = 0, items:size() - 1 do
         local item = items:get(i)
         if try(item, "isHidden") ~= true then
-            list[#list + 1] = Items.describe(player, item, inInventory)
+            list[#list + 1] = Items.describe(player, item, inInventory, hands)
         end
     end
     return list

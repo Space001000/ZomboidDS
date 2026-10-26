@@ -21,6 +21,8 @@
 ---   commands                  table: name -> function(player, args) returning
 ---                             true [, nil, data] on success or false, "reason" on failure
 ---   dirtyEvents               table: channel -> array of Events names that mean "re-snapshot now"
+---   dirtyChannels(player)     optional: -> array of channels to re-snapshot now, or nil; for changes
+---                             the game flags without an event. Called every tick, so it must be cheap
 ---   redirectGameWindows(onShow) optional: when the player opens the game's inventory/loot windows,
 ---                             calls onShow(playerNum, `show` message data); true keeps them closed
 ---   notify(player, text)      optional: short on-screen message for the player

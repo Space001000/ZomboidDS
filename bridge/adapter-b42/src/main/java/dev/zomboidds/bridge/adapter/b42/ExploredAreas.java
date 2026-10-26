@@ -23,7 +23,7 @@ import zombie.worldMap.WorldMapVisited;
  * unit (0, 0) starts at tile {@code (metaGrid.minX * 256, metaGrid.minY * 256)}.
  *
  * <p>The game keeps the bytes in a package-private field, read here by reflection; only ever
- * copied, never written. Called on the game thread.
+ * copied, never written. Called on the game thread, except {@link Seen#message}.
  */
 final class ExploredAreas {
 
@@ -37,8 +37,11 @@ final class ExploredAreas {
     private byte[] lastSent;
     private long nextCheck;
 
-    /** The seen areas if they changed since the last call that returned them, at most every 2 s. */
-    Map<String, Object> changed(long now) {
+    /**
+     * The seen areas if they changed since the last call that returned them, at most every 2 s: a
+     * copy, so {@link Seen#message} (the compressing, ~15-25 ms on the Thor) can run on another thread.
+     */
+    Seen changed(long now) {
         if (broken || now < nextCheck) {
             return null;
         }
@@ -52,21 +55,30 @@ final class ExploredAreas {
             if (bits == null || Arrays.equals(bits, lastSent)) {
                 return null;
             }
-            int width = (grid.getMaxX() - grid.getMinX() + 1) * UNITS_PER_CELL;
             lastSent = bits;
-            Map<String, Object> data = new LinkedHashMap<>();
-            data.put("originX", grid.getMinX() * TILES_PER_CELL);
-            data.put("originY", grid.getMinY() * TILES_PER_CELL);
-            data.put("unit", TILES_PER_UNIT);
-            data.put("width", width);
-            data.put("height", bits.length / (width / 4));
-            data.put("bits", encode(bits));
-            return data;
+            return new Seen(grid.getMinX() * TILES_PER_CELL, grid.getMinY() * TILES_PER_CELL,
+                    (grid.getMaxX() - grid.getMinX() + 1) * UNITS_PER_CELL, bits);
         } catch (ReflectiveOperationException | RuntimeException e) {
             // A game update renamed something: no seen areas, the rest of the map still works.
             broken = true;
             Log.error("can't read the map's seen areas", e);
             return null;
+        }
+    }
+
+    /** A copy of the seen areas; {@code width} in units, 4 units per byte. */
+    record Seen(int originX, int originY, int width, byte[] bits) {
+
+        /** The {@code explored} message. Doesn't touch the game, so any thread. */
+        Map<String, Object> message() {
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("originX", originX);
+            data.put("originY", originY);
+            data.put("unit", TILES_PER_UNIT);
+            data.put("width", width);
+            data.put("height", bits.length / (width / 4));
+            data.put("bits", encode(bits));
+            return data;
         }
     }
 

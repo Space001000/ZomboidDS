@@ -4,9 +4,11 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
+import java.util.Map;
 import java.util.zip.Inflater;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ExploredAreasTest {
@@ -30,5 +32,19 @@ class ExploredAreasTest {
         inflater.end();
         assertArrayEquals(bits, out.toByteArray());
         assertTrue(encoded.length() < 2_000, "mostly unexplored compresses to little: " + encoded.length());
+    }
+
+    @Test
+    void messageDescribesTheCopiedAreas() {
+        // 2 x 3 cells: 16 units wide (4 bytes a row), 24 rows.
+        byte[] bits = new byte[4 * 24];
+        Map<String, Object> message = new ExploredAreas.Seen(-512, 256, 16, bits).message();
+
+        assertEquals(-512, message.get("originX"));
+        assertEquals(256, message.get("originY"));
+        assertEquals(ExploredAreas.TILES_PER_UNIT, message.get("unit"));
+        assertEquals(16, message.get("width"));
+        assertEquals(24, message.get("height"));
+        assertEquals(ExploredAreas.encode(bits), message.get("bits"));
     }
 }
