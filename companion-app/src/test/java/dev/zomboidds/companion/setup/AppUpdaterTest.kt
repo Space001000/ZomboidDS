@@ -43,5 +43,8 @@ class AppUpdaterTest {
         assertFalse(AppUpdater.isNewer("1.0.0", "1.0.0"))
         assertFalse(AppUpdater.isNewer("0.9.9", "1.0.0"))
         assertFalse("a pre-release suffix doesn't make it newer", AppUpdater.isNewer("1.0.0-beta", "1.0.0"))
+        assertTrue("the release is newer than its dev build", AppUpdater.isNewer("1.5.1", "1.5.1-dev"))
+        assertFalse("a dev build isn't newer than another", AppUpdater.isNewer("1.5.1-dev", "1.5.1-dev"))
+        assertFalse("nor is an older release", AppUpdater.isNewer("1.5.0", "1.5.1-dev"))
     }
 }

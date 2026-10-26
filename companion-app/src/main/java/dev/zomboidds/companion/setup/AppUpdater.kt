@@ -177,7 +177,11 @@ class AppUpdater(
             )
         }
 
-        /** Whether [candidate] ("1.2.0") is a newer version than [current] ("1.1.3"), by number. */
+        /**
+         * Whether [candidate] ("1.2.0") is a newer version than [current] ("1.1.3"), by number. With
+         * the same number, a release is newer than a build with a suffix ("1.5.1" over "1.5.1-dev"),
+         * so a dev build can update to its release.
+         */
         fun isNewer(candidate: String, current: String): Boolean {
             fun parts(v: String) = v.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
             val a = parts(candidate)
@@ -187,7 +191,7 @@ class AppUpdater(
                 val y = b.getOrElse(i) { 0 }
                 if (x != y) return x > y
             }
-            return false
+            return '-' !in candidate && '-' in current
         }
 
         private fun JsonObject.string(key: String) = this[key]?.jsonPrimitive?.content
