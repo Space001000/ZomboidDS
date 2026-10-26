@@ -23,6 +23,7 @@ import dev.zomboidds.companion.setup.AppRelease
 import dev.zomboidds.companion.setup.SetupController
 import dev.zomboidds.companion.setup.ZomdroidStorage
 import dev.zomboidds.companion.ui.CompanionScreen
+import dev.zomboidds.companion.ui.EmoteSettings
 import dev.zomboidds.companion.ui.InventoryDisplay
 import dev.zomboidds.companion.ui.MapDisplay
 import dev.zomboidds.companion.ui.SetupActions
@@ -77,6 +78,8 @@ class MainActivity : ComponentActivity() {
             val inventoryLayout by container.settings.inventoryLayout.collectAsStateWithLifecycle()
             val containerLayout by container.settings.containerLayout.collectAsStateWithLifecycle()
             val deckCommands by container.settings.deckCommands.collectAsStateWithLifecycle()
+            val pinnedCommands by container.settings.pinnedCommands.collectAsStateWithLifecycle()
+            val favouriteEmotes by container.settings.favouriteEmotes.collectAsStateWithLifecycle()
             val worldMap by container.worldMap.state.collectAsStateWithLifecycle()
             val mapPlacement by container.settings.mapPlacement.collectAsStateWithLifecycle()
             val whatsNewSeen by container.settings.whatsNewSeen.collectAsStateWithLifecycle()
@@ -107,6 +110,10 @@ class MainActivity : ComponentActivity() {
                 onCraftModeChange = container.settings::setCraftMode,
                 deckCommands = deckCommands,
                 onDeckCommandsChange = container.settings::setDeckCommands,
+                pinnedCommands = pinnedCommands,
+                onPinnedCommandsChange = container.settings::setPinnedCommands,
+                emoteSettings = EmoteSettings(favouriteEmotes, container.settings::setFavouriteEmotes,
+                    container.settings.lastEmoteGroup, container.settings::setLastEmoteGroup),
                 // On a new install and after every update, until closed.
                 whatsNewDue = whatsNewSeen != BuildConfig.VERSION_NAME,
                 onWhatsNewSeen = { container.settings.setWhatsNewSeen(BuildConfig.VERSION_NAME) },

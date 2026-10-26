@@ -1,6 +1,10 @@
 package dev.zomboidds.companion.data
 
 import dev.zomboidds.companion.domain.AlarmClock
+import dev.zomboidds.companion.domain.Emote
+import dev.zomboidds.companion.domain.EmoteGroup
+import dev.zomboidds.companion.domain.HandItem
+import dev.zomboidds.companion.domain.Hands
 import dev.zomboidds.companion.domain.BodyPartStatus
 import dev.zomboidds.companion.domain.BridgeInfo
 import dev.zomboidds.companion.domain.BuildList
@@ -205,7 +209,21 @@ object ProtocolV1 {
         val commands: List<DeckCommandDto> = emptyList(),
         val hotbar: List<HotbarSlotDto> = emptyList(),
         val alarmClock: AlarmClockDto? = null,
+        val hands: HandsDto? = null,
+        val emotes: List<EmoteGroupDto> = emptyList(),
     )
+
+    @Serializable
+    private data class EmoteGroupDto(val id: String? = null, val name: String? = null, val icon: String? = null, val emotes: List<EmoteDto> = emptyList())
+
+    @Serializable
+    private data class EmoteDto(val id: String? = null, val name: String? = null, val icon: String? = null)
+
+    @Serializable
+    private data class HandsDto(val primary: HandItemDto? = null, val secondary: HandItemDto? = null, val bothHands: Boolean = false)
+
+    @Serializable
+    private data class HandItemDto(val name: String? = null, val icon: String? = null, val onHotbar: Boolean = false)
 
     @Serializable
     private data class HotbarSlotDto(val slot: Int? = null, val name: String? = null, val item: HotbarItemDto? = null, val inHand: Boolean = false)
@@ -226,6 +244,7 @@ object ProtocolV1 {
         val icon: String? = null,
         val available: Boolean = true,
         val on: Boolean? = null,
+        val pickUp: List<HotbarItemDto>? = null,
     )
 
     @Serializable
@@ -768,6 +787,11 @@ object ProtocolV1 {
 
     fun hotbarRequest(slot: Int) = Request("deck_run", buildJsonObject { put("id", "weapons"); put("slot", slot) })
 
+    fun emoteRequest(id: String) = Request("deck_run", buildJsonObject { put("id", "emotes"); put("emote", id) })
+
+    fun putAwayRequest(secondary: Boolean) =
+        Request("deck_run", buildJsonObject { put("id", "weapons"); put("putAway", if (secondary) "secondary" else "primary") })
+
     fun alarmRequest(hour: Int, minute: Int, on: Boolean) = Request("deck_run", buildJsonObject {
         put("id", "alarm"); put("hour", hour); put("minute", minute); put("on", on)
     })
@@ -868,21 +892,35 @@ object ProtocolV1 {
                 state.copy(time = TimeState(it.speed?.let { speed -> GameSpeed.entries.getOrNull(speed) }, it.canChange, it.gameMenuOpen))
             }
             "deck" -> json.decodeFromJsonElement<DeckDto>(data).let { dto ->
+                val hotbar = dto.hotbar.mapNotNull { s ->
+                    s.slot?.let { slot ->
+                        HotbarSlot(slot, s.name ?: "Slot $slot",
+                            s.item?.let { HotbarItem(it.name ?: "?", it.icon) }, s.inHand)
+                    }
+                }
                 state.copy(deck = DeckState(
                     clock = dto.clock?.time?.let { DeckClock(it, dto.clock.date, dto.clock.alarm) },
                     // Without an id the app couldn't remember it on the Deck; without a name it can't show it.
                     commands = dto.commands.mapNotNull { c ->
                         if (c.id.isNullOrBlank() || c.name.isNullOrBlank()) null
-                        else DeckCommand(c.id, c.name, c.icon, c.available, c.on)
+                        else DeckCommand(c.id, c.name, c.icon, c.available, c.on,
+                            c.pickUp?.takeIf { it.isNotEmpty() }?.map { HotbarItem(it.name ?: "?", it.icon) })
                     },
-                    hotbar = dto.hotbar.mapNotNull { s ->
-                        s.slot?.let { slot ->
-                            HotbarSlot(slot, s.name ?: "Slot $slot",
-                                s.item?.let { HotbarItem(it.name ?: "?", it.icon) }, s.inHand)
-                        }
-                    },
+                    hotbar = hotbar,
                     alarmClock = dto.alarmClock?.let { a ->
                         if (a.hour == null || a.minute == null) null else AlarmClock(a.name ?: "Watch", a.hour, a.minute, a.on)
+                    },
+                    hands = dto.hands?.let { h ->
+                        fun item(i: HandItemDto?) = i?.let { HandItem(it.name ?: "?", it.icon, it.onHotbar) }
+                        Hands(item(h.primary), item(h.secondary), h.bothHands)
+                    }
+                        // An older mod sends no hands: the hotbar's item in hand is all that's known.
+                        ?: Hands(hotbar.firstOrNull { it.inHand && it.item != null }?.item?.let { HandItem(it.name, it.icon, onHotbar = true) }, null),
+                    emotes = dto.emotes.mapNotNull { g ->
+                        if (g.id.isNullOrBlank()) null
+                        else EmoteGroup(g.id, g.name ?: g.id, g.icon, g.emotes.mapNotNull { e ->
+                            if (e.id.isNullOrBlank()) null else Emote(e.id, e.name ?: e.id, e.icon)
+                        })
                     },
                 ))
             }
@@ -991,7 +1029,7 @@ object ProtocolV1 {
      * where an object is meant (e.g. `stats` when no stat could be read). For fields that are
      * always objects, treat `[]` as `{}`. Real lists (e.g. `capabilities`) are left alone.
      */
-    private val OBJECT_FIELDS = setOf("stats", "weight")
+    private val OBJECT_FIELDS = setOf("stats", "weight", "hands")
 
     private fun lenient(element: JsonElement): JsonElement = when (element) {
         is JsonObject -> JsonObject(element.mapValues { (key, value) ->

@@ -146,6 +146,11 @@ class GatewayMockServerTest {
         assertEquals(CommandResult.Ok, gateway.drawHotbarSlot(2))
         withTimeout(5_000) { gateway.state.first { it.deck!!.hotbar.single { s -> s.inHand }.slot == 2 } }
         assertTrue("an empty slot", gateway.drawHotbarSlot(4) is CommandResult.Failed)
+        assertEquals(CommandResult.Ok, gateway.putAwayHand(secondary = true))
+        withTimeout(5_000) { gateway.state.first { it.deck!!.hands!!.secondary == null } }
+        assertTrue("an empty hand", gateway.putAwayHand(secondary = true) is CommandResult.Failed)
+        assertEquals(CommandResult.Ok, gateway.playEmote("salute"))
+        assertTrue("not an emote", gateway.playEmote("fly") is CommandResult.Failed)
         assertEquals(CommandResult.Ok, gateway.setAlarm(6, 30, on = true))
         withTimeout(5_000) { gateway.state.first { it.deck!!.alarmClock!!.hour == 6 && it.deck!!.alarmClock!!.minute == 30 } }
     }

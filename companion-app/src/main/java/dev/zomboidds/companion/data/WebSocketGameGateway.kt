@@ -191,6 +191,10 @@ class WebSocketGameGateway(
 
     override suspend fun drawHotbarSlot(slot: Int): CommandResult = send(ProtocolV1.hotbarRequest(slot)).result
 
+    override suspend fun playEmote(id: String): CommandResult = send(ProtocolV1.emoteRequest(id)).result
+
+    override suspend fun putAwayHand(secondary: Boolean): CommandResult = send(ProtocolV1.putAwayRequest(secondary)).result
+
     override suspend fun setAlarm(hour: Int, minute: Int, on: Boolean): CommandResult =
         send(ProtocolV1.alarmRequest(hour, minute, on)).result
 

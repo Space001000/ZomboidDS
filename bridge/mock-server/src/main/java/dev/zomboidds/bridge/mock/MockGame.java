@@ -412,6 +412,35 @@ final class MockGame {
     /** Like the game's key bindings: modes switch on and off, the rest just "happens" (logged). */
     @SuppressWarnings("unchecked")
     private String runDeckCommand(String id, Map<String, Object> args) {
+        if (id.equals("drop_held")) {
+            for (Object entry : (List<Object>) deck.get("commands")) {
+                Map<String, Object> c = (Map<String, Object>) entry;
+                if (!"drop_held".equals(c.get("id"))) continue;
+                // Dropping remembers a bag on the floor; picking it up again forgets it.
+                if (c.remove("pickUp") == null) {
+                    c.put("pickUp", new java.util.ArrayList<>(List.of(Map.of("name", "Duffel Bag", "icon", "Item_Duffelbag"))));
+                }
+                deckDirty = true;
+            }
+            return null;
+        }
+        if (id.equals("emotes")) {
+            for (Object group : (List<Object>) deck.get("emotes")) {
+                for (Object emote : (List<Object>) ((Map<String, Object>) group).get("emotes")) {
+                    if (((Map<String, Object>) emote).get("id").equals(args.get("emote"))) return null;
+                }
+            }
+            return "That changed in the game; try again";
+        }
+        if (id.equals("weapons") && args.get("putAway") instanceof String hand) {
+            Map<String, Object> hands = (Map<String, Object>) deck.get("hands");
+            if (hands.remove(hand) == null) {
+                return "That changed in the game; try again";
+            }
+            hands.remove("bothHands");
+            deckDirty = true;
+            return null;
+        }
         if (id.equals("weapons")) {
             int slot = args.get("slot") instanceof Number n ? n.intValue() : -1;
             Map<String, Object> target = null;

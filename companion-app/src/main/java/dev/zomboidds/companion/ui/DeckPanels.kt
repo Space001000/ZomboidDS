@@ -21,10 +21,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import dev.zomboidds.companion.domain.AlarmClock
+import dev.zomboidds.companion.domain.Hands
 import dev.zomboidds.companion.domain.HotbarSlot
 
 /** A panel from the bottom of the Deck over a dimmed background; tapping outside closes it. */
@@ -68,19 +69,29 @@ private val SlotMinWidth = 110.dp
 
 /**
  * The game's hotbar, slot by slot: tap one to draw its item (what you held goes back to its slot);
- * the one in hand is outlined. "Put away" puts it back without drawing anything.
+ * the one in hand is outlined, and tapping it again puts it away. A weapon in hand that isn't on
+ * the hotbar (equipped from the inventory) gets one line above the slots, with its own "Put away"
+ * (the game's Unequip), since it has no slot to tap.
  */
 @Composable
-internal fun WeaponsPanel(hotbar: List<HotbarSlot>, iconUrl: (String) -> String, onDraw: (Int) -> Unit) {
+internal fun WeaponsPanel(
+    hotbar: List<HotbarSlot>,
+    hands: Hands,
+    iconUrl: (String) -> String,
+    onDraw: (Int) -> Unit,
+    onPutAway: (secondary: Boolean) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Your hotbar", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            val inHand = hotbar.firstOrNull { it.inHand && it.item != null }
-            if (inHand != null) {
-                // Drawing the slot in hand puts it away, as the game's hotbar key does.
-                OutlinedButton(onClick = { onDraw(inHand.slot) }) { Text("Put away") }
+        Text("Your hotbar", style = MaterialTheme.typography.titleMedium)
+        listOfNotNull(hands.primary?.let { it to false }, hands.secondary?.let { it to true })
+            .filter { (item, _) -> !item.onHotbar }
+            .forEach { (item, secondary) ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${item.name} in hand, not on your hotbar", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    TextButton(onClick = { onPutAway(secondary) }) { Text("Put away") }
+                }
             }
-        }
         BoxWithConstraints {
             val columns = ((maxWidth + 8.dp) / (SlotMinWidth + 8.dp)).toInt().coerceIn(2, 6)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

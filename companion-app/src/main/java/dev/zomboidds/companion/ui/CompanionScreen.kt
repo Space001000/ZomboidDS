@@ -113,6 +113,10 @@ fun CompanionScreen(
     /** The Command deck's buttons (deck command ids, in order), and how to change them. */
     deckCommands: List<String> = emptyList(),
     onDeckCommandsChange: (List<String>) -> Unit = {},
+    /** Deck commands pinned to the end of the tab bar (ids, in order), and how to change them. */
+    pinnedCommands: List<String> = emptyList(),
+    onPinnedCommandsChange: (List<String>) -> Unit = {},
+    emoteSettings: EmoteSettings = EmoteSettings(),
     map: MapDisplay? = null,
     tabSettings: TabSettings = TabSettings(),
     /** "What's new" opens by itself (a new install or an update); [onWhatsNewSeen] when it's closed. */
@@ -127,7 +131,8 @@ fun CompanionScreen(
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
                     InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting,
-                        building, tailoring, devices, devTools, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange, map, tabSettings)
+                        building, tailoring, devices, devTools, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange,
+                        pinnedCommands, onPinnedCommandsChange, emoteSettings, map, tabSettings)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
                     var licences by remember { mutableStateOf(false) }
@@ -197,6 +202,9 @@ private fun InGame(
     onCraftModeChange: (CraftMode) -> Unit,
     deckCommands: List<String>,
     onDeckCommandsChange: (List<String>) -> Unit,
+    pinnedCommands: List<String>,
+    onPinnedCommandsChange: (List<String>) -> Unit,
+    emoteSettings: EmoteSettings,
     loadedMap: MapDisplay?,
     tabSettings: TabSettings,
 ) {
@@ -253,6 +261,10 @@ private fun InGame(
     var garmentShown by remember { mutableStateOf<Long?>(null) }
     // Device Options in the game: the device panel, over whatever tab is open.
     var deviceShown by remember { mutableStateOf(false) }
+    // The pins in the tab bar (as far as this game offers them), their panels, and the pin card.
+    val pins = state.deck?.commandsFor(pinnedCommands).orEmpty()
+    val pinRunner = rememberDeckRunner(controls)
+    var pinning by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(events) {
         events.collect { event ->
             when (event) {
@@ -279,6 +291,13 @@ private fun InGame(
                 },
                 onSelect = choose,
                 onArrange = { arranging = true },
+                pins = {
+                    state.deck?.let { deck ->
+                        TabPins(pins, deck, pinRunner.panel, iconUrl,
+                            onTap = { if (pinRunner.panel == it.id) pinRunner.panel = null else pinRunner.start(it.id) },
+                            onHold = { pinRunner.panel = null; pinning = it.id })
+                    }
+                },
                 craftModes = craftModes, craftMode = mode,
                 onCraftMode = {
                     onCraftModeChange(it)
@@ -302,6 +321,7 @@ private fun InGame(
                             onDone = { editingDeck = false })
                     } else {
                         CommandDeckScreen(state.time, state.deck, deckCommands, controls, iconUrl, onEdit = { editingDeck = true },
+                            onHold = { pinning = it.id }, emoteSettings = emoteSettings,
                             extra = { devTools?.DeckSection(capabilities) })
                     }
                     Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
@@ -322,6 +342,8 @@ private fun InGame(
                 if (deviceShown && devices != null) {
                     DevicePanel(devices, iconUrl, onClose = { deviceShown = false })
                 }
+                DeckCommandPanel(pinRunner, state.deck, iconUrl, emoteSettings)
+                PinFailure(pinRunner.failure, onGone = { pinRunner.failure = null })
             }
         }
         if (arranging) {
@@ -343,6 +365,10 @@ private fun InGame(
                 onClose = { arranging = false },
             )
         }
+        val pinned = pinning?.let { id -> state.deck?.commands?.firstOrNull { it.id == id } }
+        if (pinned != null) {
+            PinCard(pinned, pins, iconUrl, onChange = onPinnedCommandsChange, onClose = { pinning = null })
+        }
     }
 }
 
@@ -352,6 +378,7 @@ private fun InGame(
  * Map is a narrow tab with the game's own sidebar map icon. Looks like Material's primary tabs.
  * With more than one [craftModes], the Craft tab is named after the mode and has a ▾: tapping the
  * arrow, or the tab while it's open, shows the modes. Holding any tab opens the tab order ([onArrange]).
+ * Pinned Deck commands ([pins]) take their width from the text tabs.
  */
 @Composable
 private fun TabBar(
@@ -364,6 +391,8 @@ private fun TabBar(
     craftModes: List<CraftMode> = emptyList(),
     craftMode: CraftMode = CraftMode.CRAFT,
     onCraftMode: (CraftMode) -> Unit = {},
+    /** After the tabs: the pinned Deck commands. */
+    pins: @Composable () -> Unit = {},
 ) {
     val color = MaterialTheme.colorScheme.primary
     Column {
@@ -423,6 +452,7 @@ private fun TabBar(
                     }
                 }
             }
+            pins()
         }
         HorizontalDivider()
     }
@@ -586,6 +616,8 @@ private fun InGamePreview() {
             override suspend fun setSpeed(speed: GameSpeed) = CommandResult.Ok
             override suspend fun runDeckCommand(id: String) = CommandResult.Ok
             override suspend fun drawHotbarSlot(slot: Int) = CommandResult.Ok
+            override suspend fun putAwayHand(secondary: Boolean) = CommandResult.Ok
+            override suspend fun playEmote(id: String) = CommandResult.Ok
             override suspend fun setAlarm(hour: Int, minute: Int, on: Boolean) = CommandResult.Ok
             override fun watchHere(on: Boolean) {}
             override suspend fun bodyPartMenu(partId: String) = ItemMenuResult.Failed("preview")

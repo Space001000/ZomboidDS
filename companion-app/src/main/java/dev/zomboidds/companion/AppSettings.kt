@@ -83,27 +83,52 @@ class AppSettings(context: Context) {
         _whatsNewSeen.value = version
     }
 
-    private val _deckCommands = MutableStateFlow(
-        prefs.getString(KEY_DECK_COMMANDS, null)?.split(',')?.filter { it.isNotBlank() } ?: DEFAULT_DECK_COMMANDS)
+    /** A list of ids kept as one comma-separated preference, at most [max] and each once. */
+    private inner class IdList(private val key: String, default: List<String>, private val max: Int = Int.MAX_VALUE) {
+        private val ids = MutableStateFlow(prefs.getString(key, null)?.split(',')?.filter { it.isNotBlank() }?.take(max) ?: default)
+        val flow: StateFlow<List<String>> = ids.asStateFlow()
+
+        fun set(value: List<String>) {
+            val kept = value.distinct().take(max)
+            prefs.edit().putString(key, kept.joinToString(",")).apply()
+            ids.value = kept
+        }
+    }
+
+    private val deckCommandIds = IdList(KEY_DECK_COMMANDS, DEFAULT_DECK_COMMANDS)
 
     /** The Command deck's buttons, in order: ids of the game's deck commands. */
-    val deckCommands: StateFlow<List<String>> = _deckCommands.asStateFlow()
+    val deckCommands: StateFlow<List<String>> = deckCommandIds.flow
 
-    fun setDeckCommands(ids: List<String>) {
-        prefs.edit().putString(KEY_DECK_COMMANDS, ids.joinToString(",")).apply()
-        _deckCommands.value = ids
+    fun setDeckCommands(ids: List<String>) = deckCommandIds.set(ids)
+
+    private val pinnedCommandIds = IdList(KEY_PINNED_COMMANDS, emptyList(), MAX_PINS)
+
+    /** Deck commands pinned to the end of the tab bar (at most [MAX_PINS]), in order; none on a new install. */
+    val pinnedCommands: StateFlow<List<String>> = pinnedCommandIds.flow
+
+    fun setPinnedCommands(ids: List<String>) = pinnedCommandIds.set(ids)
+
+    private val favouriteEmoteIds = IdList(KEY_FAVOURITE_EMOTES, emptyList(), MAX_FAVOURITE_EMOTES)
+
+    /** The emotes the player hearted for Emotes' Favourites (emote ids, at most [MAX_FAVOURITE_EMOTES]). */
+    val favouriteEmotes: StateFlow<List<String>> = favouriteEmoteIds.flow
+
+    fun setFavouriteEmotes(ids: List<String>) = favouriteEmoteIds.set(ids)
+
+    /** The Emotes group the player had open last (a group id, or [FAVOURITES]); null on a new install. */
+    val lastEmoteGroup: String? get() = prefs.getString(KEY_LAST_EMOTE_GROUP, null)
+
+    fun setLastEmoteGroup(id: String) {
+        prefs.edit().putString(KEY_LAST_EMOTE_GROUP, id).apply()
     }
 
-    private val _tabOrder = MutableStateFlow(
-        prefs.getString(KEY_TAB_ORDER, null)?.split(',')?.filter { it.isNotBlank() } ?: emptyList())
+    private val tabOrderIds = IdList(KEY_TAB_ORDER, emptyList())
 
     /** The tabs in the player's order (tab ids); empty for the default order. */
-    val tabOrder: StateFlow<List<String>> = _tabOrder.asStateFlow()
+    val tabOrder: StateFlow<List<String>> = tabOrderIds.flow
 
-    fun setTabOrder(ids: List<String>) {
-        prefs.edit().putString(KEY_TAB_ORDER, ids.joinToString(",")).apply()
-        _tabOrder.value = ids
-    }
+    fun setTabOrder(ids: List<String>) = tabOrderIds.set(ids)
 
     /** The tab the player last had open, where the app opens next time; null on a new install. */
     val lastTab: String? get() = prefs.getString(KEY_LAST_TAB, null)
@@ -116,6 +141,13 @@ class AppSettings(context: Context) {
         /** A new install's Deck (the user's pick, 2026-09-26; Weapons added first). */
         val DEFAULT_DECK_COMMANDS = listOf("weapons", "zoom_in", "zoom_out", "search_mode", "flashlight")
 
+        /** Pins in the tab bar: two still leave every tab's name room (the user tries it in the game first). */
+        const val MAX_PINS = 2
+
+        /** Emotes' Favourites (the user's pick, 2026-10-26). */
+        const val MAX_FAVOURITE_EMOTES = 6
+        const val FAVOURITES = "favourites"
+
         private const val KEY_INVENTORY_LAYOUT = "inventoryLayout"
         private const val KEY_CONTAINER_LAYOUT = "containerLayout"
         private const val KEY_DECK_COMMANDS = "deckCommands"
@@ -123,6 +155,9 @@ class AppSettings(context: Context) {
         private const val KEY_WHATS_NEW_SEEN = "whatsNewSeen"
         private const val KEY_MAP_SYMBOLS = "mapSymbols"
         private const val KEY_CRAFT_MODE = "craftMode"
+        private const val KEY_PINNED_COMMANDS = "pinnedCommands"
+        private const val KEY_FAVOURITE_EMOTES = "favouriteEmotes"
+        private const val KEY_LAST_EMOTE_GROUP = "lastEmoteGroup"
         private const val KEY_TAB_ORDER = "tabOrder"
         private const val KEY_LAST_TAB = "lastTab"
     }

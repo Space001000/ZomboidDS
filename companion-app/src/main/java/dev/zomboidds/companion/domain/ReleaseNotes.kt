@@ -11,6 +11,14 @@ data class Release(val version: String, val title: String, val date: String?, va
  * releasing, give it its final version (same as versionName), date and title.
  */
 val RELEASES = listOf(
+    Release("1.5.1", "All decked out", null, listOf(
+        "**Pin to the tab bar:** hold a command on the Deck, like **Weapons**, to pin it at the end of the tab bar. It's there on every tab: Weapons shows what's in your hands, and a tap opens your hotbar over what you're looking at.",
+        "Up to two pins. To unpin, hold the pin, or hold the command on the Deck.",
+        "**Weapons** shows the weapon in your hands, also when you equipped it from your inventory. Then a line above your hotbar says so, with **Put away**.",
+        "**New on the Deck:** **Auto-walk** (keeps walking the way you were going) and **Drop held** (drops what's in your hands, never a favourite; asks first). Then it turns into **Pick up again**: one tap puts them back in your hands while they're nearby.",
+        "**Emotes** on the Deck: the emote wheel's emotes, by group, one tap each. Hold an emote to add it to **Favourites** (up to 6).",
+        "In **Add or edit**, numbers beside your commands show which row of the Deck each one lands in.",
+    )),
     Release("1.5.0", "TVs, radios and your tab order", "23 Oct 2026", listOf(
         "**TVs, radios and CD players:** Device Options now opens on the bottom screen. Turn it on, pick a channel, set the volume, or tune a radio with the number pad and save the station. Tapes, CDs, batteries and headphones on you or nearby are listed on the right: tap one to put it in, or drag it onto its slot.",
         "**Tabs can now be reordered:** hold any tab, then drag them into the order you like. **Reset** puts them back.",

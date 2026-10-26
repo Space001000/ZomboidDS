@@ -17,6 +17,9 @@ import dev.zomboidds.companion.domain.DeckCommand
 import dev.zomboidds.companion.domain.HotbarSlot
 import dev.zomboidds.companion.domain.HotbarItem
 import dev.zomboidds.companion.domain.AlarmClock
+import dev.zomboidds.companion.domain.Emote
+import dev.zomboidds.companion.domain.HandItem
+import dev.zomboidds.companion.domain.Hands
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ContainerKind
 import dev.zomboidds.companion.domain.GameEvent
@@ -198,11 +201,22 @@ class ProtocolV1Test {
     fun `deck carries the game's clock and commands`() {
         val deck = applyAll("deck.json").deck!!
         assertEquals(DeckClock("14:25", "July 9", "07:00"), deck.clock)
-        assertEquals(10, deck.commands.size)
+        assertEquals(13, deck.commands.size)
+        assertEquals(listOf("friendly", "hostile", "group", "signal"), deck.emotes.map { it.id })
+        assertEquals(Emote("wavehi", "Wave Hi", "emotes/wavehello"), deck.emotes[0].emotes[0])
+        assertEquals(8, deck.emotes.single { it.id == "signal" }.emotes.size)
         assertEquals(4, deck.hotbar.size)
         assertEquals(HotbarSlot(1, "Back", HotbarItem("Axe", "Item_Axe"), inHand = true), deck.hotbar[0])
         assertEquals("an empty slot has no item", null, deck.hotbar[3].item)
         assertEquals(AlarmClock("Digital Watch", 7, 0, on = true), deck.alarmClock)
+        assertEquals("what's in the hands, also when it's not on the hotbar",
+            Hands(HandItem("Axe", "Item_Axe", onHotbar = true), HandItem("Hunting Knife", "Item_HuntingKnife", onHotbar = false)), deck.hands)
+        assertEquals(null, deck.commands.first { it.id == "drop_held" }.pickUp)
+        val dropped = ProtocolV1.apply(GameState(),
+            """{"v":1,"type":"deck","data":{"commands":[{"id":"drop_held","name":"Drop","pickUp":[{"name":"Duffel Bag","icon":"Item_Duffelbag"}]}]}}""").deck
+        assertEquals("what Drop held can pick up again", listOf(HotbarItem("Duffel Bag", "Item_Duffelbag")), dropped?.commands?.single()?.pickUp)
+        val emptyHands = ProtocolV1.apply(GameState(), """{"v":1,"type":"deck","data":{"commands":[],"hands":[]}}""").deck
+        assertEquals("empty hands arrive as an empty Lua table, []", Hands(null, null), emptyHands?.hands)
         assertEquals(DeckCommand("search_mode", "Toggle Search Mode", "Search_Icon_Off", available = true, on = true), deck.commands[2])
         assertEquals(null, deck.commands[0].on)
         assertEquals(false, deck.commands.first { it.id == "drop_bag" }.available)

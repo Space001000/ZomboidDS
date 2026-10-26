@@ -104,9 +104,15 @@ your character:
   horn, windows, doors, sleep, switch seat, get out, ...
 - **Deck**, your command deck: the speed buttons (pause, play, fast forward, wait), the time
   and your alarm (if you wear a watch), and the commands you choose. **Add or edit** lists
-  them all: zoom in and out, search mode, flashlight, map, sit, drop bag (asks first), shout,
-  **Weapons** (your hotbar: tap an item on your belt or back to draw it; on by default) and **Alarm** (set your
-  watch). Switch them on and drag them into your order; a green dot shows a mode that's on.
+  them all: zoom in and out, search mode, flashlight, map, sit, auto-walk, drop bag and drop held
+  items (both ask first; after dropping, **Pick up again** puts them back in your hands while
+  they're nearby), shout, **Weapons** (your hotbar: tap an item on your belt or back to
+  draw it, tap it again to put it away; a weapon from your inventory gets its own **Put away**; on by default), **Emotes** (the emote
+  wheel's emotes by group; hold one to add it to **Favourites**, up to 6) and **Alarm** (set your
+  watch). Switch them on and drag them into your order; the numbers beside the list show which
+  row of the Deck each command lands in. A green dot shows a mode that's on.
+  **Hold a command** to pin it to the end of the tab bar, on every tab (up to two). Hold the pin, or
+  the command again, to unpin it.
 - **Status**: your moodles along the top (hungry, thirsty, bleeding, ...; tap one
   for what it means). Below, your body with injured parts in colour, what's wrong with each (as your
   First Aid skill lets you see it), and **Treat ›** for the treatments (bandage,

@@ -10,6 +10,9 @@
       { "id": "map", "name": "Toggle Map", "icon": "Item_Map", "available": true },
       { "id": "sit", "name": "Sit On Ground", "icon": "furniture_seating_indoor_01_0_Icon", "available": true },
       { "id": "drop_bag", "name": "Drop Worn Bag", "icon": "Item_Backpack", "available": false },
+      { "id": "drop_held", "name": "Drop Both Held Items", "icon": "Item_Duffelbag", "available": true },
+      { "id": "emotes", "name": "Emotes", "icon": "emotes/wavehello", "available": true },
+      { "id": "auto_walk", "name": "Toggle Auto-Walk", "icon": "emotes/autowalk_on", "available": true, "on": false },
       { "id": "weapons", "name": "Weapons", "icon": "Item_Axe", "available": true },
       { "id": "alarm", "name": "Alarm", "icon": "ClockAlarmLargeSet", "available": true },
       { "id": "shout", "name": "Shout", "icon": "Item_Whistle", "available": true }
@@ -20,6 +23,39 @@
       { "slot": 3, "name": "Belt Right", "item": { "name": "Hammer", "icon": "Item_Hammer" }, "inHand": false },
       { "slot": 4, "name": "Back", "inHand": false }
     ],
-    "alarmClock": { "name": "Digital Watch", "hour": 7, "minute": 0, "on": true }
+    "alarmClock": { "name": "Digital Watch", "hour": 7, "minute": 0, "on": true },
+    "hands": {
+      "primary": { "name": "Axe", "icon": "Item_Axe", "onHotbar": true },
+      "secondary": { "name": "Hunting Knife", "icon": "Item_HuntingKnife", "onHotbar": false }
+    },
+    "emotes": [
+      { "id": "friendly", "name": "Friendly", "icon": "emotes/thumbsup", "emotes": [
+        { "id": "wavehi", "name": "Wave Hi", "icon": "emotes/wavehello" },
+        { "id": "wavebye", "name": "Bye", "icon": "emotes/wavebye" },
+        { "id": "clap", "name": "Clap", "icon": "emotes/clap" },
+        { "id": "thumbsup", "name": "Thumbs Up", "icon": "emotes/thumbsup" },
+        { "id": "thankyou", "name": "Thank You", "icon": "emotes/thankyou" } ] },
+      { "id": "hostile", "name": "Hostile", "icon": "emotes/thumbsdown", "emotes": [
+        { "id": "insult", "name": "Insult", "icon": "emotes/insult" },
+        { "id": "stop", "name": "Stop", "icon": "emotes/stop" },
+        { "id": "surrender", "name": "Surrender", "icon": "emotes/surrender" },
+        { "id": "thumbsdown", "name": "Thumbs Down", "icon": "emotes/thumbsdown" } ] },
+      { "id": "group", "name": "Group", "icon": "emotes/followme", "emotes": [
+        { "id": "followme", "name": "Follow Me", "icon": "emotes/followme" },
+        { "id": "comehere", "name": "Come Here", "icon": "emotes/comehere" },
+        { "id": "yes", "name": "Yes", "icon": "emotes/yes" },
+        { "id": "no", "name": "No", "icon": "emotes/no" },
+        { "id": "shrug", "name": "Shrug", "icon": "emotes/shrug" },
+        { "id": "undecided", "name": "Undecided", "icon": "emotes/undecided" } ] },
+      { "id": "signal", "name": "Signal", "icon": "emotes/moveout", "emotes": [
+        { "id": "ceasefire", "name": "Cease Fire", "icon": "emotes/ceasefire" },
+        { "id": "signalok", "name": "Ok", "icon": "emotes/yes" },
+        { "id": "moveout", "name": "Move Out", "icon": "emotes/moveout" },
+        { "id": "freeze", "name": "Freeze", "icon": "emotes/freeze" },
+        { "id": "followbehind", "name": "Follow Behind", "icon": "emotes/followbehind" },
+        { "id": "signalfire", "name": "Fire", "icon": "emotes/fire" },
+        { "id": "comefront", "name": "Come", "icon": "emotes/comefromfront" },
+        { "id": "salute", "name": "Salute", "icon": "emotes/salute" } ] }
+    ]
   }
 }

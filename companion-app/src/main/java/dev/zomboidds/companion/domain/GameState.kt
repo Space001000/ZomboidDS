@@ -89,7 +89,27 @@ data class DeckState(
     val commands: List<DeckCommand>,
     val hotbar: List<HotbarSlot> = emptyList(),
     val alarmClock: AlarmClock? = null,
-)
+    /** The weapons in the player's hands, from the hotbar or not (an older mod: the hotbar's item in hand). */
+    val hands: Hands = Hands(null, null),
+    /** The game's emote wheel, group by group (for Emotes). */
+    val emotes: List<EmoteGroup> = emptyList(),
+) {
+    /** The commands with these ids, in their order, as far as this game offers them (an older mod may lack some). */
+    fun commandsFor(ids: List<String>) = ids.mapNotNull { id -> commands.firstOrNull { it.id == id } }
+}
+
+/** A group of the game's emote wheel (Friendly, Hostile, ...) and its emotes, in the game's order. */
+data class EmoteGroup(val id: String, val name: String, val icon: String?, val emotes: List<Emote>)
+
+data class Emote(val id: String, val name: String, val icon: String?)
+
+/** The weapons in the player's hands (not lights or bags); a two-handed grip ([bothHands]) is [primary] only. */
+data class Hands(val primary: HandItem?, val secondary: HandItem?, val bothHands: Boolean = false) {
+    val items get() = listOfNotNull(primary, secondary)
+}
+
+/** An item in a hand; [onHotbar] false when it was equipped from the inventory. */
+data class HandItem(val name: String, val icon: String?, val onHotbar: Boolean)
 
 /** A slot of the game's hotbar (Back, Belt Left, ...), in its order; [item] null when empty. */
 data class HotbarSlot(val slot: Int, val name: String, val item: HotbarItem?, val inHand: Boolean)
@@ -105,8 +125,16 @@ data class DeckClock(val time: String, val date: String?, val alarm: String?)
 /**
  * A command the game can run, like its key binding does. [id] is stable (the player's Deck is
  * remembered by it); [name] is the game's own; [on] is set for modes (search mode, flashlight).
+ * [pickUp]: Drop held's items still on the floor nearby, which it now picks up again.
  */
-data class DeckCommand(val id: String, val name: String, val icon: String?, val available: Boolean, val on: Boolean? = null)
+data class DeckCommand(
+    val id: String,
+    val name: String,
+    val icon: String?,
+    val available: Boolean,
+    val on: Boolean? = null,
+    val pickUp: List<HotbarItem>? = null,
+)
 
 /** The mod's Java side, from `hello`. */
 data class BridgeInfo(val protocol: Int, val version: String, val adapter: String)

@@ -41,6 +41,12 @@ interface GameControls {
     /** Draws a hotbar slot's item ([HotbarSlot.slot]), like the hotbar's key; the one in hand is put away. */
     suspend fun drawHotbarSlot(slot: Int): CommandResult
 
+    /** Plays an emote of the game's emote wheel ([Emote.id]), as the wheel does. Never throws. */
+    suspend fun playEmote(id: String): CommandResult
+
+    /** Puts away what's in a hand ([secondary] or the primary), as the game's Unequip. Never throws. */
+    suspend fun putAwayHand(secondary: Boolean): CommandResult
+
     /** Sets the alarm of the player's watch or clock, as the game's alarm dialog does. */
     suspend fun setAlarm(hour: Int, minute: Int, on: Boolean): CommandResult
 

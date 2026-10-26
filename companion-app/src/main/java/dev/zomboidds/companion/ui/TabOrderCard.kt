@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 
@@ -49,19 +50,7 @@ internal fun BoxScope.TabOrderCard(
     onReset: () -> Unit,
     onClose: () -> Unit,
 ) {
-    Box(
-        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f))
-            .clickable(interactionSource = null, indication = null, onClick = onClose),
-    )
-    Surface(
-        Modifier.align(Alignment.TopCenter).padding(top = 62.dp, bottom = 8.dp).padding(horizontal = 16.dp)
-            .widthIn(max = 380.dp).fillMaxWidth()
-            // Taps on the card itself don't reach the dim (which would close it).
-            .clickable(interactionSource = null, indication = null, onClick = {}),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 8.dp,
-    ) {
+    DimmedCard(Modifier.align(Alignment.TopCenter).padding(top = 62.dp, bottom = 8.dp), maxWidth = 380.dp, onDismiss = onClose) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Tab order", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -80,6 +69,27 @@ internal fun BoxScope.TabOrderCard(
             }
         }
     }
+}
+
+/**
+ * A card over a dimmed screen, drawn in the app's window (no popup: nothing takes the controller's
+ * focus). [placement] places it (an align, maybe padding); tapping the dim calls [onDismiss].
+ */
+@Composable
+internal fun BoxScope.DimmedCard(placement: Modifier, maxWidth: Dp, onDismiss: () -> Unit, content: @Composable () -> Unit) {
+    Box(
+        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f))
+            .clickable(interactionSource = null, indication = null, onClick = onDismiss),
+    )
+    Surface(
+        placement.padding(horizontal = 16.dp).widthIn(max = maxWidth).fillMaxWidth()
+            // Taps on the card itself don't reach the dim (which would close it).
+            .clickable(interactionSource = null, indication = null, onClick = {}),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shadowElevation = 8.dp,
+        content = content,
+    )
 }
 
 @Composable
