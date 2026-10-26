@@ -18,6 +18,7 @@ val RELEASES = listOf(
         "**New on the Deck:** **Auto-walk** (keeps walking the way you were going) and **Drop held** (drops what's in your hands, never a favourite; asks first). Then it turns into **Pick up again**: one tap puts them back in your hands while they're nearby.",
         "**Emotes** on the Deck: the emote wheel's emotes, by group, one tap each. Hold an emote to add it to **Favourites** (up to 6).",
         "In **Add or edit**, numbers beside your commands show which row of the Deck each one lands in.",
+        "Performance and stability improvements.",
     )),
     Release("1.5.0", "TVs, radios and your tab order", "23 Oct 2026", listOf(
         "**TVs, radios and CD players:** Device Options now opens on the bottom screen. Turn it on, pick a channel, set the volume, or tune a radio with the number pad and save the station. Tapes, CDs, batteries and headphones on you or nearby are listed on the right: tap one to put it in, or drag it onto its slot.",
