@@ -11,7 +11,7 @@ data class Release(val version: String, val title: String, val date: String?, va
  * releasing, give it its final version (same as versionName), date and title.
  */
 val RELEASES = listOf(
-    Release("1.5.1", "All decked out", null, listOf(
+    Release("1.5.1", "All decked out", "26 Oct 2026", listOf(
         "**Pin to the tab bar:** hold a command on the Deck, like **Weapons**, to pin it at the end of the tab bar. It's there on every tab: Weapons shows what's in your hands, and a tap opens your hotbar over what you're looking at.",
         "Up to two pins. To unpin, hold the pin, or hold the command on the Deck.",
         "**Weapons** shows the weapon in your hands, also when you equipped it from your inventory. Then a line above your hotbar says so, with **Put away**.",
