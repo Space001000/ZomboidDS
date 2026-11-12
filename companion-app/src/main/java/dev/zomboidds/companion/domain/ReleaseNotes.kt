@@ -11,7 +11,7 @@ data class Release(val version: String, val title: String, val date: String?, va
  * releasing, give it its final version (same as versionName), date and title.
  */
 val RELEASES = listOf(
-    Release("1.6.0", "Kitchen and camp", null, listOf(
+    Release("1.6.0", "Tying up loose screens", "12 Nov 2026", listOf(
         "**Ovens and microwaves:** Settings now opens on the bottom screen, with the oven's dials for temperature and timer. **Turn on** / **Turn off** and °F / °C are there too, and on the right what's inside, with its cooking bars.",
         "**Newspapers, magazines and flyers** open on the bottom screen once read: the printed page (drag to move, pinch to zoom), **Text** to read it comfortably, and **Show on map** for the place a flyer advertises.",
         "**Questions** like \"Are you sure you want to sleep?\" or \"Delete all these items?\" now show on the bottom screen. Tap Yes or No, or answer with the controller as before.",
