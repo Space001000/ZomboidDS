@@ -112,6 +112,8 @@ private val SPLASHES = listOf(
     "The power won't last. Plan for it.",
     "Never loot on an empty stomach.",
     "Lights off after dark.",
+    "Are you sure you want to sleep?",
+    "Burnt toast is still toast.",
 )
 
 /** The logo's dark background (ic_launcher_background). */
@@ -157,7 +159,7 @@ fun BoxScope.LicencesPanel(onClose: () -> Unit) = BottomPanel(onDismiss = onClos
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         for ((name, label) in listOf("THIRD_PARTY_NOTICES.md" to "Included software", "LICENSE" to "ZomboidDS (GPL-3.0)",
-            "Apache-2.0.txt" to "Apache 2.0")) {
+            "Apache-2.0.txt" to "Apache 2.0", "OFL-1.1.txt" to "OFL (font)")) {
             OutlinedButton(onClick = { file = name }, enabled = file != name) { Text(label) }
         }
     }

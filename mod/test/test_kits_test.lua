@@ -122,4 +122,7 @@ for _, i in ipairs(inventory.items) do
   if i.type == "Base.Disc_Retail" and i.media and i.media.category == "CDs" then cds = cds + 1 end
 end
 check(tapes == 3 and cds == 2 and inventory:count("Base.Battery") == 4, "titled tapes and CDs (one more in the bag), batteries")
+check(B42.commands.dev_kit(player, { kit = "exercise" }), "gives the Exercise kit")
+check(inventory:count("Base.BarBell") == 1 and inventory:count("Base.DumbBell") == 1, "a barbell and a dumbbell")
+check(player.hand and player.hand.type == "Base.BaseballBat", "a bat in hand, to see it put away and back")
 print("ALL LUA CHECKS PASSED")

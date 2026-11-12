@@ -1,0 +1,131 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 90,
+ "data": {
+  "id": "41",
+  "ok": true,
+  "data": {
+   "name": "Chrome Oven",
+   "icon": "appliances_cooking_01_20_Icon",
+   "on": true,
+   "powered": true,
+   "container": "c6",
+   "temperature": 200,
+   "temperatureText": "400",
+   "celsius": false,
+   "timer": 30,
+   "left": 18,
+   "dial": "KnobDial",
+   "temperatureDial": {
+    "art": "KnobBGFarhenOvenTemp",
+    "marks": [
+     {
+      "angle": 0,
+      "value": 0,
+      "label": "0"
+     },
+     {
+      "angle": 45,
+      "value": 50,
+      "label": "250"
+     },
+     {
+      "angle": 90,
+      "value": 100,
+      "label": "300"
+     },
+     {
+      "angle": 135,
+      "value": 150,
+      "label": "350"
+     },
+     {
+      "angle": 180,
+      "value": 200,
+      "label": "400"
+     },
+     {
+      "angle": 225,
+      "value": 250,
+      "label": "450"
+     },
+     {
+      "angle": 270,
+      "value": 300,
+      "label": "500"
+     }
+    ]
+   },
+   "timerDial": {
+    "art": "KnobBGOvenTimer",
+    "marks": [
+     {
+      "angle": 0,
+      "value": 0
+     },
+     {
+      "angle": 18,
+      "value": 1
+     },
+     {
+      "angle": 36,
+      "value": 2
+     },
+     {
+      "angle": 54,
+      "value": 3
+     },
+     {
+      "angle": 72,
+      "value": 4
+     },
+     {
+      "angle": 90,
+      "value": 5
+     },
+     {
+      "angle": 108,
+      "value": 10
+     },
+     {
+      "angle": 126,
+      "value": 15
+     },
+     {
+      "angle": 144,
+      "value": 20
+     },
+     {
+      "angle": 162,
+      "value": 25
+     },
+     {
+      "angle": 180,
+      "value": 30
+     },
+     {
+      "angle": 198,
+      "value": 40
+     },
+     {
+      "angle": 216,
+      "value": 50
+     },
+     {
+      "angle": 234,
+      "value": 60
+     },
+     {
+      "angle": 252,
+      "value": 90
+     },
+     {
+      "angle": 270,
+      "value": 120
+     }
+    ]
+   }
+  }
+ }
+}

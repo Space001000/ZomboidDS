@@ -177,6 +177,66 @@ kit("devices", "Devices", "A CD Player in your hand; a ValuTech Radio and a walk
         add(inventory, "Base.Earbuds")
     end)
 
+kit("exercise", "Exercise", "A barbell and a dumbbell (all seven exercises open); a baseball bat in your hand and "
+    .. "a school bag on your back, which exercising puts away and puts back after.",
+    function(player)
+        local inventory = player:getInventory()
+        add(inventory, "Base.BarBell")
+        add(inventory, "Base.DumbBell")
+        local bat = add(inventory, "Base.BaseballBat")
+        player:setPrimaryHandItem(bat)
+        wear(player, add(inventory, "Base.Bag_Schoolbag"))
+    end)
+
+--- A newspaper or flyer with a printed page, as the game's OnCreate gives one (RecipeCodeHelper
+--- setPrintMediaInfo); only if the game didn't already (AddItem may not run OnCreate).
+local function printed(container, fullType, title, info, text, id)
+    local item = add(container, fullType)
+    local data = item:getModData()
+    if data.printMedia == nil then
+        data.printMedia = { title = title, info = info, text = text, id = id }
+        data.literatureTitle = title
+        item:setName(getText(title))
+    end
+    return item
+end
+
+kit("reading", "Reading", "A recent newspaper (Knox Knews) and two flyers (the Sunstar Motel, with Show on map, and a "
+    .. "random one): read them for the reader. An alarm clock for Set Alarm.",
+    function(player)
+        local inventory = player:getInventory()
+        printed(inventory, "Base.Newspaper_Recent", "Print_Media_KnoxKnews_July1_title", "Print_Media_KnoxKnews_July1_info",
+            "Print_Text_KnoxKnews_July1_info", "KnoxKnews_July1")
+        -- The Sunstar Motel even if the game picked another: it has a place on the map.
+        local flyer = add(inventory, "Base.Flier")
+        flyer:getModData().printMedia = { title = "Print_Media_SunstarMotel_title", info = "Print_Media_SunstarMotel_info",
+            text = "Print_Text_SunstarMotel_info", id = "sunstarmotel" }
+        flyer:getModData().literatureTitle = "Print_Media_SunstarMotel_title"
+        flyer:setName(getText("Print_Media_SunstarMotel_title"))
+        add(inventory, "Base.Flier")
+        add(inventory, "Base.AlarmClock2")
+    end)
+
+kit("info", "Info", "A placed generator next to you (east), 60% fuel: use Generator Info on it; a full gas can; a "
+    .. "hand shovel, tomato seeds and water to plant something and check its Info.",
+    function(player)
+        local inventory = player:getInventory()
+        -- Placed, as dropping a carried one does (IsoGenerator from the item), on the square east of you.
+        local here = player:getCurrentSquare()
+        local square = getCell():getGridSquare(here:getX() + 1, here:getY(), here:getZ()) or here
+        local generator = IsoGenerator.new(instanceItem("Base.Generator"), getCell(), square)
+        generator:setFuel(60)
+        generator:setCondition(80)
+        local can = add(inventory, "Base.PetrolCan")
+        local fluid = can.getFluidContainer and can:getFluidContainer() or nil
+        if fluid ~= nil and Fluid ~= nil and Fluid.Petrol ~= nil then
+            fluid:addFluid(Fluid.Petrol, fluid:getCapacity())
+        end
+        add(inventory, "Base.HandShovel")
+        add(inventory, "Base.TomatoBagSeed2")
+        add(inventory, "Base.WaterBottle")
+    end)
+
 B42.commands.dev_kits = function(_player, _args)
     local list = {}
     for _, id in ipairs(order) do

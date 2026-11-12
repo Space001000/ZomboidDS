@@ -1,0 +1,44 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 100,
+ "data": {
+  "id": "100",
+  "ok": true,
+  "data": {
+   "exercises": [
+    {
+     "id": "barbellcurl",
+     "name": "Barbell Curls",
+     "icon": "Item_Barbell",
+     "needs": "(Requires Barbell)",
+     "regularity": 0,
+     "strain": [
+      "arms"
+     ]
+    },
+    {
+     "id": "pushups",
+     "name": "Push-ups",
+     "tooltip": "Improves strength when performed regularly.",
+     "regularity": 0.6,
+     "strain": [
+      "arms"
+     ]
+    }
+   ],
+   "canStart": false,
+   "why": "Carrying too much to exercise.",
+   "minutes": {
+    "min": 10,
+    "max": 60,
+    "step": 10
+   },
+   "running": {
+    "id": "pushups",
+    "minutes": 20,
+    "done": 7
+   }
+  }
+ }
+}

@@ -1,7 +1,7 @@
 --- Build 42 adapter: this file and the modules next to it (B42Menu.lua, B42/) are the only Lua that
 --- calls the game API. Implements the contract documented in ZomboidDS/Core/Adapters.lua.
 ---
---- Each area has its own module in B42/ (items, containers, health, moodles, time, Here, crafting, building, tailoring, devices, deck); this file
+--- Each area has its own module in B42/ (items, containers, health, moodles, time, Here, crafting, building, tailoring, devices, ovens, deck); this file
 --- puts them together, with the player, vehicle and item commands. Engine calls go through Util.try
 --- (see there). Every call was checked against 42.20's Lua sources and projectzomboid.jar.
 local Adapters = require("ZomboidDS/Core/Adapters")
@@ -18,13 +18,18 @@ local Crafting = require("ZomboidDS/Adapters/B42/Crafting")
 local Building = require("ZomboidDS/Adapters/B42/Building")
 local Tailoring = require("ZomboidDS/Adapters/B42/Tailoring")
 local Devices = require("ZomboidDS/Adapters/B42/Devices")
+local Ovens = require("ZomboidDS/Adapters/B42/Ovens")
+local Questions = require("ZomboidDS/Adapters/B42/Questions")
+local InfoWindows = require("ZomboidDS/Adapters/B42/InfoWindows")
+local Exercise = require("ZomboidDS/Adapters/B42/Exercise")
+local PrintMedia = require("ZomboidDS/Adapters/B42/PrintMedia")
 local Map = require("ZomboidDS/Adapters/B42/Map")
 local try, round = Util.try, Util.round
 
 local B42 = {
     id = "b42",
     capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop", "item_menu",
-                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "build", "tailor", "devices", "deck", "map" },
+                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "build", "tailor", "devices", "ovens", "questions", "info", "exercise", "print", "deck", "map" },
     dirtyEvents = {
         -- Not OnRefreshInventoryWindowContainers: it fires on every step, and walking doesn't change
         -- what you carry. Moves into the inventory are caught by dirtyChannels below.
@@ -237,8 +242,9 @@ B42.commands = {
 }
 
 -- Moving items between containers, crafting, building, tailoring and devices (see B42/Containers.lua,
--- B42/Crafting.lua, B42/Building.lua, B42/Tailoring.lua, B42/Devices.lua).
-for _, module in ipairs({ Containers, Crafting, Building, Tailoring, Devices }) do
+-- B42/Crafting.lua, B42/Building.lua, B42/Tailoring.lua, B42/Devices.lua, B42/Ovens.lua, B42/Questions.lua,
+-- B42/InfoWindows.lua, B42/Exercise.lua, B42/PrintMedia.lua).
+for _, module in ipairs({ Containers, Crafting, Building, Tailoring, Devices, Ovens, Questions, InfoWindows, Exercise, PrintMedia }) do
     for name, command in pairs(module.commands) do
         B42.commands[name] = command
     end
@@ -374,10 +380,15 @@ local function redirectInspect(onShow)
     end
 end
 
-function B42.redirectGameWindows(onShow)
+function B42.redirectGameWindows(onShow, appThere)
     redirectTrunk(onShow)
+    Questions.redirect(onShow, appThere)
+    InfoWindows.redirect(onShow)
+    Deck.redirect(onShow)
+    PrintMedia.redirect(onShow)
     redirectInspect(onShow)
     Devices.redirect(onShow)
+    Ovens.redirect(onShow)
     guardDoorTaps()
     if ISButtonPrompt == nil or ISButtonPrompt.zomboidDSRedirect then
         return

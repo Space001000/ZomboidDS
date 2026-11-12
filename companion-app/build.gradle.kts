@@ -75,6 +75,7 @@ val legal = listOf(
     rootProject.file("LICENSE"),
     rootProject.file("THIRD_PARTY_NOTICES.md"),
     rootProject.file("licenses/Apache-2.0.txt"),
+    rootProject.file("licenses/OFL-1.1.txt"),
 )
 
 val bundleMod by tasks.registering(BundleModTask::class) {

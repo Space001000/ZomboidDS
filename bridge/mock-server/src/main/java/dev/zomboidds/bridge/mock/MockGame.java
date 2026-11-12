@@ -69,6 +69,10 @@ final class MockGame {
 
     /** The fake TVs and radios (console t, r, k, c open one, like the game's Device Options). */
     private final MockDevices devices = new MockDevices();
+    private final MockOvens ovens = new MockOvens();
+    private final MockGameWindows windows = new MockGameWindows();
+    /** The newspaper or flyer just read ("n", "y"), or null. */
+    private Map<String, Object> printOpen;
 
     MockGame(BridgeContext bridge, String inventoryFixture) {
         this.bridge = bridge;
@@ -156,6 +160,29 @@ final class MockGame {
                         if (devices.open(key)) bridge.state().publish("show", Map.of("panel", "device"));
                     });
                 }
+                case "o", "m" -> {
+                    String key = cmd;
+                    gameThread.execute(() -> {
+                        if (ovens.open(key)) bridge.state().publish("show", Map.of("panel", "oven"));
+                    });
+                }
+                case "s", "x" -> {
+                    String key = cmd;
+                    gameThread.execute(() -> bridge.state().publish("show", Map.of("panel", "question", "id", windows.ask(key))));
+                }
+                case "g", "p", "f" -> {
+                    String key = cmd;
+                    gameThread.execute(() -> {
+                        if (windows.openInfo(key)) bridge.state().publish("show", Map.of("panel", "info"));
+                    });
+                }
+                case "n", "y" -> {
+                    String key = cmd;
+                    gameThread.execute(() -> {
+                        printOpen = (Map<String, Object>) ((Map<String, Object>) resourceJson("print_pages.json")).get(key);
+                        bridge.state().publish("show", Map.of("panel", "print"));
+                    });
+                }
                 case "q" -> { return; }
                 case "" -> { }
                 default -> printHelp();
@@ -171,6 +198,10 @@ final class MockGame {
                   v  enter/leave vehicle     d  take damage     h  heal
                   i  add an item             w  walk away from / back to the furniture
                   t  TV's Device Options     r  radio     k  walkie-talkie     c  CD player
+                  o  oven's Settings         m  microwave's Settings
+                  s  sleep question          x  delete question
+                  g  generator info          p  plant info     f  campfire info
+                  n  newspaper read          y  flyer read
                   q  quit""");
     }
 
@@ -379,6 +410,54 @@ final class MockGame {
             case "device_control" -> devices.control(command.args());
             case "device_close" -> {
                 devices.close();
+                yield null;
+            }
+            case "print_state" -> {
+                if (printOpen == null) {
+                    yield "Nothing to read open";
+                }
+                data[0] = printOpen;
+                yield null;
+            }
+            case "print_map" -> printOpen == null || !(printOpen.get("places") instanceof Number n) || n.intValue() < 1
+                    ? "No place on this one" : null;
+            case "print_close" -> {
+                printOpen = null;
+                yield null;
+            }
+            case "question_state" -> {
+                data[0] = windows.question(command.args().get("id"));
+                yield null;
+            }
+            case "question_answer" -> windows.answer(command.args());
+            case "info_state" -> {
+                data[0] = windows.info();
+                yield null;
+            }
+            case "info_close" -> {
+                windows.closeInfo();
+                yield null;
+            }
+            case "exercise_state" -> {
+                data[0] = windows.exercise();
+                yield null;
+            }
+            case "exercise_start" -> windows.startExercise(command.args());
+            case "exercise_stop" -> {
+                windows.stopExercise();
+                yield null;
+            }
+            case "oven_state" -> {
+                Map<String, Object> state = ovens.state();
+                if (state == null) {
+                    yield "No oven open";
+                }
+                data[0] = state;
+                yield null;
+            }
+            case "oven_control" -> ovens.control(command.args());
+            case "oven_close" -> {
+                ovens.close();
                 yield null;
             }
             case "build_stop" -> {
@@ -652,7 +731,18 @@ final class MockGame {
 
     @SuppressWarnings("unchecked")
     private static List<Map<String, Object>> containersFixture() {
-        return new ArrayList<>((List<Map<String, Object>>) fixtureData("containers.json").get("containers"));
+        List<Map<String, Object>> containers = new ArrayList<>((List<Map<String, Object>>) fixtureData("containers.json").get("containers"));
+        // An empty microwave beside the oven (MockOvens' "m"): a microwave is a container in the game too.
+        Map<String, Object> microwave = new LinkedHashMap<>();
+        microwave.put("id", "c7");
+        microwave.put("kind", "nearby");
+        microwave.put("name", "Microwave");
+        microwave.put("icon", "Container_Microwave");
+        microwave.put("weight", 0.0);
+        microwave.put("capacity", 10.0);
+        microwave.put("items", new ArrayList<>());
+        containers.add(microwave);
+        return containers;
     }
 
     private void adjustHealth(double delta) {
@@ -716,6 +806,15 @@ final class MockGame {
 
     /** Reads the {@code data} of a fixture envelope as mutable maps and lists. */
     @SuppressWarnings("unchecked")
+    /** A JSON file from the mock's resources, as it is. */
+    private static Object resourceJson(String name) {
+        try (InputStream in = MockGame.class.getResourceAsStream("/" + name)) {
+            return GSON.fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), Object.class);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     private static Map<String, Object> fixtureData(String name) {
         try (InputStream in = MockGame.class.getResourceAsStream("/" + name)) {
             if (in == null) {

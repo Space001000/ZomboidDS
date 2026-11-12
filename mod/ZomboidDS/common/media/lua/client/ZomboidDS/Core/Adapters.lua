@@ -23,8 +23,10 @@
 ---   dirtyEvents               table: channel -> array of Events names that mean "re-snapshot now"
 ---   dirtyChannels(player)     optional: -> array of channels to re-snapshot now, or nil; for changes
 ---                             the game flags without an event. Called every tick, so it must be cheap
----   redirectGameWindows(onShow) optional: when the player opens the game's inventory/loot windows,
----                             calls onShow(playerNum, `show` message data); true keeps them closed
+---   redirectGameWindows(onShow, appThere) optional: when the player opens the game's inventory/loot windows,
+---                             calls onShow(playerNum, `show` message data); true keeps them closed.
+---                             appThere() says whether the app is still connected (a question shown
+---                             to it goes back to the game when it isn't)
 ---   notify(player, text)      optional: short on-screen message for the player
 ---
 --- Snapshots must return plain tables (strings, numbers, booleans, nested tables) and never

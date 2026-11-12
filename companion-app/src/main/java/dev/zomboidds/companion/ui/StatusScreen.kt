@@ -1,5 +1,7 @@
 package dev.zomboidds.companion.ui
 
+import dev.zomboidds.companion.domain.GameWindows
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.BoxScope
 import dev.zomboidds.companion.domain.TimeState
 import dev.zomboidds.companion.domain.GameSpeed
@@ -69,7 +71,15 @@ import kotlinx.coroutines.launch
  * game's description of it; tapping a body part opens the game's own treatment menu for it.
  */
 @Composable
-fun StatusScreen(state: GameState, controls: GameControls, actions: ItemActions, iconUrl: (String) -> String) {
+fun StatusScreen(
+    state: GameState,
+    controls: GameControls,
+    actions: ItemActions,
+    iconUrl: (String) -> String,
+    /** The game's exercise window (opened from its health panel); null: no Exercise button. */
+    windows: GameWindows? = null,
+) {
+    var exercising by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var selectedId by remember { mutableStateOf<String?>(null) }
     var failure by remember { mutableStateOf<String?>(null) }
@@ -121,6 +131,10 @@ fun StatusScreen(state: GameState, controls: GameControls, actions: ItemActions,
                     }
                     // A mod from before moodles: its hunger/thirst/... bars instead.
                     if (state.moodles == null) state.player?.let { PlayerCard(it, showHealth = false) }
+                    // The game's health panel has Exercise; here it's under the injuries.
+                    if (windows != null) {
+                        OutlinedButton(onClick = { exercising = true }, modifier = Modifier.fillMaxWidth()) { Text("Exercise ›") }
+                    }
                 }
             }
         }
@@ -139,6 +153,11 @@ fun StatusScreen(state: GameState, controls: GameControls, actions: ItemActions,
                 },
                 onClose = { selectedId = null },
             )
+        }
+        if (exercising && windows != null) {
+            ExercisePanel(windows, iconUrl, time = state.time,
+                onSpeed = { speed -> scope.launch { controls.setSpeed(speed) } },
+                onClose = { exercising = false })
         }
     }
 }

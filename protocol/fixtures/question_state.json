@@ -1,0 +1,23 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 97,
+ "data": {
+  "id": "97",
+  "ok": true,
+  "data": {
+   "id": 7,
+   "text": "Are you sure you want to sleep?",
+   "buttons": [
+    {
+     "id": "yes",
+     "label": "Yes"
+    },
+    {
+     "id": "no",
+     "label": "No"
+    }
+   ]
+  }
+ }
+}

@@ -10,7 +10,7 @@ import kotlinx.serialization.json.JsonObject
  * The app's view of the game. The UI only talks to this interface; how the data gets here
  * (WebSocket to the mod, fake data for previews, ...) is an implementation detail.
  */
-interface GameGateway : ItemActions, GameControls, Crafting, Building, Tailoring, Devices {
+interface GameGateway : ItemActions, GameControls, Crafting, Building, Tailoring, Devices, Ovens, GameWindows, PrintMediaReader {
     val state: StateFlow<GameState>
     val connection: StateFlow<ConnectionStatus>
 
@@ -75,4 +75,19 @@ sealed interface GameEvent {
 
     /** Device Options in the game: the device panel (read it with [Devices.deviceState]). */
     data object ShowDevice : GameEvent
+
+    /** The game opened an oven's or microwave's settings: show it in the oven panel. */
+    data object ShowOven : GameEvent
+
+    /** One of the game's yes/no questions: show it as a card (read it with [GameWindows.question]). */
+    data class ShowQuestion(val id: Long) : GameEvent
+
+    /** One of the game's info windows (a generator's, a plant's): show it as a card. */
+    data object ShowInfo : GameEvent
+
+    /** "Set Alarm" on a clock in the game: the Deck's alarm panel, for that clock. */
+    data object ShowAlarm : GameEvent
+
+    /** A newspaper, magazine or flyer was read: show it in the reader. */
+    data object ShowPrint : GameEvent
 }

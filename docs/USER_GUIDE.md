@@ -145,6 +145,23 @@ your character:
   playing is what's on: picking a channel stops it. On the right are the tapes, CDs, batteries and
   headphones that fit, on you and in the containers around you: tap one to put it in (your character
   fetches it first), or hold and drag it onto its slot. Tap the battery or headphones to take them out.
+- **Ovens and microwaves**: **Settings** opens the oven's dials on the bottom screen. Drag a dial, tap a
+  number on its ring, or use **‹ ›** to step one mark; **Turn on** / **Turn off** and **°F / °C** are in
+  the panel too. On the right is what's inside, with its cooking bars (**Open ›** shows it on the
+  Inventory tab). An oven's timer only rings when it runs out; a microwave turns itself off.
+- **Newspapers, magazines and flyers**: when you finish reading one, its printed page opens on the
+  bottom screen (drag to move, pinch to zoom). **Text** switches to an easy-to-read text version. A
+  flyer for a place has **Show on map**, which marks it on your map.
+- **Questions** such as "Are you sure you want to sleep?" or "Delete all these items?" appear as a
+  card; tap Yes or No, or answer with the controller.
+- **Info** on a generator, campfire, barbecue, plant or animal track, and a CD's or tape's back cover,
+  opens as a card: fuel and condition bars, what a generator powers, a plant's water and pests.
+- **Exercise**: on the **Status** tab, under your injuries. Pick an exercise (ones that need a barbell
+  or dumbbells are greyed until you have one), set the minutes and **Start**; while it runs,
+  **> >> >>>** speed up the game.
+- **Set Alarm** on a clock or watch opens the alarm panel for that clock.
+- **Voice chat** (multiplayer): add it to the Deck to switch your mic on and off with one tap. On, it
+  sends whenever it hears you talk.
 
 **Your own tab order:** hold any tab to arrange the tabs, then drag them into place; the tab bar
 follows along. **Reset** goes back to the default order. The app opens on the tab you used last.

@@ -166,6 +166,11 @@ private fun subtitle(command: DeckCommand, deck: DeckState): String? = when (com
         deck.alarmClock?.on == true -> "%02d:%02d".format(deck.alarmClock.hour, deck.alarmClock.minute)
         else -> "Off"
     }
+    "voice" -> when {
+        !command.available -> "Multiplayer, voice chat on"
+        command.on == true -> "Talking when it hears you"
+        else -> "Listening only"
+    }
     else -> null
 }
 
@@ -335,6 +340,7 @@ internal fun label(command: DeckCommand) = when (command.id) {
     "auto_walk" -> "Auto-walk"
     "emotes" -> "Emotes"
     "shout" -> "Shout"
+    "voice" -> "Voice chat"
     "weapons" -> "Weapons"
     "alarm" -> "Alarm"
     else -> command.name

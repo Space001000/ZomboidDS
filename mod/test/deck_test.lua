@@ -25,7 +25,14 @@ function getText(key)
   return texts[key] or key
 end
 local zoomed = {}
+-- Voice chat: multiplayer, enabled in the options and on the server; the player's mode (1 PTT).
+local client, voiceEnabled, serverVoice, voiceMode = true, true, true, 1
+function isClient() return client end
+function getServerOptions() return { getBoolean = function(_, name) return name == "VoiceEnable" and serverVoice end } end
 function getCore() return {
+  getOptionVoiceEnable = function() return voiceEnabled end,
+  getOptionVoiceMode = function() return voiceMode end,
+  setOptionVoiceMode = function(_, mode) voiceMode = mode end,
   doZoomScroll = function(_, playerIndex, step) table.insert(zoomed, playerIndex .. ":" .. step) end,
   getOptionClock24Hour = function() return clock24 end,
   getKey = function(_, name) return name == "Equip/Turn On/Off Light Source" and 33 or 0 end,
@@ -352,3 +359,49 @@ check(Deck.run(player, "alarm", { hour = 6, minute = 30, on = true }) == true an
   and watch.set == true and synced, "setting it: on, hour, minute, then synced like the game's dialog")
 check(Deck.run(player, "alarm", { hour = 25, minute = 0 }) == false, "not a time: refused")
 check(Deck.run(player, "alarm", { hour = 6, minute = 30, on = false }) == true and watch.set == false, "switching it off")
+
+-- Voice chat ------------------------------------------------------------------------------------
+local function voice() for _, c in ipairs(Deck.snapshot(player).commands) do if c.id == "voice" then return c end end end
+check(voice() ~= nil and voice().available == true and voice().on == false, "voice chat: offered, off while push-to-talk")
+check(Deck.run(player, "voice") == true and voiceMode == 2 and voice().on == true, "a tap turns on voice activity (mode 2)")
+check(Deck.run(player, "voice") == true and voiceMode == 1, "a second tap goes back to the player's push-to-talk")
+voiceMode = 2
+check(voice().on == true, "the player's own voice activity mode shows as on")
+check(Deck.run(player, "voice") == true and voiceMode == 3, "off from the player's own voice activity: listen only")
+check(Deck.run(player, "voice") == true and voiceMode == 2 and Deck.run(player, "voice") == true and voiceMode == 3,
+  "on again, and off again to listen only (not back to voice activity)")
+client = false
+check(voice().available == false and Deck.run(player, "voice") == false and voiceMode == 3, "single player: greyed, does nothing")
+client, serverVoice = true, false
+check(voice().available == false, "greyed when the server has voice chat off")
+serverVoice, voiceEnabled = true, false
+check(voice().available == false, "greyed when voice chat is off in the game's options")
+voiceEnabled = true
+
+-- Set Alarm on one clock in the game's item menu: the app's alarm panel, for that clock
+local shelfClock = { isAlarmSet = function() return false end, getHour = function() return 9 end, getMinute = function() return 15 end,
+  getDisplayName = function() return "Alarm Clock" end, getContainer = function() return {} end }
+classes[shelfClock] = "AlarmClock"
+function shelfClock:setAlarmSet(v) self.set = v end
+function shelfClock:setHour(h) self.h = h end
+function shelfClock:setMinute(m) self.m = m end
+function shelfClock:syncAlarmClock() self.synced = true end
+local gameDialog, inventoryRef = 0, {}
+shelfClock.getWorldItem = function() return nil end
+shelfClock.getContainer = function() return inventoryRef end
+function getSpecificPlayer() return { getInventory = function() return inventoryRef end } end
+ISInventoryPaneContextMenu.onSetAlarm = function() gameDialog = gameDialog + 1 end
+local shownPanel
+Deck.redirect(function(_, show) shownPanel = show return true end)
+ISInventoryPaneContextMenu.onSetAlarm(shelfClock, 0)
+check(shownPanel and shownPanel.panel == "alarm" and gameDialog == 0, "Set Alarm: the app's alarm panel, no game dialog to hold the controller")
+check(Deck.snapshot(player).alarmClock.name == "Alarm Clock" and Deck.snapshot(player).alarmClock.hour == 9, "the panel shows that clock, not the watch")
+check(Deck.run(player, "alarm", { hour = 5, minute = 45, on = true }) == true and shelfClock.h == 5 and shelfClock.set and shelfClock.synced,
+  "setting it sets that clock")
+check(Deck.snapshot(player).alarmClock.hour ~= 5, "then the panel is the watch's again")
+
+-- A clock still on a shelf: the game fetches it first (its own transfer, which calls onSetAlarm again)
+shownPanel = nil
+shelfClock.getContainer = function() return { shelf = true } end
+ISInventoryPaneContextMenu.onSetAlarm(shelfClock, 0)
+check(shownPanel == nil and gameDialog == 1, "on a shelf: the game's code fetches it first")

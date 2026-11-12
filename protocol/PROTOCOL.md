@@ -58,7 +58,7 @@ older state messages of the same type are dropped in favour of the newest.
 | `explored`       | bridge   | The parts of the map the player has seen, as the game remembers them (`WorldMapVisited`): `originX`, `originY` (tile of unit 0,0), `unit` (32 tiles), `width`, `height` (in units), `bits`: base64 of zlib-deflated bytes, 2 bits per unit (1 visited, 2 known from a map), 4 units per byte, unit `x` in bits `(x % 4) * 2` of byte `x / 4 + y * width / 4`. The minimap shows a unit when either bit is set. Sent when it changes, checked every 2 s. |
 | `map_symbols`    | bridge   | What the game's minimap shows with its Symbols option on: the game's printed labels (town, river, building names, read from each map's `worldmap-annotations.lua`, `label: true`) and the symbols and notes the player put on their world map. `symbols[]`, each `{ kind, x, y, color, scale, rotation, anchorX, anchorY, label, minZoom, maxZoom }` with `kind` `icon` (+ `icon`, an icon path like `LootableMaps/map_star`) or `text` (+ `text`, as the game shows it). `color` `[r, g, b, a]` (0–1), `scale` the game's size (0.666 default), `rotation` degrees, `anchorX`/`anchorY` which point of it sits on the spot (0–1), `minZoom`/`maxZoom` the game zoom levels it shows between (zoom = log2(pixels per tile × 40075017 / view height in pixels)). Colour alpha 0: the map style's colour (black on the minimap). Sent when they change, checked every 2 s (mod 0.23+). |
 | `command_result` | Lua      | `id`, `ok`, `error` (optional), `data` (optional, command-specific). Event, never replayed. |
-| `show`           | Lua      | `panel` (`inventory`, `garment` or `device`), `container` (optional container id, `inventory`), `item` (the garment's item id, `garment`). The player asked the game for that panel, e.g. pressed the controller's Loot/Inventory button, chose Inspect on a garment (mod 0.26+), or opened a TV's or radio's Device Options (mod 0.27+; read it with `device_state`): the app shows it. Event, never replayed. |
+| `show`           | Lua      | `panel` (`inventory`, `garment`, `device`, `oven`, `question`, `info`, `alarm` or `print`), `container` (optional container id, `inventory`), `item` (the garment's item id, `garment`). The player asked the game for that panel, e.g. pressed the controller's Loot/Inventory button, chose Inspect on a garment (mod 0.26+), opened a TV's or radio's Device Options (mod 0.27+; read it with `device_state`), an oven's or microwave's Settings (mod 0.28+; `oven_state`), one of the game's yes/no questions (`question`, with its `id`; mod 0.28+; `question_state`), one of its info windows (`info`; mod 0.28+; `info_state`), a newspaper, magazine or flyer just read (`print`, mod 0.28+; `print_state`), or Set Alarm on a clock (`alarm`, mod 0.28+: the Deck's alarm panel, whose `deck.alarmClock` is then that clock until it's set or two minutes pass): the app shows it. Event, never replayed. |
 
 Inventory item:
 
@@ -126,7 +126,7 @@ chooses which ones the Deck shows. Each is `{ id, name, icon, available, on }`:
 
 - `id`: stable, the app remembers the player's choice by it. v1: `zoom_in`, `zoom_out`,
   `search_mode`, `map`, `sit`, `flashlight`, `drop_bag`, `drop_held`, `auto_walk`, `weapons`,
-  `emotes`, `alarm`, `shout`. Unknown ids
+  `emotes`, `alarm`, `shout`, `voice`. Unknown ids
   are ignored by the app.
 - `name`: the game's own (translated) name for it, as in its key bindings.
 - `icon`: a texture name for the icon endpoint.
@@ -143,6 +143,9 @@ equips them from the floor into the hands they were in (as equipping from the lo
 floor does). Its `icon` follows what it
 would drop or pick up.
 `auto_walk` switches auto-walk as the left stick's wheel does (`on` while walking).
+`voice` switches the game's VOIP mode (Options): on is "Voice Activity Detected", off goes back to
+the mode the player had before, or "Listen Only" when it was on already (`on` in voice activity
+mode). Available only in multiplayer, with voice chat on in the game's options and on the server.
 
 Two commands take arguments and come with their own state in `deck`:
 
@@ -209,6 +212,19 @@ executed on the game thread on the next tick (also while the game is paused), us
 | `device_state` | none: the device the game last opened (`show` `device`). Result `data`: `{ gone }` once the player walked away or put it away, else `{ name, icon, where, on, tv, volume, channel, channelName, presets[], range, maxPresets, battery, grid, headphones, twoWay, media, drawer[] }`, only the parts the device has: `where` `hand`/`back`/`floor`/`vehicle`; `volume` 0–1 in tenths; `channel` and each preset's `frequency` in kHz (a TV's presets are its channels); `range` `{ min, max }` (radios); `battery` `{ level, has }` or `grid` `{ power, text }` (the game's "Has power."); `headphones` `{ slot, name, icon }`; `twoWay` `{ range, micMuted }`; `media` `{ type: cd/vhs, name, playing, empty }`; `drawer[]` `{ name, onYou, items[] { id, name, icon, fits: media/battery/headphones, count } }`, what fits, on the player then per container around (see Devices) |
 | `device_control` | `control`: `power`, `volume` (`value` 0–1), `mute`, `unmute` (`value`), `channel` (`value` kHz; a playing tape stops first), `play` (play/stop), `eject`, `battery_out`, `headphones_out`, `insert` (`itemId` from the drawer; what's in that slot comes out first), `mic` (`value` true = muted), `add_preset` (`value` kHz, named after the station there). Each queues the game's own action after walking to the device, as its window does. |
 | `device_close` | none: the panel closed. |
+| `oven_state` | none: the oven or microwave the game last opened (`show` `oven`, mod 0.28+). Result `data`: `{ gone }` once the player is more than 3 tiles away, else `{ name, icon, microwave, on, powered, broken, container, temperature, temperatureText, unit, celsius, timer, left, dial, temperatureDial, timerDial }`: `temperature` the knob's value in the game's own numbers (an oven's 0–300, a microwave's 50–130), `temperatureText` what the dial says there ("400", "4 of 5"; `unit` "F" or "C" goes after it on an oven, the app adds the degree sign: the mod sends ASCII only); `celsius` the game's option (ovens only); `timer` the minutes set, `left` the minutes to go while it runs; `container` its id in `containers`, for what's inside; `dial` the knob's texture; each dial `{ art, marks[] { angle, value, label } }`, the dial's texture and the knob's marks as the game's window adds them (`angle` in degrees clockwise from the top). |
+| `oven_control` | `control`: `set` (`temperature` and/or `timer` in minutes, each one of its knob's marks; set on the oven as the window's knobs do), `toggle` (Turn on / Turn off with the knobs as they are; refused without power), `units` (`celsius` true/false: the game's option, saved). |
+| `oven_close` | none: the panel closed. |
+| `question_state` | `id` (from `show` `question`). Result `data`: `{ gone }` once answered (in the app, with the controller, or shown in the game after the app left), else `{ id, text, buttons[] { id, label } }`: the game's question and its buttons, `yes` / `no` or `ok`, the first the accepting one. In-game questions only (ISModalDialog); the main menu's stay in the game. |
+| `question_answer` | `id`, `button` (a button `id`): presses the dialog's own button, so what follows is the game's. |
+| `info_state` | none: the info window the game last opened (`show` `info`: a generator's, campfire's, barbecue's, plant's or animal track's, or a CD's or tape's back cover). Result `data`: `{ gone }` once the game would close its window, else `{ kind, title, icon, status, rows[] }`, each row `{ label, value, meter, tone, icon, indent, water }` or `{ text, tone }`: the window's lines (`meter` 0–1 for a percentage or a plant's water bar; `tone` `bad` for red text; `icon` a pest's; `indent` for what belongs to the row above). |
+| `info_close` | none: the card closed. |
+| `exercise_state` | none. Result `data`: the game's exercise window: `{ exercises[] { id, name, tooltip, icon, needs, regularity, strain[] }, canStart, why, minutes { min, max, step }, running { id, minutes, done } }`: `needs` the game's "(Requires Barbell)" when the item isn't on you; `regularity` 0–1, its bar; `canStart` false with the game's reason `why`. |
+| `exercise_start` | `id`, `minutes` (10–60 in tens): the window's OK, so the items it equips and puts back are the game's. |
+| `exercise_stop` | none: the window's Cancel. |
+| `print_state` | none: the newspaper, magazine or flyer just read (`show` `print`). Result `data`: `{ title, icon, layout, text, places }`: `layout` the game's page description (Print_Media `*_info`: `<type:parent, width, height>`, `<type:texture, x, y, width, height, pivotX, pivotY, angle, scaleX, scaleY, r, g, b, a, texture>` (a picture, or a plain rect without `texture`), `<type:text, x, y, pivotX, scaleX, scaleY, textLeading, autoWidth, font, r, g, b, a>text` with `^` for line breaks; the font is the game's Old Standard TT at 32 px, lines 41 px, times the scale); `text` its text version; `places` how many map buttons (0–5). |
+| `print_map` | `index` (1–5): the window's map button: the place becomes known on the map and the game's map opens there. |
+| `print_close` | none: the reader closed. |
 
 ### Crafting
 

@@ -11,6 +11,15 @@ data class Release(val version: String, val title: String, val date: String?, va
  * releasing, give it its final version (same as versionName), date and title.
  */
 val RELEASES = listOf(
+    Release("1.6.0", "Kitchen and camp", null, listOf(
+        "**Ovens and microwaves:** Settings now opens on the bottom screen, with the oven's dials for temperature and timer. **Turn on** / **Turn off** and °F / °C are there too, and on the right what's inside, with its cooking bars.",
+        "**Newspapers, magazines and flyers** open on the bottom screen once read: the printed page (drag to move, pinch to zoom), **Text** to read it comfortably, and **Show on map** for the place a flyer advertises.",
+        "**Questions** like \"Are you sure you want to sleep?\" or \"Delete all these items?\" now show on the bottom screen. Tap Yes or No, or answer with the controller as before.",
+        "**Info** on a generator, campfire, barbecue, plant or animal track, and a CD's or tape's back cover, opens as a card on the bottom screen: fuel and condition with bars, what a generator powers, a plant's water and pests.",
+        "**Exercise** is on the Status tab: pick an exercise, see your regularity, set the minutes and Start. Ones that need a barbell or dumbbells are greyed until you have one.",
+        "**Set Alarm** on a clock or watch opens the alarm panel on the bottom screen, for that clock, also one on a shelf.",
+        "**Voice chat on the Deck:** in multiplayer, add **Voice chat** to the Deck to switch your mic on and off with one tap. On, it sends whenever it hears you talk, so there's no key to hold.",
+    )),
     Release("1.5.1", "All decked out", "26 Oct 2026", listOf(
         "**Pin to the tab bar:** hold a command on the Deck, like **Weapons**, to pin it at the end of the tab bar. It's there on every tab: Weapons shows what's in your hands, and a tap opens your hotbar over what you're looking at.",
         "Up to two pins. To unpin, hold the pin, or hold the command on the Deck.",

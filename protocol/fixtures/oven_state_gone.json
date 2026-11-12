@@ -1,0 +1,12 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 92,
+ "data": {
+  "id": "43",
+  "ok": true,
+  "data": {
+   "gone": true
+  }
+ }
+}

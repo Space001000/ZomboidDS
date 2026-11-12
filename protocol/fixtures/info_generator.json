@@ -1,0 +1,36 @@
+{
+ "v": 1,
+ "type": "command_result",
+ "seq": 99,
+ "data": {
+  "id": "99",
+  "ok": true,
+  "data": {
+   "kind": "generator",
+   "title": "Gas-powered Generator",
+   "icon": "appliances_misc_01_0_Icon",
+   "rows": [
+    {
+     "label": "Fuel",
+     "value": "63%",
+     "meter": 0.63
+    },
+    {
+     "label": "Power Consumption"
+    },
+    {
+     "label": "Lights x6",
+     "value": "0.0012 L/h",
+     "indent": true
+    },
+    {
+     "text": "Will fill the building with toxic fumes when operated here.",
+     "tone": "bad"
+    },
+    {
+     "value": "no label"
+    }
+   ]
+  }
+ }
+}

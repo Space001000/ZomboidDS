@@ -193,7 +193,21 @@ local function pickUpTargets(player)
 end
 
 --- The watch or clock the game's alarm uses: worn first, then carried (as zombie.ui.Clock looks).
+-- "Set Alarm" on one clock in the game's item menu (a clock on a shelf, a second watch): the alarm
+-- panel sets that one, until it's set or a while has passed. playerNum -> { item, until }.
+local ALARM_TARGET_MS = 120000
+local alarmTargets = {}
+
 local function alarmClock(player)
+    local target = alarmTargets[try(player, "getPlayerNum") or 0]
+    if target ~= nil then
+        local item = target.item
+        local there = try(item, "getContainer") ~= nil or try(item, "getWorldItem") ~= nil
+        if there and getTimestampMs() < target["until"] then
+            return item
+        end
+        alarmTargets[try(player, "getPlayerNum") or 0] = nil
+    end
     local candidates = {}
     local worn = try(player, "getWornItems")
     for i = 0, (try(worn, "size") or 0) - 1 do
@@ -291,6 +305,11 @@ local function canEmote(player)
     if try(player, "isDead") == true then return false end
     return not (busy(player) and try(player, "isCurrentlyBusy") == true)
 end
+
+-- The game's voice modes (Options, VOIP Mode): 1 Push-to-talk, 2 Voice Activity Detected, 3 Listen Only.
+local VOICE_ACTIVITY, LISTEN_ONLY = 2, 3
+-- The mode before the Deck turned voice chat on, to go back to; nil when the Deck didn't turn it on.
+local voiceModeBefore = nil
 
 --- The commands, in the order the app offers them when adding. `key`: the game's key binding
 --- (its name is the command's name); `text`: else the game text it's named with. `available` and `on` get the player; `run` does it;
@@ -495,6 +514,7 @@ local COMMANDS = {
             clock:setHour(math.floor(hour))
             clock:setMinute(math.floor(minute))
             if clock.syncAlarmClock then clock:syncAlarmClock() end
+            alarmTargets[playerNum(player)] = nil -- set: back to the watch you wear
         end,
     },
     {
@@ -516,6 +536,30 @@ local COMMANDS = {
                 id = variants[ZombRand(#variants) + 1]
             end
             player:playEmote(id)
+        end,
+    },
+    {
+        -- Voice chat on or off without a key to hold: on is the game's "Voice Activity Detected" mode
+        -- (it sends while it hears you), off is the mode the player had before the Deck turned it
+        -- on, or "Listen Only" when it was on already (set in the game's Options). getCore():setOptionVoiceMode applies it at once
+        -- (VoiceManager.setMode), as the Options screen does. Only in multiplayer with voice chat on
+        -- in the game's options and on the server.
+        id = "voice", text = "UI_optionscreen_voiceEnable", icon = "voiceon",
+        available = function()
+            return isClient() and getCore():getOptionVoiceEnable() == true
+                and getServerOptions():getBoolean("VoiceEnable") == true
+        end,
+        on = function() return getCore():getOptionVoiceMode() == VOICE_ACTIVITY end,
+        run = function()
+            local core = getCore()
+            local mode = core:getOptionVoiceMode()
+            if mode == VOICE_ACTIVITY then
+                core:setOptionVoiceMode(voiceModeBefore or LISTEN_ONLY)
+                voiceModeBefore = nil
+            else
+                voiceModeBefore = mode
+                core:setOptionVoiceMode(VOICE_ACTIVITY)
+            end
         end,
     },
     {
@@ -607,6 +651,38 @@ function Deck.snapshot(player)
                               minute = try(watch, "getMinute"), on = try(watch, "isAlarmSet") == true }
     end
     return result
+end
+
+--- "Set Alarm" in the game's item menu opens the app's alarm panel for that clock instead of the
+--- game's dialog, while the app is there. It takes over at ISInventoryPaneContextMenu.onSetAlarm,
+--- before the dialog exists: the game would give the dialog the controller (setJoypadFocus), and a
+--- hidden one would keep it. A clock in a bag or on a shelf is fetched first by the game's own code,
+--- whose "then open it" calls onSetAlarm again, which is this one by then.
+function Deck.redirect(onShow)
+    local menu = ISInventoryPaneContextMenu
+    if menu == nil or menu.onSetAlarm == nil or menu.zomboidDSAlarm then
+        return
+    end
+    menu.zomboidDSAlarm = true
+    local original = menu.onSetAlarm
+    menu.onSetAlarm = function(alarm, player, ...)
+        local ok, handled = pcall(function()
+            local playerObj = getSpecificPlayer(player)
+            if alarm == nil or playerObj == nil then return false end
+            -- Not yet in reach of the dialog: the game fetches it, then calls this again.
+            if not alarm:getWorldItem() and alarm:getContainer() ~= playerObj:getInventory() then return false end
+            local n = type(player) == "number" and player or 0
+            local before = alarmTargets[n]
+            alarmTargets[n] = { item = alarm, ["until"] = getTimestampMs() + ALARM_TARGET_MS }
+            if onShow(n, { panel = "alarm" }) then return true end
+            alarmTargets[n] = before
+            return false
+        end)
+        if ok and handled then
+            return
+        end
+        return original(alarm, player, ...)
+    end
 end
 
 --- Runs a command by id (with its args, e.g. the hotbar slot or the alarm time). Returns true, or false and why not.

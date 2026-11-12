@@ -6,6 +6,12 @@ import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ConnectionStatus
 import dev.zomboidds.companion.domain.DeviceControl
 import dev.zomboidds.companion.domain.DeviceState
+import dev.zomboidds.companion.domain.OvenControl
+import dev.zomboidds.companion.domain.ExerciseState
+import dev.zomboidds.companion.domain.InfoCard
+import dev.zomboidds.companion.domain.Question
+import dev.zomboidds.companion.domain.PrintedPage
+import dev.zomboidds.companion.domain.OvenState
 import dev.zomboidds.companion.domain.Fetched
 import dev.zomboidds.companion.domain.GameEvent
 import dev.zomboidds.companion.domain.GameGateway
@@ -170,6 +176,44 @@ class WebSocketGameGateway(
 
     override suspend fun closeDevice() {
         send(ProtocolV1.deviceCloseRequest())
+    }
+
+    override suspend fun ovenState(): Fetched<OvenState> =
+        fetched(send(ProtocolV1.ovenStateRequest()), "The oven couldn't be read", ProtocolV1::ovenState)
+
+    override suspend fun ovenControl(control: OvenControl): CommandResult = send(ProtocolV1.ovenControlRequest(control)).result
+
+    override suspend fun closeOven() {
+        send(ProtocolV1.ovenCloseRequest())
+    }
+
+    override suspend fun question(id: Long): Fetched<Question> =
+        fetched(send(ProtocolV1.questionRequest(id)), "The question couldn't be read", ProtocolV1::question)
+
+    override suspend fun answer(id: Long, button: String): CommandResult = send(ProtocolV1.answerRequest(id, button)).result
+
+    override suspend fun infoCard(): Fetched<InfoCard> =
+        fetched(send(ProtocolV1.infoRequest()), "The info couldn't be read", ProtocolV1::infoCard)
+
+    override suspend fun closeInfo() {
+        send(ProtocolV1.infoCloseRequest())
+    }
+
+    override suspend fun exercise(): Fetched<ExerciseState> =
+        fetched(send(ProtocolV1.exerciseRequest()), "The exercises couldn't be read", ProtocolV1::exercise)
+
+    override suspend fun startExercise(id: String, minutes: Int): CommandResult =
+        send(ProtocolV1.exerciseStartRequest(id, minutes)).result
+
+    override suspend fun stopExercise(): CommandResult = send(ProtocolV1.exerciseStopRequest()).result
+
+    override suspend fun printMedia(): Fetched<PrintedPage> =
+        fetched(send(ProtocolV1.printRequest()), "The page couldn't be read", ProtocolV1::printedPage)
+
+    override suspend fun showOnMap(index: Int): CommandResult = send(ProtocolV1.printMapRequest(index)).result
+
+    override suspend fun closePrint() {
+        send(ProtocolV1.printCloseRequest())
     }
 
     private fun <T> fetched(reply: ProtocolV1.ServerMessage.Reply, unreadable: String, parse: (JsonElement?) -> T): Fetched<T> =

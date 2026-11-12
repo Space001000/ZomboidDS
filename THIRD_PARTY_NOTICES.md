@@ -23,6 +23,11 @@ compatible with the GPL-3.0.
 
 The full text of the Apache License 2.0 is in [licenses/Apache-2.0.txt](licenses/Apache-2.0.txt).
 
+The newspaper reader draws pages in **Old Standard TT** (Copyright 2011 The Old Standard Project Authors),
+the typeface the game's newspapers use, under the SIL Open Font License 1.1
+(https://github.com/google/fonts/tree/main/ofl/oldstandardtt). Its full text is in
+[licenses/OFL-1.1.txt](licenses/OFL-1.1.txt).
+
 ## Included in the mod (ZomboidDS.jar)
 
 | Component | Licence | Source |

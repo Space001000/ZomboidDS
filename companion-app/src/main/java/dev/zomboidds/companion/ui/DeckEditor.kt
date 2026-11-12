@@ -166,5 +166,6 @@ private fun hint(command: DeckCommand) = when (command.id) {
     "sit" -> "Tap again to stand up"
     "weapons" -> "Your hotbar: draw or put away"
     "alarm" -> "Your watch's alarm"
+    "voice" -> "Your mic in multiplayer: on talks when it hears you"
     else -> null
 }

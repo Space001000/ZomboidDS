@@ -136,6 +136,9 @@ local function onGameStart()
             end
             Bridge.emit("show", show)
             return true
+        end, function()
+            -- Whether the app is still there to answer what it was shown (a question).
+            return Config.redirectGameWindows and Bridge.clients() > 0
         end)
     end
 

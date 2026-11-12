@@ -36,6 +36,8 @@ import dev.zomboidds.companion.domain.DrawerFit
 import dev.zomboidds.companion.domain.DeviceWhere
 import dev.zomboidds.companion.domain.DeviceControl
 import dev.zomboidds.companion.domain.DeviceBattery
+import dev.zomboidds.companion.domain.OvenControl
+import dev.zomboidds.companion.domain.withDegrees
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -516,6 +518,132 @@ class ProtocolV1Test {
         assertNull(radio.media)
         assertEquals(3, radio.drawer[0].items[0].count)
         assertEquals(DrawerFit.HEADPHONES, radio.drawer[0].items[1].fits)
+    }
+
+    private fun ovenFixture(name: String) =
+        ProtocolV1.ovenState((ProtocolV1.decode(fixture(name)) as ProtocolV1.ServerMessage.Reply).data)
+
+    @Test
+    fun `Settings on an oven opens the oven panel`() {
+        assertEquals(GameEvent.ShowOven, (ProtocolV1.decode(fixture("show_oven.json")) as ProtocolV1.ServerMessage.Event).event)
+    }
+
+    @Test
+    fun `an oven, running`() {
+        val oven = ovenFixture("oven_state_oven.json")
+        assertEquals("Chrome Oven", oven.name)
+        assertTrue(oven.on && oven.powered && !oven.microwave)
+        assertEquals("c6", oven.container)
+        assertEquals(200, oven.temperature)
+        assertEquals("400", oven.temperatureText)
+        assertEquals("400 °F", oven.withDegrees(oven.temperatureText))
+        assertEquals(false, oven.celsius)
+        assertEquals(30, oven.timer)
+        assertEquals(18, oven.left)
+        assertEquals("KnobBGFarhenOvenTemp", oven.temperatureDial.art)
+        assertEquals(7, oven.temperatureDial.marks.size)
+        assertEquals("250", oven.temperatureDial.marks[1].label)
+        assertEquals(16, oven.timerDial.marks.size)
+        // 18 minutes left is between the 15 and 20 marks: the knob shows 20, as the game's.
+        assertEquals(20, oven.timerDial.markFor(18)?.value)
+        assertEquals(15, oven.timerDial.markFor(17)?.value)
+    }
+
+    @Test
+    fun `a microwave without power`() {
+        val mw = ovenFixture("oven_state_microwave.json")
+        assertTrue(mw.microwave && !mw.on && !mw.powered)
+        // No degrees on a microwave, even if the game sent one.
+        assertNull(mw.celsius)
+        assertNull(mw.left)
+        assertNull(mw.container)
+        assertEquals(listOf(50, 70, 90, 110, 130), mw.temperatureDial.byValue.map { it.value })
+        assertEquals(45f, mw.temperatureDial.markFor(110)?.angle)
+    }
+
+    @Test
+    fun `an oven the player walked away from`() {
+        assertTrue(ovenFixture("oven_state_gone.json").gone)
+    }
+
+    @Test
+    fun `oven controls`() {
+        assertEquals("""{"control":"set","temperature":250}""", ProtocolV1.ovenControlRequest(OvenControl.Temperature(250)).args.toString())
+        assertEquals("""{"control":"set","timer":5}""", ProtocolV1.ovenControlRequest(OvenControl.Timer(5)).args.toString())
+        assertEquals("""{"control":"toggle"}""", ProtocolV1.ovenControlRequest(OvenControl.Toggle).args.toString())
+        assertEquals("""{"control":"units","celsius":true}""", ProtocolV1.ovenControlRequest(OvenControl.Units(true)).args.toString())
+    }
+
+    private fun reply(name: String) = (ProtocolV1.decode(fixture(name)) as ProtocolV1.ServerMessage.Reply).data
+
+    @Test
+    fun `the game's questions and info windows open their cards`() {
+        assertEquals(GameEvent.ShowQuestion(7), (ProtocolV1.decode(fixture("show_question.json")) as ProtocolV1.ServerMessage.Event).event)
+        assertEquals(GameEvent.ShowInfo, (ProtocolV1.decode(fixture("show_info.json")) as ProtocolV1.ServerMessage.Event).event)
+    }
+
+    @Test
+    fun `a yes-no question`() {
+        val q = ProtocolV1.question(reply("question_state.json"))
+        assertEquals("Are you sure you want to sleep?", q.text)
+        assertEquals(listOf("yes", "no"), q.buttons.map { it.id })
+        assertTrue(ProtocolV1.question(reply("question_gone.json")).gone)
+        assertEquals("""{"id":7,"button":"no"}""", ProtocolV1.answerRequest(7, "no").args.toString())
+    }
+
+    @Test
+    fun `a generator's info`() {
+        val info = ProtocolV1.infoCard(reply("info_generator.json"))
+        assertEquals("Gas-powered Generator", info.title)
+        // A row with neither a label nor text is dropped.
+        assertEquals(4, info.rows.size)
+        assertEquals(0.63f, info.rows[0].meter)
+        assertNull(info.rows[1].value)
+        assertTrue(info.rows[2].indent)
+        assertTrue(info.rows[3].bad)
+    }
+
+    @Test
+    fun `the exercises`() {
+        val e = ProtocolV1.exercise(reply("exercise_state.json"))
+        assertEquals("(Requires Barbell)", e.exercises[0].needs)
+        assertEquals(0.6f, e.exercises[1].regularity)
+        assertFalse(e.canStart)
+        assertEquals("Carrying too much to exercise.", e.why)
+        assertEquals(listOf(10, 20, 30, 40, 50, 60), e.minutes.toList())
+        assertEquals(7, e.running?.done)
+        assertEquals("""{"id":"pushups","minutes":20}""", ProtocolV1.exerciseStartRequest("pushups", 20).args.toString())
+    }
+
+    @Test
+    fun `a flyer read, with the game's page layout`() {
+        assertEquals(GameEvent.ShowPrint, (ProtocolV1.decode(fixture("show_print.json")) as ProtocolV1.ServerMessage.Event).event)
+        val p = ProtocolV1.printedPage(reply("print_state.json"))
+        assertEquals("Sunstar Motel", p.title)
+        assertEquals(1, p.places)
+        assertEquals(800f, p.page.width)
+        assertEquals(1131f, p.page.height)
+        val picture = p.page.parts.single() as dev.zomboidds.companion.domain.PagePart.Picture
+        assertEquals("printMedia/FlyerPics/Sunstar", picture.texture)
+        assertTrue(p.text.startsWith("Stay with us at the Sunstar Motel!"))
+    }
+
+    @Test
+    fun `a newspaper page's parts`() {
+        val page = dev.zomboidds.companion.domain.PageLayout.parse(
+            "<type:parent, width:805, height:910><type:texture, x:20, y:20, width:375, height:105, r:0, g:0, b:0, a:0.9>" +
+                "<type:text, x:410, y:135, r:0, g:0, b:0, a:1, pivotX:0.5, scaleX:0.6, scaleY:0.6, font:SdfOldBold>THURSDAY" +
+                "<type:text, x:22, y:285, scaleX:1.2, scaleY:1.2, textLeading:-4, font:SdfOldBold>Brandenburg^disaster funds" +
+                "<type:text, x:25, y:470, scaleX:0.4, scaleY:0.4, autoWidth:617.5, font:SdfOldRegular>FRANKFORT - Governor")
+        assertEquals(805f, page.width)
+        val rect = page.parts[0] as dev.zomboidds.companion.domain.PagePart.Picture
+        assertNull(rect.texture)
+        assertEquals(0.9f, rect.color.a)
+        val day = page.parts[1] as dev.zomboidds.companion.domain.PagePart.Words
+        assertEquals(0.5f, day.pivotX)
+        assertTrue(day.font.bold)
+        assertEquals("Brandenburg\ndisaster funds", (page.parts[2] as dev.zomboidds.companion.domain.PagePart.Words).text)
+        assertEquals(617.5f * 0.4f, (page.parts[3] as dev.zomboidds.companion.domain.PagePart.Words).wrapWidth!!, 0.01f)
     }
 
     @Test

@@ -32,6 +32,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -67,6 +69,9 @@ import dev.zomboidds.companion.domain.Building
 import dev.zomboidds.companion.domain.CommandResult
 import dev.zomboidds.companion.domain.ConnectionStatus
 import dev.zomboidds.companion.domain.Devices
+import dev.zomboidds.companion.domain.Ovens
+import dev.zomboidds.companion.domain.GameWindows
+import dev.zomboidds.companion.domain.PrintMediaReader
 import dev.zomboidds.companion.domain.Crafting
 import dev.zomboidds.companion.domain.GameControls
 import dev.zomboidds.companion.domain.GameEvent
@@ -105,6 +110,9 @@ fun CompanionScreen(
     building: Building? = null,
     tailoring: Tailoring? = null,
     devices: Devices? = null,
+    ovens: Ovens? = null,
+    windows: GameWindows? = null,
+    reader: PrintMediaReader? = null,
     /** The development builds' tools (test kits); empty in a release build. */
     devTools: DevTools? = null,
     /** What the Craft tab shows (its ▾ menu), and how to change it. */
@@ -131,7 +139,7 @@ fun CompanionScreen(
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
                 if (inGame) {
                     InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting,
-                        building, tailoring, devices, devTools, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange,
+                        building, tailoring, devices, ovens, windows, reader, devTools, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange,
                         pinnedCommands, onPinnedCommandsChange, emoteSettings, map, tabSettings)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
@@ -197,6 +205,9 @@ private fun InGame(
     building: Building?,
     tailoring: Tailoring?,
     devices: Devices?,
+    ovens: Ovens?,
+    windows: GameWindows?,
+    reader: PrintMediaReader?,
     devTools: DevTools?,
     craftMode: CraftMode,
     onCraftModeChange: (CraftMode) -> Unit,
@@ -261,6 +272,14 @@ private fun InGame(
     var garmentShown by remember { mutableStateOf<Long?>(null) }
     // Device Options in the game: the device panel, over whatever tab is open.
     var deviceShown by remember { mutableStateOf(false) }
+    // An oven's Settings in the game: the oven panel, over whatever tab is open.
+    var ovenShown by remember { mutableStateOf(false) }
+    // The game's yes/no questions, oldest first, and its info windows: cards over any tab.
+    val questions = remember { mutableStateListOf<Long>() }
+    var infoShown by remember { mutableStateOf(false) }
+    // A newspaper or flyer just read: the reader, over any tab.
+    var printShown by remember { mutableStateOf(false) }
+    var printRead by remember { mutableIntStateOf(0) } // each read, so a second one replaces the first
     // The pins in the tab bar (as far as this game offers them), their panels, and the pin card.
     val pins = state.deck?.commandsFor(pinnedCommands).orEmpty()
     val pinRunner = rememberDeckRunner(controls)
@@ -274,6 +293,15 @@ private fun InGame(
                 }
                 is GameEvent.ShowGarment -> garmentShown = event.itemId
                 GameEvent.ShowDevice -> deviceShown = true
+                GameEvent.ShowOven -> ovenShown = true
+                is GameEvent.ShowQuestion -> if (event.id !in questions) questions.add(event.id)
+                GameEvent.ShowInfo -> infoShown = true
+                // Over any tab, like a pinned command's panel.
+                GameEvent.ShowAlarm -> pinRunner.panel = "alarm"
+                GameEvent.ShowPrint -> {
+                    printRead++
+                    printShown = true
+                }
             }
         }
     }
@@ -324,7 +352,7 @@ private fun InGame(
                             onHold = { pinning = it.id }, emoteSettings = emoteSettings,
                             extra = { devTools?.DeckSection(capabilities) })
                     }
-                    Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl)
+                    Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl, windows)
                     Tab.CRAFT -> when {
                         mode == CraftMode.BUILD && building != null ->
                             BuildScreen(building, iconUrl, changes = state.inventory to state.containers, placing = state.placing)
@@ -341,6 +369,26 @@ private fun InGame(
                 }
                 if (deviceShown && devices != null) {
                     DevicePanel(devices, iconUrl, onClose = { deviceShown = false })
+                }
+                if (ovenShown && ovens != null) {
+                    OvenPanel(ovens, state.containers, iconUrl,
+                        onShowInside = { id ->
+                            ovenShown = false
+                            scope.launch { ovens.closeOven() }
+                            tab = Tab.INVENTORY
+                            showRequest = ShowRequest(id)
+                        },
+                        onClose = { ovenShown = false })
+                }
+                if (printShown && reader != null) {
+                    key(printRead) { PrintPanel(reader, iconUrl, onClose = { printShown = false }) }
+                }
+                if (infoShown && windows != null) {
+                    InfoCardView(windows, iconUrl, onClose = { infoShown = false })
+                }
+                // A question waits for its answer, over everything else.
+                questions.firstOrNull()?.let { id ->
+                    if (windows != null) key(id) { QuestionCard(windows, id, onDone = { questions.remove(id) }) }
                 }
                 DeckCommandPanel(pinRunner, state.deck, iconUrl, emoteSettings)
                 PinFailure(pinRunner.failure, onGone = { pinRunner.failure = null })

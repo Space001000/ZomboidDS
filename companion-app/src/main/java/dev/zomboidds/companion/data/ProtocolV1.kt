@@ -20,6 +20,19 @@ import dev.zomboidds.companion.domain.DeckState
 import dev.zomboidds.companion.domain.DeviceBattery
 import dev.zomboidds.companion.domain.DeviceControl
 import dev.zomboidds.companion.domain.DeviceState
+import dev.zomboidds.companion.domain.Knob
+import dev.zomboidds.companion.domain.KnobMark
+import dev.zomboidds.companion.domain.OvenControl
+import dev.zomboidds.companion.domain.OvenState
+import dev.zomboidds.companion.domain.Question
+import dev.zomboidds.companion.domain.QuestionButton
+import dev.zomboidds.companion.domain.InfoCard
+import dev.zomboidds.companion.domain.InfoRow
+import dev.zomboidds.companion.domain.ExerciseState
+import dev.zomboidds.companion.domain.ExerciseType
+import dev.zomboidds.companion.domain.RunningExercise
+import dev.zomboidds.companion.domain.PageLayout
+import dev.zomboidds.companion.domain.PrintedPage
 import dev.zomboidds.companion.domain.DeviceWhere
 import dev.zomboidds.companion.domain.DrawerFit
 import dev.zomboidds.companion.domain.DrawerGroup
@@ -364,7 +377,7 @@ object ProtocolV1 {
     class Request(val name: String, val args: JsonObject)
 
     @Serializable
-    private data class ShowDto(val panel: String = "", val container: String? = null, val item: Long? = null)
+    private data class ShowDto(val panel: String = "", val container: String? = null, val item: Long? = null, val id: Long? = null)
 
     @Serializable
     private data class MenuDto(val menuId: String, val options: List<MenuOptionDto> = emptyList())
@@ -398,6 +411,11 @@ object ProtocolV1 {
                 "inventory" -> ServerMessage.Event(GameEvent.ShowInventory(dto.container))
                 "garment" if dto.item != null -> ServerMessage.Event(GameEvent.ShowGarment(dto.item))
                 "device" -> ServerMessage.Event(GameEvent.ShowDevice)
+                "oven" -> ServerMessage.Event(GameEvent.ShowOven)
+                "question" if dto.id != null -> ServerMessage.Event(GameEvent.ShowQuestion(dto.id))
+                "info" -> ServerMessage.Event(GameEvent.ShowInfo)
+                "alarm" -> ServerMessage.Event(GameEvent.ShowAlarm)
+                "print" -> ServerMessage.Event(GameEvent.ShowPrint)
                 else -> ServerMessage.StateUpdate { it } // a panel from a newer mod: nothing to show
             }
         }
@@ -779,6 +797,202 @@ object ProtocolV1 {
                 })
             }.filter { it.items.isNotEmpty() },
         )
+    }
+
+    fun ovenStateRequest() = Request("oven_state", buildJsonObject { })
+
+    fun ovenCloseRequest() = Request("oven_close", buildJsonObject { })
+
+    fun ovenControlRequest(control: OvenControl) = Request("oven_control", buildJsonObject {
+        when (control) {
+            is OvenControl.Temperature -> { put("control", "set"); put("temperature", control.value) }
+            is OvenControl.Timer -> { put("control", "set"); put("timer", control.minutes) }
+            OvenControl.Toggle -> put("control", "toggle")
+            is OvenControl.Units -> { put("control", "units"); put("celsius", control.celsius) }
+        }
+    })
+
+    @Serializable
+    private data class OvenStateDto(
+        val gone: Boolean = false,
+        val name: String = "",
+        val icon: String? = null,
+        val microwave: Boolean = false,
+        val on: Boolean = false,
+        val powered: Boolean = false,
+        val broken: Boolean = false,
+        val container: String? = null,
+        val temperature: Float = 0f,
+        val temperatureText: String = "",
+        val celsius: Boolean? = null,
+        val timer: Float = 0f,
+        val left: Float? = null,
+        val dial: String? = null,
+        val temperatureDial: KnobDto? = null,
+        val timerDial: KnobDto? = null,
+    )
+
+    @Serializable
+    private data class KnobDto(val art: String? = null, val marks: List<KnobMarkDto> = emptyList())
+
+    @Serializable
+    private data class KnobMarkDto(val angle: Float? = null, val value: Float? = null, val label: String? = null)
+
+    private fun knob(dto: KnobDto?) = Knob(dto?.art, dto?.marks.orEmpty().mapNotNull { m ->
+        if (m.angle == null || m.value == null) null else KnobMark(m.angle, m.value.roundToInt(), m.label?.takeIf(String::isNotBlank))
+    })
+
+    /** The `data` of an `oven_state` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun ovenState(data: JsonElement?): OvenState {
+        requireNotNull(data) { "the game sent no oven" }
+        val dto = json.decodeFromJsonElement<OvenStateDto>(lenient(data))
+        if (dto.gone) return OvenState(gone = true)
+        return OvenState(
+            name = dto.name.ifEmpty { "?" },
+            icon = dto.icon,
+            microwave = dto.microwave,
+            on = dto.on,
+            powered = dto.powered,
+            broken = dto.broken,
+            container = dto.container,
+            temperature = dto.temperature.roundToInt(),
+            temperatureText = dto.temperatureText,
+            celsius = if (dto.microwave) null else dto.celsius,
+            timer = dto.timer.roundToInt(),
+            left = dto.left?.roundToInt(),
+            dial = dto.dial,
+            temperatureDial = knob(dto.temperatureDial),
+            timerDial = knob(dto.timerDial),
+        )
+    }
+
+    fun questionRequest(id: Long) = Request("question_state", buildJsonObject { put("id", id) })
+
+    fun answerRequest(id: Long, button: String) = Request("question_answer", buildJsonObject { put("id", id); put("button", button) })
+
+    fun infoRequest() = Request("info_state", buildJsonObject { })
+
+    fun infoCloseRequest() = Request("info_close", buildJsonObject { })
+
+    fun exerciseRequest() = Request("exercise_state", buildJsonObject { })
+
+    fun exerciseStartRequest(id: String, minutes: Int) = Request("exercise_start", buildJsonObject { put("id", id); put("minutes", minutes) })
+
+    fun exerciseStopRequest() = Request("exercise_stop", buildJsonObject { })
+
+    @Serializable
+    private data class QuestionDto(val gone: Boolean = false, val id: Long = 0, val text: String = "", val buttons: List<QuestionButtonDto> = emptyList())
+
+    @Serializable
+    private data class QuestionButtonDto(val id: String = "", val label: String = "")
+
+    /** The `data` of a `question_state` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun question(data: JsonElement?): Question {
+        requireNotNull(data) { "the game sent no question" }
+        val dto = json.decodeFromJsonElement<QuestionDto>(lenient(data))
+        if (dto.gone) return Question(gone = true)
+        val buttons = dto.buttons.filter { it.id.isNotEmpty() }.map { QuestionButton(it.id, it.label.ifEmpty { it.id }) }
+        require(buttons.isNotEmpty()) { "a question without buttons" }
+        return Question(id = dto.id, text = dto.text, buttons = buttons)
+    }
+
+    @Serializable
+    private data class InfoDto(
+        val gone: Boolean = false,
+        val kind: String = "",
+        val title: String = "",
+        val icon: String? = null,
+        val status: String? = null,
+        val rows: List<InfoRowDto> = emptyList(),
+    )
+
+    @Serializable
+    private data class InfoRowDto(
+        val label: String? = null,
+        val value: String? = null,
+        val text: String? = null,
+        val meter: Float? = null,
+        val tone: String? = null,
+        val icon: String? = null,
+        val indent: Boolean = false,
+        val water: Boolean = false,
+    )
+
+    /** The `data` of an `info_state` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun infoCard(data: JsonElement?): InfoCard {
+        requireNotNull(data) { "the game sent no info" }
+        val dto = json.decodeFromJsonElement<InfoDto>(lenient(data))
+        if (dto.gone) return InfoCard(gone = true)
+        return InfoCard(
+            kind = dto.kind,
+            title = dto.title.ifEmpty { "?" },
+            icon = dto.icon,
+            status = dto.status?.takeIf(String::isNotBlank),
+            rows = dto.rows.mapNotNull { r ->
+                if (r.label.isNullOrBlank() && r.text.isNullOrBlank()) null
+                else InfoRow(r.label?.takeIf(String::isNotBlank), r.value?.takeIf(String::isNotBlank), r.text?.takeIf(String::isNotBlank),
+                    r.meter?.coerceIn(0f, 1f), r.tone == "bad", r.icon, r.indent, r.water)
+            },
+        )
+    }
+
+    @Serializable
+    private data class ExerciseDto(
+        val exercises: List<ExerciseTypeDto> = emptyList(),
+        val canStart: Boolean = false,
+        val why: String? = null,
+        val minutes: MinutesDto? = null,
+        val running: RunningDto? = null,
+    )
+
+    @Serializable
+    private data class ExerciseTypeDto(
+        val id: String = "",
+        val name: String = "",
+        val tooltip: String? = null,
+        val icon: String? = null,
+        val needs: String? = null,
+        val regularity: Float = 0f,
+        val strain: List<String> = emptyList(),
+    )
+
+    @Serializable
+    private data class MinutesDto(val min: Int = 10, val max: Int = 60, val step: Int = 10)
+
+    @Serializable
+    private data class RunningDto(val id: String = "", val minutes: Float = 0f, val done: Float = 0f)
+
+    /** The `data` of an `exercise_state` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun exercise(data: JsonElement?): ExerciseState {
+        requireNotNull(data) { "the game sent no exercises" }
+        val dto = json.decodeFromJsonElement<ExerciseDto>(lenient(data))
+        val m = dto.minutes ?: MinutesDto()
+        return ExerciseState(
+            exercises = dto.exercises.filter { it.id.isNotEmpty() }.map {
+                ExerciseType(it.id, it.name.ifEmpty { it.id }, it.tooltip?.takeIf(String::isNotBlank), it.icon,
+                    it.needs?.takeIf(String::isNotBlank), it.regularity.coerceIn(0f, 1f), it.strain.filter(String::isNotBlank))
+            },
+            canStart = dto.canStart,
+            why = dto.why?.takeIf(String::isNotBlank),
+            minutes = if (m.step > 0 && m.min <= m.max) m.min..m.max step m.step else 10..60 step 10,
+            running = dto.running?.takeIf { it.id.isNotEmpty() }?.let { RunningExercise(it.id, it.minutes.roundToInt(), it.done.roundToInt()) },
+        )
+    }
+
+    fun printRequest() = Request("print_state", buildJsonObject { })
+
+    fun printMapRequest(index: Int) = Request("print_map", buildJsonObject { put("index", index) })
+
+    fun printCloseRequest() = Request("print_close", buildJsonObject { })
+
+    @Serializable
+    private data class PrintDto(val title: String = "", val icon: String? = null, val layout: String = "", val text: String = "", val places: Int = 0)
+
+    /** The `data` of a `print_state` reply. Throws [IllegalArgumentException] if it isn't one. */
+    fun printedPage(data: JsonElement?): PrintedPage {
+        requireNotNull(data) { "the game sent nothing to read" }
+        val dto = json.decodeFromJsonElement<PrintDto>(lenient(data))
+        return PrintedPage(dto.title.ifEmpty { "?" }, dto.icon, PageLayout.parse(dto.layout), dto.text, dto.places.coerceIn(0, 5))
     }
 
     fun setSpeedRequest(speed: GameSpeed) = Request("set_speed", buildJsonObject { put("speed", speed.ordinal) })
