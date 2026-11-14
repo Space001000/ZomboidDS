@@ -14,9 +14,13 @@ a foldable phone. The game runs on the top screen (through
 [Zomdroid](https://github.com/udarmolota/zomdroid)); the **ZomboidDS Companion** app on the bottom
 screen, in the game's art:
 
+<p align="center"><img src="docs/images/zomboidds-thor.jpg" width="430" alt="ZomboidDS on an AYN Thor: the game on the top screen, the Inventory tab with your bags and a drawer side by side on the bottom screen"></p>
+
 - **Inventory**: your bags and every container around you, with the game's icons; move items with a
   tap or by dragging, and use them through their menu (read, eat, apply, craft, ...).
 - **Here**: what you can do where you stand (open, sit, drink, ...); in a car, the car's own menu.
+- **Devices**: TVs, radios, walkie-talkies and CD players on the bottom screen: power, volume,
+  channels, tuning to any frequency, and tapes, CDs and batteries put in with a tap.
 - **Deck**: the speed buttons, the time, and your own commands: zoom, search mode, flashlight,
   map, your hotbar weapons, your watch's alarm, ...
 - **Status**: your moodles, your body with its injuries, and how to treat them.
@@ -26,6 +30,11 @@ screen, in the game's art:
 - **Tailor**: your clothes with their holes and patches (Craft ▾ → Tailor), and the Inspect view to
   patch them part by part.
 - **Vehicle**: while you drive, speed, engine and fuel with the car's controls.
+
+<p align="center">
+  <img src="docs/images/zomboidds-tv.jpg" width="320" alt="A TV's device options on the bottom screen: channels, volume and a tape playing, while the TV plays in the living room on the top screen">
+  <img src="docs/images/zomboidds-tailor.jpg" width="320" alt="Tailor: a leather jacket on a body figure with its holes and patches, patching the left upper arm, while the character sits in the garden on the top screen">
+</p>
 
 ## Install
 
