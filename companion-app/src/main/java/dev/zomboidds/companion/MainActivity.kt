@@ -80,6 +80,13 @@ class MainActivity : ComponentActivity() {
         // Debug builds only: this activity can be started by any app, and these reset or remove mods.
         if (BuildConfig.DEBUG) handleDevIntent(intent)
         keepSetupFresh()
+        // The task switcher can move this app to the other screen without restarting, resuming or
+        // reconfiguring it; only its window is laid out again there. Check the screen then.
+        var laidOutOn: Int? = null
+        window.decorView.viewTreeObserver.addOnGlobalLayoutListener {
+            val now = window.decorView.display?.displayId
+            if (now != laidOutOn) { laidOutOn = now; updateScreenPlace() }
+        }
 
         val gateway = container.gateway
         setContent {
@@ -172,25 +179,29 @@ class MainActivity : ComponentActivity() {
             .firstOrNull { it.displayId != Display.DEFAULT_DISPLAY && it.state == Display.STATE_ON }
 
     private fun updateScreenPlace() {
+        // The window's own screen: after a move the activity's display can still name the old one.
+        val displayId = window.decorView.display?.displayId ?: display?.displayId
         screenPlace.value = when {
-            display?.displayId != Display.DEFAULT_DISPLAY -> ScreenPlace.SECOND
+            displayId != Display.DEFAULT_DISPLAY -> ScreenPlace.SECOND
             otherScreen() != null -> ScreenPlace.MAIN
             else -> ScreenPlace.SINGLE
         }
     }
 
-    /** Reopens this app on the second screen and closes it here. */
+    /**
+     * Moves this app's task to the second screen: launching it there moves the same task over.
+     * Closing this copy and opening a new one there instead froze both screens when the Thor's task
+     * switcher had pulled the app up (its launcher still holds the task until Home or Back).
+     */
     private fun moveToOtherScreen() {
         val target = otherScreen() ?: return
         val options = ActivityOptions.makeBasic().setLaunchDisplayId(target.displayId)
-        val intent = Intent(this, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
-        startActivity(intent, options.toBundle())
-        finishAndRemoveTask()
+        startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), options.toBundle())
     }
 
     override fun onResume() {
         super.onResume()
+        updateScreenPlace()
         setup.refresh()
         container.updater.checkIfDue() // at most once a day
     }
@@ -211,11 +222,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Opens Zomdroid, on the main (top) screen when this app runs on a secondary one. */
+    /** Opens Zomdroid on the main (top) screen. */
     private fun openZomdroidOnMainScreen() {
         val launch = packageManager.getLaunchIntentForPackage(ZomdroidStorage.PACKAGE) ?: return
-        val options = ActivityOptions.makeBasic()
-        if (display?.displayId != Display.DEFAULT_DISPLAY) options.launchDisplayId = Display.DEFAULT_DISPLAY
+        val options = ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY)
         startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), options.toBundle())
     }
 

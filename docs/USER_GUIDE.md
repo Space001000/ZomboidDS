@@ -122,6 +122,9 @@ Everything the bottom screen can do is listed under
 - **Nothing on the bottom screen, but the checklist is all ✓.** ZomboidDS is probably on the top
   screen, behind the game. Open it on the bottom screen (in its checklist, **Move** does it), or set
   up [Cocoon](#launch-both-together-with-cocoon).
+- **The top screen stops responding after swiping between apps.** The Thor's app-switch gesture can
+  get stuck when it pulls an app over from the bottom screen, ZomboidDS included. Press **Home** or
+  **Back** to get out of it.
 - **ZomboidDS never connects on Build 41.** ZomboidDS needs Build 42; Build 41 isn't supported.
 - **"Waiting for the game" while I'm playing.** Your save doesn't have ZomboidDS enabled. Every save
   has its own mod list: saves made before installing ZomboidDS need it added. In the game's main
