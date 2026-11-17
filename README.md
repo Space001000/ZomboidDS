@@ -47,7 +47,7 @@ not affiliated with or endorsed by The Indie Stone.
 2. Open **ZomboidDS**. Its setup checklist walks you through the rest, and each step turns ✓ when
    it's done:
    - **Grant access** to Zomdroid's folder (tap **Use this folder**, then **Allow**).
-   - **ZombieBuddy**: tap **Download**, then **Open Zomdroid**, go to **Optimization →
+   - **ZombieBuddy**: tap **Download**, then **Open Zomdroid**, open its menu (**☰**, top left) → **Optimization →
      ZombieBuddy** and install the `ZombieBuddy-…-full.zip` from your Downloads.
    - **Install** the ZomboidDS mod, and **Enable** it for new games.
 3. Start a new game in Zomdroid on the top screen, with ZomboidDS on the bottom screen.

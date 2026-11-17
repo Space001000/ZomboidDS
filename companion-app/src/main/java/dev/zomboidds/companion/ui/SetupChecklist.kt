@@ -45,7 +45,11 @@ interface SetupActions {
     fun downloadUpdate(release: AppRelease)
     fun installUpdate(file: File)
     fun openUrl(url: String)
+    fun moveToOtherScreen()
 }
+
+/** Where the app runs: the only screen, the main screen while a second one is on, or the second one. */
+enum class ScreenPlace { SINGLE, MAIN, SECOND }
 
 private enum class Check { OK, TODO, BLOCKED }
 
@@ -56,10 +60,16 @@ private enum class Check { OK, TODO, BLOCKED }
  * unfolds the steps. It unfolds by itself when something needs doing again (an update, a new mod).
  */
 @Composable
-fun SetupChecklist(report: SetupReport, update: AppUpdateState, gameStep: String, actions: SetupActions) {
-    val allSet = report.ready && report.zombieBuddy == ZombieBuddyStatus.OK && report.busy == null && report.error == null &&
+fun SetupChecklist(report: SetupReport, update: AppUpdateState, gameStep: String, actions: SetupActions, screen: ScreenPlace = ScreenPlace.SINGLE, gameRunning: Boolean = false) {
+    val allSet = report.ready && screen != ScreenPlace.MAIN && report.zombieBuddy == ZombieBuddyStatus.OK && report.busy == null && report.error == null &&
         (update is AppUpdateState.Disabled || update is AppUpdateState.Checking || update is AppUpdateState.UpToDate)
     var unfolded by rememberSaveable { mutableStateOf(false) }
+    // Android doesn't tell other apps whether Zomdroid runs, so once it's opened from here the button
+    // turns quiet ("Open again") until this screen is rebuilt (the app restarts, or comes back from a game).
+    var zomdroidOpened by rememberSaveable { mutableStateOf(false) }
+    val showOpen = !gameRunning
+    val openLabel = if (zomdroidOpened) "Open again" else "Open Zomdroid"
+    val openZomdroid = { zomdroidOpened = true; actions.openZomdroid() }
     if (allSet && !unfolded) {
         Card(Modifier.fillMaxWidth().clickable { unfolded = true }) {
             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -67,6 +77,12 @@ fun SetupChecklist(report: SetupReport, update: AppUpdateState, gameStep: String
                 Column(Modifier.weight(1f)) {
                     Text("All set", fontWeight = FontWeight.SemiBold)
                     Text(gameStep, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                // The Play step's button, kept in view: setup done is when it's needed most.
+                if (showOpen && zomdroidOpened) {
+                    TextButton(onClick = openZomdroid, Modifier.padding(start = 12.dp)) { Text(openLabel) }
+                } else if (showOpen) {
+                    Button(onClick = openZomdroid, Modifier.padding(start = 12.dp)) { Text(openLabel) }
                 }
                 Box(Modifier.padding(start = 12.dp).size(32.dp), contentAlignment = Alignment.Center) {
                     Box(Modifier.scale(1.5f)) { Chevron(MaterialTheme.colorScheme.primary) }
@@ -121,7 +137,7 @@ fun SetupChecklist(report: SetupReport, update: AppUpdateState, gameStep: String
                     zombieBuddyOk -> "Installed" + (report.zombieBuddyVersion?.let { " ($it)." } ?: ".")
                     !hasInstance -> "Grant access first."
                     download != null ->
-                        "Saved '$download' to Downloads. In Zomdroid: Optimization → ZombieBuddy → select that file → Install. This list updates by itself."
+                        "Saved '$download' to Downloads. In Zomdroid: menu (top left) → Optimization → ZombieBuddy → select that file → Install. This list updates by itself."
                     outdated ->
                         "Version ${report.zombieBuddyVersion} installed, this app has ${BuildConfig.ZOMBIE_BUDDY_VERSION}. Get the update, then install it in Zomdroid:"
                     report.zombieBuddy == ZombieBuddyStatus.JAR_ONLY ->
@@ -164,10 +180,25 @@ fun SetupChecklist(report: SetupReport, update: AppUpdateState, gameStep: String
                 onAction = actions::enableForNewGames,
             )
 
+            // The game takes the main screen; this app belongs on the other one. Phones never see this.
+            if (screen != ScreenPlace.SINGLE) Step(
+                if (screen == ScreenPlace.SECOND) Check.OK else Check.TODO,
+                "Bottom screen",
+                if (screen == ScreenPlace.SECOND) "ZomboidDS is on the bottom screen, the game goes on the top one."
+                else "ZomboidDS runs on the bottom screen, the game on the top one.",
+                action = "Move".takeIf { screen == ScreenPlace.MAIN },
+                onAction = actions::moveToOtherScreen,
+            )
+
             Step(
                 if (report.ready) Check.TODO else Check.BLOCKED,
                 "Play",
                 gameStep,
+                // Opens Zomdroid on the main screen: not once the game runs, nor while this app is still
+                // there (the game would cover it).
+                action = openLabel.takeIf { report.ready && showOpen && screen != ScreenPlace.MAIN && idle },
+                onAction = openZomdroid,
+                quiet = zomdroidOpened,
             )
         }
     }
@@ -245,6 +276,7 @@ private fun HalfwayPreview() {
             override fun downloadUpdate(release: AppRelease) {}
             override fun installUpdate(file: File) {}
             override fun openUrl(url: String) {}
+            override fun moveToOtherScreen() {}
         },
     )
 }

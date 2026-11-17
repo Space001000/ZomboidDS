@@ -2,6 +2,7 @@ package dev.zomboidds.companion
 
 import android.app.ActivityOptions
 import android.content.Intent
+import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.Display
@@ -11,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,6 +28,7 @@ import dev.zomboidds.companion.ui.CompanionScreen
 import dev.zomboidds.companion.ui.EmoteSettings
 import dev.zomboidds.companion.ui.InventoryDisplay
 import dev.zomboidds.companion.ui.MapDisplay
+import dev.zomboidds.companion.ui.ScreenPlace
 import dev.zomboidds.companion.ui.SetupActions
 import dev.zomboidds.companion.ui.TabSettings
 import java.io.File
@@ -56,6 +59,16 @@ class MainActivity : ComponentActivity() {
         override fun openUrl(url: String) {
             runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
         }
+        override fun moveToOtherScreen() = this@MainActivity.moveToOtherScreen()
+    }
+
+    /** Which screen this app is on; the checklist offers to move it off the main screen. */
+    private val screenPlace = mutableStateOf(ScreenPlace.SINGLE)
+
+    private val displays = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) = updateScreenPlace()
+        override fun onDisplayRemoved(displayId: Int) = updateScreenPlace()
+        override fun onDisplayChanged(displayId: Int) = updateScreenPlace()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -124,6 +137,7 @@ class MainActivity : ComponentActivity() {
                     MapDisplay(it.map, mapPlacement, container.settings::setMapPlacement, mapSymbols, container.settings::setMapSymbols)
                 },
                 tabSettings = TabSettings(tabOrder, container.settings::setTabOrder, lastTab, container.settings::setLastTab),
+                screenPlace = screenPlace.value,
             )
         }
     }
@@ -139,6 +153,40 @@ class MainActivity : ComponentActivity() {
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        getSystemService(DisplayManager::class.java).registerDisplayListener(displays, null)
+        updateScreenPlace()
+    }
+
+    override fun onStop() {
+        getSystemService(DisplayManager::class.java).unregisterDisplayListener(displays)
+        super.onStop()
+    }
+
+    /** A second screen that is switched on (the Thor's bottom screen, a monitor), if any. */
+    private fun otherScreen(): Display? =
+        getSystemService(DisplayManager::class.java).getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
+            .firstOrNull { it.displayId != Display.DEFAULT_DISPLAY && it.state == Display.STATE_ON }
+
+    private fun updateScreenPlace() {
+        screenPlace.value = when {
+            display?.displayId != Display.DEFAULT_DISPLAY -> ScreenPlace.SECOND
+            otherScreen() != null -> ScreenPlace.MAIN
+            else -> ScreenPlace.SINGLE
+        }
+    }
+
+    /** Reopens this app on the second screen and closes it here. */
+    private fun moveToOtherScreen() {
+        val target = otherScreen() ?: return
+        val options = ActivityOptions.makeBasic().setLaunchDisplayId(target.displayId)
+        val intent = Intent(this, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+        startActivity(intent, options.toBundle())
+        finishAndRemoveTask()
     }
 
     override fun onResume() {

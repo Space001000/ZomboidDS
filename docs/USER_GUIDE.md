@@ -3,6 +3,18 @@
 Play Project Zomboid on the top screen of your AYN Thor and manage your inventory, health, crafting
 and vehicle on the bottom screen.
 
+## Contents
+
+- [What you need](#what-you-need)
+- [1. Install the companion app](#1-install-the-companion-app)
+- [2. Follow the setup checklist](#2-follow-the-setup-checklist)
+- [3. Game on top, ZomboidDS on the bottom](#3-game-on-top-zomboidds-on-the-bottom)
+- [4. Better graphics: the Turnip driver](#4-better-graphics-the-turnip-driver)
+- [5. Play](#5-play)
+- [Troubleshooting](#troubleshooting)
+- [What's on the bottom screen](#whats-on-the-bottom-screen)
+- [About](#about)
+
 ## What you need
 
 - A **dual-screen Android device**, like the AYN Thor or a foldable phone.
@@ -12,11 +24,13 @@ and vehicle on the bottom screen.
 - **[Zomdroid](https://github.com/udarmolota/zomdroid)** with **Project Zomboid Build 42** installed
   and working. Use this version of Zomdroid (udarmolota's): it's the one that's still maintained and
   the one ZomboidDS is built and tested with. The original Zomdroid stopped development in 2025.
+  Getting the game into Zomdroid is part of Zomdroid's own setup. Zomdroid can also download Build
+  41, but ZomboidDS needs **Build 42**.
 - The **ZomboidDS Companion** app: `ZomboidDS-<version>.apk` from the
   [latest release](https://github.com/Space001000/ZomboidDS/releases/latest). It contains the
   ZomboidDS mod; you don't need to download the mod separately.
 - Recommended: the **Mr. Purple Turnip** graphics driver, see
-  [Better graphics: the Turnip driver](#better-graphics-the-turnip-driver).
+  [Better graphics](#4-better-graphics-the-turnip-driver).
 
 ## 1. Install the companion app
 
@@ -26,25 +40,39 @@ done.
 
 ## 2. Follow the setup checklist
 
-0. **ZomboidDS app**: shows your version, and when a new one is out: tap **Download**, then
+1. **ZomboidDS app**: shows your version, and when a new one is out: tap **Download**, then
    **Install**. The first time, Android asks to allow installing apps from ZomboidDS: allow it, come
    back and tap **Install** again. After updating the app, the checklist may offer an update of the
    mod too (see below).
-1. **Access to Zomdroid**: tap **Grant access**. A folder picker opens in Zomdroid's folder; tap
+2. **Zomdroid**: installed, with Project Zomboid set up in it.
+3. **Access to Zomdroid**: tap **Grant access**. A folder picker opens in Zomdroid's folder; tap
    **Use this folder**, then **Allow**. This lets the app install the mod into Zomdroid.
-2. **ZombieBuddy**: ZomboidDS needs [ZombieBuddy](https://github.com/zed-0xff/ZombieBuddy), a
+4. **ZombieBuddy**: ZomboidDS needs [ZombieBuddy](https://github.com/zed-0xff/ZombieBuddy), a
    Project Zomboid mod that lets mods use Java. If it's missing, tap **Download**: the app gets it
    from ZombieBuddy's official GitHub page and saves it to your Downloads folder. Then tap **Open
-   Zomdroid**, go to **Optimization → ZombieBuddy**, select `ZombieBuddy-…-full.zip` and install it.
+   Zomdroid**, open its menu (**☰**, top left), go to **Optimization** at the bottom of that menu →
+   **ZombieBuddy**, select `ZombieBuddy-…-full.zip` and install it.
    The checklist turns ✓ by itself when you come back.
 
    > Why "full"? The download on ZombieBuddy's GitHub page contains only half of ZombieBuddy (the
    > part Zomdroid needs, but not the part the game needs), so mods that require it can't be
    > enabled. The app builds the complete package from the same official files.
-3. **ZomboidDS mod**: tap **Install**.
-4. **Enabled for new games**: tap **Enable**. New games now start with ZomboidDS and ZombieBuddy.
+5. **ZomboidDS mod**: tap **Install**.
+6. **Enabled for new games**: tap **Enable**. New games now start with ZomboidDS and ZombieBuddy.
+7. **Bottom screen**: ZomboidDS has to run on the bottom screen, the game on the top one. If you
+   opened ZomboidDS on the top screen, tap **Move**. (Not shown on a single screen.)
+8. **Play**: tap **Open Zomdroid** to start it on the top screen.
 
-## 3. Launch both screens together with Cocoon
+When everything is done, the checklist folds into one **All set** line with the **Open Zomdroid**
+button; tap the line to see the steps again.
+
+## 3. Game on top, ZomboidDS on the bottom
+
+Project Zomboid runs in **Zomdroid** on the top screen, and **ZomboidDS** runs on the bottom screen.
+ZomboidDS fills the bottom screen only while it's open there; if it's on the top screen behind the
+game, nothing shows below.
+
+### Launch both together with Cocoon
 
 If you use [Cocoon](https://cocoon-shell.com), let it open the companion on the bottom screen
 whenever you start Zomdroid:
@@ -53,13 +81,73 @@ whenever you start Zomdroid:
 2. Select Zomdroid on the home screen, press **Y → Edit → Companion app**, and choose
    **ZomboidDS**.
 
-Starting Zomdroid from Cocoon now opens ZomboidDS on the bottom screen as well. Without Cocoon, start
-Zomdroid first, then open ZomboidDS on the bottom screen yourself.
+Starting Zomdroid from Cocoon now opens ZomboidDS on the bottom screen as well. Without Cocoon, open
+ZomboidDS on the bottom screen and tap **Open Zomdroid** in its checklist.
 
-## 4. Play
+## 4. Better graphics: the Turnip driver
+
+Zomdroid's default graphics driver can make the bottom screen flicker or show garbled patches while
+the game runs. The **Mr. Purple Turnip** driver fixes that. Version **T30** is the one tested on the Thor (it fixed it
+right away); other versions may work too:
+
+1. Download the T30 driver from
+   [MrPurple666/purple-turnip releases](https://github.com/MrPurple666/purple-turnip/releases) and
+   extract the `.so` file from the zip.
+2. In Zomdroid, open the **Import** tab (bottom bar). Under **Custom Vulkan Driver**, the last
+   option, tap **Import** and select that `.so` file. (Zomdroid keeps one custom driver at a time.)
+3. In your Zomdroid instance's settings, under **Rendering**, select **Custom driver**.
+
+## 5. Play
 
 Start Project Zomboid in Zomdroid and load a game. The bottom screen switches from the checklist to
-your character:
+your character. Each save has its own mod list: for a save made before installing ZomboidDS, enable
+it first (see [Troubleshooting](#troubleshooting)).
+
+**Your own tab order:** hold any tab to arrange the tabs, then drag them into place; the tab bar
+follows along. **Reset** goes back to the default order. The app opens on the tab you used last.
+
+The **Loot / Inventory button (Y)** opens the container on the bottom screen instead of the game's
+windows on the top screen, and so does opening a car's trunk (without the app, both work as usual). The gamepad keeps controlling the game
+while you use the bottom screen.
+
+**The map** is on the bottom screen only on saves that allow the game's minimap (Sandbox options →
+Map → Allow Mini-Map). To have it on every save, tick **Map on every save** in the game's
+**Options → Mods → ZomboidDS**.
+
+Everything the bottom screen can do is listed under
+[What's on the bottom screen](#whats-on-the-bottom-screen).
+
+## Troubleshooting
+
+- **Nothing on the bottom screen, but the checklist is all ✓.** ZomboidDS is probably on the top
+  screen, behind the game. Open it on the bottom screen (in its checklist, **Move** does it), or set
+  up [Cocoon](#launch-both-together-with-cocoon).
+- **ZomboidDS never connects on Build 41.** ZomboidDS needs Build 42; Build 41 isn't supported.
+- **"Waiting for the game" while I'm playing.** Your save doesn't have ZomboidDS enabled. Every save
+  has its own mod list: saves made before installing ZomboidDS need it added. In the game's main
+  menu go to **Load**, select the save, open its **Mods** list and enable **Zomboid DS** (and
+  ZombieBuddy).
+- **An orange message in the game says ZomboidDS can't connect.** ZombieBuddy isn't active: check
+  the ZombieBuddy step in the checklist, and that ZombieBuddy is switched on in Zomdroid's
+  **Optimization** settings (Zomdroid's menu, **☰** top left).
+- **On Build 42.21 that message shows with ZombieBuddy 2.3.3.** 2.3.3 can't load Java mods on
+  42.21, ZomboidDS included (ZombieBuddy
+  [issue #53](https://github.com/zed-0xff/ZombieBuddy/issues/53)). In the checklist's ZombieBuddy
+  step tap **Update**, then install the new version in Zomdroid as the step says.
+- **No Map tab.** The save doesn't allow the minimap. Tick **Map on every save** in the game's
+  **Options → Mods → ZomboidDS** (see [Play](#5-play)).
+- **"The game is paused"** when tapping an item or Here: unpause first (Treat has its own
+  **Unpause** button). The game doesn't offer these menus while paused, on either screen.
+- **Speed buttons greyed out**: the game's pause menu (Esc/Start) is open. Close it first.
+- **Some options open a window on the top screen** (renaming, crafting, maps): use the gamepad
+  there, then continue on the bottom screen.
+- **Flickering or garbled graphics on the bottom screen** while the game runs: this comes from
+  Zomdroid's default graphics driver, which disturbs other apps' drawing too. Install the Turnip
+  driver ([above](#4-better-graphics-the-turnip-driver)).
+- **After updating the app**, the checklist may offer **Update** for the mod: close the game first,
+  tap Update, then start the game again.
+
+## What's on the bottom screen
 
 - **Inventory**: your inventory and bags, and every container around you (drawers, shelves, the
   floor, ...). Yours are on top and the ones around you below, or side by side (yours on the left),
@@ -163,50 +251,8 @@ your character:
 - **Voice chat** (multiplayer): add it to the Deck to switch your mic on and off with one tap. On, it
   sends whenever it hears you talk.
 
-**Your own tab order:** hold any tab to arrange the tabs, then drag them into place; the tab bar
-follows along. **Reset** goes back to the default order. The app opens on the tab you used last.
-
-The **Loot / Inventory button (Y)** opens the container on the bottom screen instead of the game's
-windows on the top screen, and so does opening a car's trunk (without the app, both work as usual). The gamepad keeps controlling the game
-while you use the bottom screen.
-
-## Better graphics: the Turnip driver
-
-Zomdroid's default graphics driver can make the bottom screen flicker or show garbled patches while
-the game runs. The **Mr. Purple Turnip** driver, version **T30**, fixes that on the Thor (tested):
-
-1. Download the T30 driver from
-   [MrPurple666/purple-turnip releases](https://github.com/MrPurple666/purple-turnip/releases) and
-   extract the `.so` file from the zip.
-2. In Zomdroid's menu: **Import/export custom driver → Import**, and select that `.so` file.
-   (Zomdroid keeps one custom driver at a time.)
-3. In your Zomdroid instance's settings, under **Rendering**, select **Custom driver**.
-
-## Troubleshooting
-
-- **"Waiting for the game" while I'm playing.** Your save doesn't have ZomboidDS enabled. Every save
-  has its own mod list: saves made before installing ZomboidDS need it added. In the game's main
-  menu go to **Load**, select the save, open its **Mods** list and enable **Zomboid DS** (and
-  ZombieBuddy).
-- **An orange message in the game says ZomboidDS can't connect.** ZombieBuddy isn't active: check
-  the ZombieBuddy step in the checklist, and that ZombieBuddy is switched on in Zomdroid's
-  Optimization settings.
-- **On Build 42.21 that message shows with ZombieBuddy 2.3.3.** 2.3.3 can't load Java mods on
-  42.21, ZomboidDS included (ZombieBuddy
-  [issue #53](https://github.com/zed-0xff/ZombieBuddy/issues/53)). In the checklist's ZombieBuddy
-  step tap **Update**, then install the new version in Zomdroid as the step says.
-- **"The game is paused"** when tapping an item or Here: unpause first (Treat has its own
-  **Unpause** button). The game doesn't offer these menus while paused, on either screen.
-- **Speed buttons greyed out**: the game's pause menu (Esc/Start) is open. Close it first.
-- **Some options open a window on the top screen** (renaming, crafting, maps): use the gamepad
-  there, then continue on the bottom screen.
-- **Flickering or garbled graphics on the bottom screen** while the game runs: this comes from
-  Zomdroid's default graphics driver, which disturbs other apps' drawing too. Install the Turnip
-  driver ([above](#better-graphics-the-turnip-driver)).
-- **After updating the app**, the checklist may offer **Update** for the mod: close the game first,
-  tap Update, then start the game again.
 
 ## About
 
-The setup screen's **About** card has the source code, the open-source licences, and a Ko-fi link
-if you'd like to support ZomboidDS (it never unlocks anything: everything is free).
+The setup screen's **About** card has the source code, the open-source licences, the user guide, and
+a Ko-fi link if you'd like to support ZomboidDS (it never unlocks anything: everything is free).

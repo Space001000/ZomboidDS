@@ -130,6 +130,8 @@ fun CompanionScreen(
     /** "What's new" opens by itself (a new install or an update); [onWhatsNewSeen] when it's closed. */
     whatsNewDue: Boolean = false,
     onWhatsNewSeen: () -> Unit = {},
+    /** Which screen the app is on (the checklist's "Bottom screen" step). */
+    screenPlace: ScreenPlace = ScreenPlace.SINGLE,
 ) {
     var whatsNewOpen by rememberSaveable { mutableStateOf(false) }
     ZomboidTheme {
@@ -151,7 +153,8 @@ fun CompanionScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         StatusHeader(state, connection)
-                        SetupChecklist(setup, update, gameStep(connection), setupActions)
+                        SetupChecklist(setup, update, gameStep(connection), setupActions, screenPlace,
+                            gameRunning = connection == ConnectionStatus.Connected)
                         AboutCard(openUrl = setupActions::openUrl, onLicences = { licences = true }, onWhatsNew = { whatsNewOpen = true })
                     }
                     if (setupScroll.canScrollForward) {
@@ -650,6 +653,7 @@ private fun InGamePreview() {
             override fun downloadUpdate(release: dev.zomboidds.companion.setup.AppRelease) {}
             override fun installUpdate(file: java.io.File) {}
             override fun openUrl(url: String) {}
+            override fun moveToOtherScreen() {}
         },
         iconUrl = { it },
         actions = object : ItemActions {

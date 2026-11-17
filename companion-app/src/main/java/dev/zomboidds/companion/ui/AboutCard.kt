@@ -5,6 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -36,15 +39,18 @@ import androidx.compose.ui.unit.sp
 import dev.zomboidds.companion.BuildConfig
 import dev.zomboidds.companion.R
 import dev.zomboidds.companion.setup.AppUpdater
+import java.time.LocalDate
+import java.time.Month
 
 private const val SOURCE_URL = "https://github.com/${AppUpdater.REPOSITORY}"
+private const val GUIDE_URL = "$SOURCE_URL/blob/main/docs/USER_GUIDE.md#contents"
 private const val KO_FI_URL = "https://ko-fi.com/space000"
 private const val DISCORD_URL = "https://discord.gg/NEJeAHgWss"
 
 /**
  * Who made this and under which terms: the logo, name, maker and version, a splash line, the
- * Discord (first: it's where questions and ideas go), What's new, Ko-fi, the source and the
- * open-source licences, then the small print. The icons are drawn like the logo (AboutIcons).
+ * Discord (first: it's where questions and ideas go) with the user guide, What's new, Ko-fi, the
+ * source and the open-source licences, then the small print. The tiles of a row share one height. The icons are drawn like the logo (AboutIcons).
  * Donating never unlocks anything (The Indie Stone's modding policy).
  */
 @Composable
@@ -60,19 +66,23 @@ fun AboutCard(openUrl: (String) -> Unit, onLicences: () -> Unit, onWhatsNew: () 
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            // A different line each time, like Minecraft's splash text.
-            val splash = remember { SPLASHES.random() }
+            // A different line each time, like Minecraft's splash text; a fixed one on some days.
+            val splash = remember { datedSplash(LocalDate.now()) ?: SPLASHES.random() }
             Text(splash, Modifier.padding(start = 6.dp).rotate(-2f), style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary, fontStyle = FontStyle.Italic)
-            AboutLink(AboutIcon.WALKIE, "Join the Discord", "Questions, bugs, ideas, other survivors", highlighted = true,
-                modifier = Modifier.fillMaxWidth()) { openUrl(DISCORD_URL) }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AboutLink(AboutIcon.NEWSPAPER, "What's new", "Every update", modifier = Modifier.weight(1f), onClick = onWhatsNew)
-                AboutLink(AboutIcon.MUG, "Support on Ko-fi", "Buy me a coffee", modifier = Modifier.weight(1f)) { openUrl(KO_FI_URL) }
+            val tile = Modifier.fillMaxHeight()
+            TileRow {
+                AboutLink(AboutIcon.WALKIE, "Join the Discord", "Questions, bugs, ideas, other survivors", highlighted = true,
+                    modifier = tile.weight(1f)) { openUrl(DISCORD_URL) }
+                AboutLink(AboutIcon.GUIDE, "User guide", "Setup, tips and fixes", modifier = tile.weight(1f)) { openUrl(GUIDE_URL) }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AboutLink(AboutIcon.CODE, "Source on GitHub", "The code", modifier = Modifier.weight(1f)) { openUrl(SOURCE_URL) }
-                AboutLink(AboutIcon.LICENCE, "Licences", "What's inside", modifier = Modifier.weight(1f), onClick = onLicences)
+            TileRow {
+                AboutLink(AboutIcon.NEWSPAPER, "What's new", "Every update", modifier = tile.weight(1f), onClick = onWhatsNew)
+                AboutLink(AboutIcon.MUG, "Support on Ko-fi", "Buy me a coffee", modifier = tile.weight(1f)) { openUrl(KO_FI_URL) }
+            }
+            TileRow {
+                AboutLink(AboutIcon.CODE, "Source on GitHub", "The code", modifier = tile.weight(1f)) { openUrl(SOURCE_URL) }
+                AboutLink(AboutIcon.LICENCE, "Licences", "What's inside", modifier = tile.weight(1f), onClick = onLicences)
             }
             Text(
                 "An unofficial mod, not affiliated with The Indie Stone. You need your own copy of Project Zomboid.",
@@ -81,6 +91,11 @@ fun AboutCard(openUrl: (String) -> Unit, onLicences: () -> Unit, onWhatsNew: () 
         }
     }
 }
+
+/** Two tiles side by side, as tall as the taller one: on a narrow phone one label wraps, the other doesn't. */
+@Composable
+private fun TileRow(content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) =
+    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
 
 /** The splash line under the name, one picked each time the card shows. Add your own. */
 private val SPLASHES = listOf(
@@ -114,7 +129,21 @@ private val SPLASHES = listOf(
     "Lights off after dark.",
     "Are you sure you want to sleep?",
     "Burnt toast is still toast.",
+    "Do not microwave!",
+    "Sledgehammer not included!",
 )
+
+/** The splash for a special day, instead of a random one. */
+internal fun datedSplash(date: LocalDate): String? {
+    val (month, day) = date.month to date.dayOfMonth
+    return when {
+        month == Month.DECEMBER && day in 24..26 -> "Merry Knoxmas!"
+        month == Month.DECEMBER && day == 31 || month == Month.JANUARY && day == 1 -> "Happy new year! Day one, again."
+        month == Month.OCTOBER && day == 31 -> "Spooky! Wait, that's every day."
+        month == Month.JULY && day == 9 -> "July 9th, 1993. Here we go again."
+        else -> null
+    }
+}
 
 /** The logo's dark background (ic_launcher_background). */
 private val LogoBackground = Color(0xFF121212)

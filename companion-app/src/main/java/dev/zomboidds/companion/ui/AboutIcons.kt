@@ -33,7 +33,7 @@ private val LogoBack = Color(0xFF121212)
  * The About card's icons, drawn like the logo (they can't be the game's art: that comes from the
  * game, and the About card shows before there is one).
  */
-internal enum class AboutIcon { WALKIE, MUG, NEWSPAPER, CODE, LICENCE }
+internal enum class AboutIcon { WALKIE, GUIDE, MUG, NEWSPAPER, CODE, LICENCE }
 
 /** [icon] on the logo's dark tile. */
 @Composable
@@ -44,6 +44,7 @@ internal fun AboutIconTile(icon: AboutIcon, size: Dp = 34.dp) {
             val u = this.size.width / 64f
             when (icon) {
                 AboutIcon.WALKIE -> walkie(u)
+                AboutIcon.GUIDE -> guide(u)
                 AboutIcon.MUG -> mug(u)
                 AboutIcon.NEWSPAPER -> newspaper(u)
                 AboutIcon.CODE -> code(u)
@@ -70,6 +71,27 @@ private fun DrawScope.walkie(u: Float) {
     bar(u, 22f, 46f, 20f)
     bar(u, 22f, 52f, 20f)
     drawCircle(Blood, 3f * u, Offset(44f * u, 22f * u))
+}
+
+/** An open booklet in a cardboard cover, a blood-red bookmark hanging from the right page. */
+private fun DrawScope.guide(u: Float) {
+    box(u, 4f, 12f, 56f, 44f, 4f, Cardboard)
+    box(u, 7f, 9f, 25f, 43f, 3f, Paper)
+    box(u, 32f, 9f, 25f, 43f, 3f, Paper)
+    drawRect(Color.Black, Offset(31f * u, 9f * u), Size(2f * u, 43f * u), alpha = 0.25f)
+    box(u, 11f, 15f, 17f, 4f, 2f, Ink, 0.5f)
+    bar(u, 11f, 23f, 17f, 0.25f)
+    bar(u, 11f, 29f, 17f, 0.25f)
+    bar(u, 11f, 35f, 12f, 0.25f)
+    box(u, 36f, 15f, 12f, 10f, 2f, Cardboard)
+    bar(u, 36f, 29f, 17f, 0.25f)
+    bar(u, 36f, 35f, 17f, 0.25f)
+    bar(u, 36f, 41f, 12f, 0.25f)
+    val ribbon = Path().apply {
+        moveTo(49f * u, 9f * u); lineTo(55f * u, 9f * u); lineTo(55f * u, 30f * u)
+        lineTo(52f * u, 27f * u); lineTo(49f * u, 30f * u); close()
+    }
+    drawPath(ribbon, Blood)
 }
 
 private fun DrawScope.mug(u: Float) {
