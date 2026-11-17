@@ -11,7 +11,7 @@ data class Release(val version: String, val title: String, val date: String?, va
  * releasing, give it its final version (same as versionName), date and title.
  */
 val RELEASES = listOf(
-    Release("1.6.1", "Easier setup", null, listOf(
+    Release("1.6.1", "Easier setup", "17 Nov 2026", listOf(
         "Smoother setup: if ZomboidDS is open on the top screen, it offers to move to the bottom screen. Added a button to open Zomdroid.",
         "Added a **User guide** button.",
     )),
