@@ -1,0 +1,27 @@
+{
+  "v": 1, "type": "character", "seq": 30,
+  "data": {
+    "name": "Jake Ward",
+    "profession": "Carpenter",
+    "professionIcon": "profession_hammer2",
+    "weight": 84,
+    "weightTrend": "up",
+    "traits": [
+      { "id": "base:strong", "name": "Strong", "description": "Increased knockback from melee weapons. Increased carrying weight.", "icon": "trait_strong", "tone": "good" },
+      { "id": "base:fastlearner", "name": "Fast Learner", "description": "Increased XP gains.", "icon": "trait_fastlearner", "tone": "good" },
+      { "id": "base:outdoorsman", "name": "Outdoorsman", "description": "Not affected by harsh weather conditions.", "icon": "trait_outdoorsman", "tone": "good" },
+      { "id": "base:thickskinned", "name": "Thick Skinned", "description": "Less chance of scratches or bites breaking the skin.", "icon": "trait_thickskinned", "tone": "good" },
+      { "id": "base:brave", "name": "Brave", "description": "Less prone to becoming panicked.", "icon": "trait_brave", "tone": "good" },
+      { "id": "base:smoker", "name": "Smoker", "description": "Stress and unhappiness decrease after smoking tobacco.", "icon": "trait_smoker", "tone": "bad" },
+      { "id": "base:shortsighted", "name": "Short Sighted", "description": "Small view distance. Slower foraging.", "icon": "trait_shortsighted", "tone": "bad" },
+      { "id": "base:insomniac", "name": "Insomniac", "description": "Needs less sleep, but sleeps badly.", "icon": "trait_insomniac", "tone": "bad" }
+    ],
+    "hair": "Short",
+    "canChangeHair": true,
+    "beard": "Full Beard",
+    "canChangeBeard": true,
+    "favouriteWeapon": "Sledgehammer",
+    "kills": 1284,
+    "survived": "2 months, 14 days, 6 hours"
+  }
+}

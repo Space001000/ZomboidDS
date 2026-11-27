@@ -60,6 +60,8 @@ fun CraftScreen(crafting: Crafting, iconUrl: (String) -> String, changes: Any?) 
     }
     var canMakeOnly by rememberSaveable { mutableStateOf(true) }
     var category by rememberSaveable { mutableStateOf<String?>(null) }
+    var search by rememberSaveable { mutableStateOf("") }
+    var searching by rememberSaveable { mutableStateOf(false) }
     var selectedId by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(message) {
@@ -75,11 +77,18 @@ fun CraftScreen(crafting: Crafting, iconUrl: (String) -> String, changes: Any?) 
             is Fetched.Failed -> FailedRow(result.reason, "Retry") { reload++ }
             is Fetched.Ready -> {
                 val recipes = result.value.recipes
-                val shown = recipes.filter { (!canMakeOnly || it.canCraft) && (category == null || it.category == category) }
+                val shown = recipes.filter {
+                    (!canMakeOnly || it.canCraft) && (category == null || it.category == category) && matchesSearch(it.name, search)
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(PaneSpacing)) {
-                    RecipeFilters("Can make", canMakeOnly, { canMakeOnly = it }, result.value.categories, category, { category = it })
+                    if (searching) {
+                        SearchBar(search, onClose = { search = ""; searching = false })
+                    } else {
+                        RecipeFilters("Can make", canMakeOnly, { canMakeOnly = it }, result.value.categories, category, { category = it },
+                            search = search, onSearch = { searching = true })
+                    }
                     Text(
-                        if (canMakeOnly) "You can make ${shown.size} of ${recipes.count { category == null || it.category == category }}"
+                        if (canMakeOnly) "You can make ${shown.size} of ${recipes.count { (category == null || it.category == category) && matchesSearch(it.name, search) }}"
                         else "${shown.size} recipes",
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -87,12 +96,15 @@ fun CraftScreen(crafting: Crafting, iconUrl: (String) -> String, changes: Any?) 
                     if (shown.isEmpty()) {
                         Text(
                             if (canMakeOnly) "Nothing you can make with what's in reach. Turn off \"Can make\" to see the rest."
+                            else if (search.isNotBlank()) "No recipe called \"${search.trim()}\" here."
                             else "No recipes here.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 64.dp),
+                        columns = GridCells.Adaptive(minSize = TileMinWidth),
+                        // Room to scroll the last rows out from under the search keyboard.
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (searching) SearchKeyboardHeight else 0.dp),
                         horizontalArrangement = Arrangement.spacedBy(Gap),
                         verticalArrangement = Arrangement.spacedBy(Gap),
                         modifier = Modifier.fillMaxSize(),
@@ -103,6 +115,9 @@ fun CraftScreen(crafting: Crafting, iconUrl: (String) -> String, changes: Any?) 
                     }
                 }
             }
+        }
+        if (searching && selectedId == null) {
+            SearchKeyboard(search, { search = it }, onDone = { searching = false })
         }
         selectedId?.let { id ->
             RecipePanel(
@@ -125,10 +140,10 @@ private fun RecipeTile(recipe: RecipeSummary, iconUrl: (String) -> String, selec
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(1.dp),
         ) {
-            Box(Modifier.fillMaxWidth().height(38.dp), contentAlignment = Alignment.Center) {
-                GameIcon(recipe.icon, iconUrl, 36.dp)
+            Box(Modifier.fillMaxWidth().height(TileIcon + 2.dp), contentAlignment = Alignment.Center) {
+                GameIcon(recipe.icon, iconUrl, TileIcon)
             }
-            Text(recipe.name, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 1,
+            Text(recipe.name, style = TileNameStyle, textAlign = TextAlign.Center, maxLines = 1,
                 overflow = TextOverflow.Ellipsis)
         }
     }

@@ -20,8 +20,9 @@ One port (default `7786`), bound to `127.0.0.1` only.
 | Item icons      | `GET http://127.0.0.1:7786/icons/{icon}.png` |
 | Health check    | `GET http://127.0.0.1:7786/health`     |
 
-Icons are served with `Cache-Control: max-age=31536000, immutable`; the app caches them on disk.
-Icon names match `[A-Za-z0-9_.-]+` (e.g. `Item_Axe`), or are a path of such names under the game's
+The game's icons are served with `Cache-Control: max-age=31536000, immutable`; the app caches them on
+disk. Icons from mods are `no-store` (mod 0.30+). Icon names are texture names (e.g. `Item_Axe`),
+percent-encoded in the URL, without slashes or control characters, or are a path of such names under the game's
 `media/ui` or `media/textures` when several images share a file name (e.g. `Moodles/128/Mood_Sad`;
 no `..`). Missing icons are `404` with `Cache-Control: no-store`.
 
@@ -171,7 +172,7 @@ Two commands take arguments and come with their own state in `deck`:
 
 `session.capabilities` tells the app what the running adapter supports, so the app can hide UI
 the game side can't back. v1 values: `player`, `inventory`, `vehicle`, `cmd.equip`, `cmd.unequip`,
-`cmd.drop`, `cmd.wear`, `item_menu`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`, `build`, `tailor`, `deck`, `map`.
+`cmd.drop`, `cmd.wear`, `item_menu`, `item_details`, `containers`, `transfer`, `time`, `world_menu`, `here`, `select_container`, `health`, `moodles`, `craft`, `build`, `tailor`, `deck`, `map`.
 
 ## Client → server
 
@@ -299,6 +300,12 @@ includes everything it offers: read, eat, bandage, craft, ... and options added 
 - `icon` (optional): the texture name of the option's icon in the game's menu (e.g. the object's
   sprite), for the bridge's icon endpoint. Not every icon can be served; the app shows none then.
 - `enabled: false` options are shown greyed out, with the game's reason in `tooltip` if it gives one.
+- `details` (optional, one item only; capability `item_details`, mod 0.30+): the item's lines from the
+  game's hover tooltip, in its order, as the game builds them (also lines other mods add in Java):
+  `[{ "label": "Sharpness", "bar": 0.6, "tone": 0.6 }, { "label": "Encumbrance", "value": "2.4 (3.0 unequipped)" },
+  { "label": "Limited impact when used one-handed." }]`. `label` has no trailing colon; `value` and
+  `bar` (0-1) are optional; `tone` (optional) is where the game's colour for the bar or text lies
+  between its bad (0) and good (1) highlight colours; none for plain text.
 - `pill` (optional, top-level options only): the item's main uses, which the app shows as buttons
   above the rest, recognised by the game function behind them (never by name): equip and attach
   (weapons only), eat, drink, wear, take off, read, take pills, apply a bandage, firearm loading and

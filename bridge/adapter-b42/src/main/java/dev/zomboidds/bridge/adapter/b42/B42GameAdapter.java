@@ -3,6 +3,7 @@ package dev.zomboidds.bridge.adapter.b42;
 import dev.zomboidds.bridge.Log;
 import dev.zomboidds.bridge.asset.CompositeIconSource;
 import dev.zomboidds.bridge.asset.LooseFileIconSource;
+import dev.zomboidds.bridge.asset.ModIconSource;
 import dev.zomboidds.bridge.asset.PackFileIconSource;
 import dev.zomboidds.bridge.asset.TileIconSource;
 import dev.zomboidds.bridge.port.AdapterInfo;
@@ -41,6 +42,11 @@ public final class B42GameAdapter implements GameAdapter {
                 // World objects in menus ("Here"): their sprite from the small tile set (43 MB,
                 // header-only indexing; the 2x sets are far bigger and not needed for icons).
                 new TileIconSource(new PackFileIconSource(List.of(media.resolve("texturepacks").resolve("Tiles1x.pack")), false))));
+    }
+
+    @Override
+    public IconSource createModIconSource(GameEnvironment env) {
+        return new ModIconSource(new GameMods());
     }
 
     @Override

@@ -1,5 +1,6 @@
 package dev.zomboidds.companion.data
 
+import android.net.Uri
 import android.util.Log
 import dev.zomboidds.companion.domain.BuildList
 import dev.zomboidds.companion.domain.CommandResult
@@ -22,6 +23,7 @@ import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenuResult
 import dev.zomboidds.companion.domain.RecipeDetails
 import dev.zomboidds.companion.domain.RecipeList
+import dev.zomboidds.companion.domain.StyleKind
 import dev.zomboidds.companion.domain.TailorList
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -111,13 +113,16 @@ class WebSocketGameGateway(
         }
     }
 
-    override fun iconUrl(icon: String) = "$bridgeUrl/icons/$icon.png"
+    // Encoded: mods name their textures freely ("Item_Gun #2").
+    override fun iconUrl(icon: String) = "$bridgeUrl/icons/${Uri.encode(icon, "/")}.png"
 
     override suspend fun perform(command: ItemCommand): CommandResult = send(ProtocolV1.request(command)).result
 
     override suspend fun itemMenu(itemIds: List<Long>): ItemMenuResult = menuFrom(send(ProtocolV1.itemMenuRequest(itemIds)))
 
     override suspend fun bodyPartMenu(partId: String): ItemMenuResult = menuFrom(send(ProtocolV1.bodyPartMenuRequest(partId)))
+
+    override suspend fun styleMenu(kind: StyleKind): ItemMenuResult = menuFrom(send(ProtocolV1.styleMenuRequest(kind)))
 
     override fun watchHere(on: Boolean) {
         scope?.launch { send(ProtocolV1.watchHereRequest(on)) }

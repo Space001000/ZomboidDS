@@ -14,6 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -57,9 +60,10 @@ internal fun Modifier.boxSolid(select: BoxSelect, key: Any): Modifier {
 
 /**
  * The area of a pane where a box can start: on empty space, not on an item (a finger on an item
- * taps, holds or drags it). Once the finger moves, the gesture is the box's (the grid doesn't
- * scroll); everything it touches is picked, on top of what [picked] already was. A tap on empty
- * space lets go of what's picked ([onEmptyTap]).
+ * taps, holds or drags it). Hold still there for a long press (a buzz), then move: the gesture is
+ * the box's (the grid doesn't scroll), and everything it touches is picked, on top of what
+ * [picked] already was. A swipe that doesn't wait scrolls, so one starting between two tiles
+ * doesn't pick anything. A tap on empty space lets go of what's picked ([onEmptyTap]).
  */
 internal fun Modifier.boxSelect(
     select: BoxSelect,
@@ -71,6 +75,7 @@ internal fun Modifier.boxSelect(
     val pick by rememberUpdatedState(onPick)
     val emptyTap by rememberUpdatedState(onEmptyTap)
     val color = MaterialTheme.colorScheme.primary
+    val haptics = LocalHapticFeedback.current
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     this
         .onGloballyPositioned { coordinates = it }
@@ -81,18 +86,31 @@ internal fun Modifier.boxSelect(
                 val start = area.localToRoot(down.position)
                 if (select.tiles.values.any { (_, bounds) -> bounds.contains(start) }) return@awaitEachGesture
                 if (select.solid.values.any { it.contains(start) }) return@awaitEachGesture
+                // Scroll, tap or box? Watch without consuming until the long press: moving first scrolls.
+                var lifted = false
+                val early = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                    while (true) {
+                        val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
+                        if (!change.pressed) {
+                            lifted = true
+                            break
+                        }
+                        if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) break
+                    }
+                }
+                if (early != null) {
+                    if (lifted) emptyTap()
+                    return@awaitEachGesture
+                }
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 val base = alreadyPicked
                 var boxing = false
-                var released = false
                 while (true) {
                     val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
-                    if (!change.pressed) {
-                        released = true
-                        break
-                    }
+                    change.consume()
+                    if (!change.pressed) break
                     if (!boxing && (change.position - down.position).getDistance() > viewConfiguration.touchSlop) boxing = true
                     if (!boxing) continue
-                    change.consume()
                     select.from = down.position
                     select.to = change.position
                     val end = area.localToRoot(change.position)
@@ -102,7 +120,7 @@ internal fun Modifier.boxSelect(
                 }
                 select.from = null
                 select.to = null
-                if (released && !boxing) emptyTap()
+                // Held and let go without drawing: nothing (a tap above lets go of the picks).
             }
         }
         .drawWithContent {

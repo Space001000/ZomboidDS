@@ -157,6 +157,20 @@ public final class LuaApi {
         }
     }
 
+    /** The item's rows from the game's tooltip (see {@link ItemDetails}), as a Lua array; null if it can't be read. */
+    public KahluaTable itemDetails(Object item, Object character) {
+        if (!(item instanceof zombie.inventory.InventoryItem inventoryItem)) {
+            return null;
+        }
+        try {
+            zombie.characters.IsoGameCharacter chr = character instanceof zombie.characters.IsoGameCharacter c ? c : null;
+            return (KahluaTable) converter.toLua(ItemDetails.rows(inventoryItem, chr));
+        } catch (Throwable e) { // another mod's tooltip code, or a game change
+            Log.error("can't read the item's tooltip", e);
+            return null;
+        }
+    }
+
     public int clients() {
         return bridge.connectedClients();
     }

@@ -89,14 +89,25 @@ private const val HOLD_MS = 250L
 private val DragSlop = 14.dp
 
 /**
- * Makes an item tile draggable: hold it a moment, then drag; or hold it and let go without moving
- * to pick it ([onHold]). A tap stays a tap and a quick swipe still scrolls; once lifted, the
- * gesture is ours (no click on release, no scrolling).
+ * Makes an item tile draggable: hold it a moment, then drag. Held still for a long press, an item
+ * that isn't picked gets picked there and then ([onHold], with a buzz), as Android's long press
+ * works; moving on drags it with the rest that's picked. A picked item stays picked while held, so
+ * it can be dragged with the others; letting go of it without moving unpicks it. A tap stays a tap
+ * and a quick swipe still scrolls; once lifted, the gesture is ours (no click on release, no
+ * scrolling), so letting go before the long press, without moving, counts as the tap ([onTap]).
  */
-internal fun Modifier.draggableItem(stack: ItemStack, from: String, onHold: () -> Unit): Modifier = composed {
+internal fun Modifier.draggableItem(
+    stack: ItemStack,
+    from: String,
+    picked: Boolean,
+    onTap: () -> Unit,
+    onHold: () -> Unit,
+): Modifier = composed {
     val drag = LocalItemDrag.current ?: return@composed this
     val haptics = LocalHapticFeedback.current
     val hold by rememberUpdatedState(onHold)
+    val tap by rememberUpdatedState(onTap)
+    val isPicked by rememberUpdatedState(picked)
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     this
         .onGloballyPositioned { coordinates = it }
@@ -113,25 +124,55 @@ internal fun Modifier.draggableItem(stack: ItemStack, from: String, onHold: () -
                 }
                 if (endedEarly != null) return@awaitEachGesture // a tap or a scroll: not ours
                 val origin = coordinates ?: return@awaitEachGesture
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                // Lifted: moving on drags it; letting go where it is picks it.
+                // Lifted: moving on drags it; staying put until the long press picks it.
                 val slop = DragSlop.toPx()
+                val longPressAt = down.uptimeMillis + viewConfiguration.longPressTimeoutMillis
+                val wasPicked = isPicked
                 var dragging = false
                 var released = false
+                var longPressed = false
+                var buzzed = false
+                fun buzz() {
+                    if (!buzzed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    buzzed = true
+                }
                 while (true) {
-                    val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
+                    val waitMs = longPressAt - android.os.SystemClock.uptimeMillis()
+                    val event = if (!dragging && !longPressed) {
+                        withTimeoutOrNull(maxOf(1L, waitMs)) { awaitPointerEvent(PointerEventPass.Initial) }
+                    } else {
+                        awaitPointerEvent(PointerEventPass.Initial)
+                    }
+                    if (event == null) {
+                        // The long press, still in place: pick it now.
+                        longPressed = true
+                        buzz()
+                        if (!wasPicked) hold()
+                        continue
+                    }
+                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
                     change.consume()
                     if (!change.pressed) {
                         released = true
+                        if (!longPressed && change.uptimeMillis >= longPressAt) {
+                            longPressed = true
+                            if (!wasPicked) hold()
+                        }
                         break
                     }
                     if (!dragging && (change.position - down.position).getDistance() > slop) {
                         dragging = true
+                        buzz()
                         drag.start(stack, from, origin.localToRoot(down.position))
                     }
                     if (dragging) coordinates?.let { drag.move(it.localToRoot(change.position)) }
                 }
-                if (dragging) drag.end(drop = released) else if (released) hold()
+                when {
+                    dragging -> drag.end(drop = released)
+                    !released -> {}
+                    !longPressed -> tap()
+                    wasPicked -> hold() // held and let go: unpick
+                }
             }
         }
 }

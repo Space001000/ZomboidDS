@@ -4,6 +4,7 @@ import android.app.ActivityOptions
 import android.content.Intent
 import android.hardware.display.DisplayManager
 import android.net.Uri
+import android.graphics.Rect
 import android.os.Bundle
 import android.view.Display
 import android.view.WindowManager
@@ -88,6 +89,8 @@ class MainActivity : ComponentActivity() {
             if (now != laidOutOn) { laidOutOn = now; updateScreenPlace() }
         }
 
+        keepBackGestureOff()
+
         val gateway = container.gateway
         setContent {
             val state by gateway.state.collectAsStateWithLifecycle()
@@ -97,6 +100,7 @@ class MainActivity : ComponentActivity() {
             val update by container.updater.state.collectAsStateWithLifecycle()
             val inventoryLayout by container.settings.inventoryLayout.collectAsStateWithLifecycle()
             val containerLayout by container.settings.containerLayout.collectAsStateWithLifecycle()
+            val itemSize by container.settings.itemSize.collectAsStateWithLifecycle()
             val deckCommands by container.settings.deckCommands.collectAsStateWithLifecycle()
             val pinnedCommands by container.settings.pinnedCommands.collectAsStateWithLifecycle()
             val favouriteEmotes by container.settings.favouriteEmotes.collectAsStateWithLifecycle()
@@ -105,6 +109,7 @@ class MainActivity : ComponentActivity() {
             val whatsNewSeen by container.settings.whatsNewSeen.collectAsStateWithLifecycle()
             val mapSymbols by container.settings.mapSymbols.collectAsStateWithLifecycle()
             val craftMode by container.settings.craftMode.collectAsStateWithLifecycle()
+            val statusMode by container.settings.statusMode.collectAsStateWithLifecycle()
             val tabOrder by container.settings.tabOrder.collectAsStateWithLifecycle()
             val lastTab = remember { container.settings.lastTab }
             // The map files are read once, the first time a game shows the map.
@@ -115,10 +120,11 @@ class MainActivity : ComponentActivity() {
                 iconUrl = gateway::iconUrl,
                 actions = gateway,
                 controls = gateway,
-                inventoryDisplay = InventoryDisplay(inventoryLayout, containerLayout),
+                inventoryDisplay = InventoryDisplay(inventoryLayout, containerLayout, itemSize),
                 onInventoryDisplayChange = {
                     container.settings.setInventoryLayout(it.items)
                     container.settings.setContainerLayout(it.containers)
+                    container.settings.setItemSize(it.size)
                 },
                 events = gateway.events,
                 crafting = gateway,
@@ -131,6 +137,8 @@ class MainActivity : ComponentActivity() {
                 devTools = remember { DevTools(gateway) },
                 craftMode = craftMode,
                 onCraftModeChange = container.settings::setCraftMode,
+                statusMode = statusMode,
+                onStatusModeChange = container.settings::setStatusMode,
                 deckCommands = deckCommands,
                 onDeckCommandsChange = container.settings::setDeckCommands,
                 pinnedCommands = pinnedCommands,
@@ -146,6 +154,23 @@ class MainActivity : ComponentActivity() {
                 tabSettings = TabSettings(tabOrder, container.settings::setTabOrder, lastTab, container.settings::setLastTab),
                 screenPlace = screenPlace.value,
             )
+        }
+    }
+
+    /**
+     * Swiping in from a side edge is Android's Back gesture. This window can't take focus while the
+     * game runs, so Back went to Zomdroid and sent the game to the background, which restarts it when
+     * it comes back (issue 15). An app with this many touch targets near the edges hits that by
+     * accident, so the side edges are excluded from the gesture. Android honours at most 200dp per
+     * edge; the rest of each edge keeps Back.
+     */
+    private fun keepBackGestureOff() {
+        val view = window.decorView
+        view.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+            val edge = (EDGE_DP * resources.displayMetrics.density).toInt()
+            val width = right - left
+            val height = bottom - top
+            view.systemGestureExclusionRects = listOf(Rect(0, 0, edge, height), Rect(width - edge, 0, width, height))
         }
     }
 
@@ -240,3 +265,6 @@ class MainActivity : ComponentActivity() {
         if (intent.getBooleanExtra("devRemoveZombieBuddy", false)) DevExport.removeZombieBuddy(this)
     }
 }
+
+/** How far in from each side edge a swipe still counts as a touch, not Back (Android's gesture area is about 24dp wide). */
+private const val EDGE_DP = 40

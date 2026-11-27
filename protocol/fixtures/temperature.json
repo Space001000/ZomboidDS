@@ -1,0 +1,16 @@
+{
+  "v": 1, "type": "temperature", "seq": 32,
+  "data": {
+    "core": 35.6,
+    "coreBar": 0.453,
+    "heatBar": 0.1,
+    "celsius": true,
+    "parts": [
+      { "id": "Hand_L", "name": "Left Hand", "skin": 24.6, "skinBar": 0.12, "response": 0.12, "insulation": 0.1, "insulationBar": 0.1, "wind": 0.05, "windBar": 0.05, "bodyWet": 0.9, "clothesWet": 0.0 },
+      { "id": "Hand_R", "name": "Right Hand", "skin": 25.1, "skinBar": 0.14, "response": 0.12, "insulation": 0.1, "insulationBar": 0.1, "wind": 0.05, "windBar": 0.05, "bodyWet": 0.9, "clothesWet": 0.0 },
+      { "id": "Torso_Upper", "name": "Upper Torso", "skin": 31.2, "skinBar": 0.42, "response": 0.2, "insulation": 0.52, "insulationBar": 0.52, "wind": 0.4, "windBar": 0.4, "bodyWet": 0.82, "clothesWet": 0.7 },
+      { "id": "Foot_L", "name": "Left Foot", "skin": 23.8, "skinBar": 0.1, "response": 0.1, "insulation": 0.31, "insulationBar": 0.31, "wind": 0.22, "windBar": 0.22, "bodyWet": 0.86, "clothesWet": 0.9 },
+      { "id": "Foot_R", "name": "Right Foot", "skin": 23.8, "skinBar": 0.1, "response": 0.1, "insulation": 0.31, "insulationBar": 0.31, "wind": 0.22, "windBar": 0.22, "bodyWet": 0.86, "clothesWet": 0.9 }
+    ]
+  }
+}

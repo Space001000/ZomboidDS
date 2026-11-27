@@ -1,6 +1,17 @@
 package dev.zomboidds.companion.data
 
 import dev.zomboidds.companion.domain.AlarmClock
+import dev.zomboidds.companion.domain.CharacterInfo
+import dev.zomboidds.companion.domain.DetailRow
+import dev.zomboidds.companion.domain.PartTemperature
+import dev.zomboidds.companion.domain.Skill
+import dev.zomboidds.companion.domain.SkillGroup
+import dev.zomboidds.companion.domain.Skills
+import dev.zomboidds.companion.domain.StyleKind
+import dev.zomboidds.companion.domain.Temperature
+import dev.zomboidds.companion.domain.Trait
+import dev.zomboidds.companion.domain.TraitTone
+import dev.zomboidds.companion.domain.WeightTrend
 import dev.zomboidds.companion.domain.Emote
 import dev.zomboidds.companion.domain.EmoteGroup
 import dev.zomboidds.companion.domain.HandItem
@@ -195,6 +206,67 @@ object ProtocolV1 {
     private data class HealthLineDto(val text: String, val tone: String? = null)
 
     @Serializable
+    private data class CharacterDto(
+        val name: String = "",
+        val profession: String? = null,
+        val professionIcon: String? = null,
+        val weight: Int? = null,
+        val weightTrend: String? = null,
+        val traits: List<TraitDto> = emptyList(),
+        val hair: String? = null,
+        val canChangeHair: Boolean = false,
+        val beard: String? = null,
+        val canChangeBeard: Boolean = false,
+        val favouriteWeapon: String? = null,
+        val kills: Int? = null,
+        val survived: String? = null,
+    )
+
+    @Serializable
+    private data class TraitDto(val id: String, val name: String? = null, val description: String? = null, val icon: String? = null, val tone: String? = null)
+
+    @Serializable
+    private data class SkillsDto(val groups: List<SkillGroupDto> = emptyList())
+
+    @Serializable
+    private data class SkillGroupDto(val id: String, val name: String = "", val skills: List<SkillDto> = emptyList())
+
+    @Serializable
+    private data class SkillDto(
+        val id: String,
+        val name: String? = null,
+        val level: Int = 0,
+        val xp: Int? = null,
+        val xpNeeded: Int? = null,
+        val boost: Int = 0,
+        val multiplier: Float? = null,
+    )
+
+    @Serializable
+    private data class TemperatureDto(
+        val core: Float? = null,
+        val coreBar: Float = 0.5f,
+        val heatBar: Float = 0.5f,
+        val celsius: Boolean = true,
+        val parts: List<PartTemperatureDto> = emptyList(),
+    )
+
+    @Serializable
+    private data class PartTemperatureDto(
+        val id: String,
+        val name: String? = null,
+        val skin: Float? = null,
+        val skinBar: Float? = null,
+        val response: Float? = null,
+        val insulation: Float? = null,
+        val insulationBar: Float? = null,
+        val wind: Float? = null,
+        val windBar: Float? = null,
+        val bodyWet: Float? = null,
+        val clothesWet: Float? = null,
+    )
+
+    @Serializable
     private data class MoodlesDto(val moodles: List<MoodleDto> = emptyList(), val background: String? = null, val border: String? = null)
 
     @Serializable
@@ -380,7 +452,10 @@ object ProtocolV1 {
     private data class ShowDto(val panel: String = "", val container: String? = null, val item: Long? = null, val id: Long? = null)
 
     @Serializable
-    private data class MenuDto(val menuId: String, val options: List<MenuOptionDto> = emptyList())
+    private data class MenuDto(val menuId: String, val options: List<MenuOptionDto> = emptyList(), val details: List<DetailRowDto> = emptyList())
+
+    @Serializable
+    private data class DetailRowDto(val label: String = "", val value: String? = null, val bar: Float? = null, val tone: Float? = null)
 
     @Serializable
     private data class MenuOptionDto(
@@ -434,6 +509,8 @@ object ProtocolV1 {
 
     fun bodyPartMenuRequest(partId: String) = Request("health_menu", buildJsonObject { put("part", partId) })
 
+    fun styleMenuRequest(kind: StyleKind) = Request("style_menu", buildJsonObject { put("kind", kind.name.lowercase()) })
+
     fun watchHereRequest(on: Boolean) = Request("watch_here", buildJsonObject { put("on", on) })
 
     /** `itemId` is the first (what a mod before 0.21 reads); `itemIds` all of them, when several. */
@@ -451,7 +528,8 @@ object ProtocolV1 {
     fun itemMenu(data: JsonElement?): ItemMenu {
         requireNotNull(data) { "the game sent no menu" }
         val dto = json.decodeFromJsonElement<MenuDto>(data)
-        return ItemMenu(dto.menuId, dto.options.map { it.toDomain() })
+        return ItemMenu(dto.menuId, dto.options.map { it.toDomain() },
+            dto.details.map { DetailRow(it.label, it.value, it.bar?.coerceIn(0f, 1f), it.tone?.coerceIn(0f, 1f)) })
     }
 
     private fun MenuOptionDto.toDomain(): MenuOption =
@@ -1085,6 +1163,49 @@ object ProtocolV1 {
                         })
                     })
                 }))
+            }
+            "character" -> json.decodeFromJsonElement<CharacterDto>(data).let { dto ->
+                state.copy(character = CharacterInfo(
+                    name = dto.name.trim(),
+                    profession = dto.profession,
+                    professionIcon = dto.professionIcon,
+                    weight = dto.weight,
+                    weightTrend = when (dto.weightTrend) {
+                        "up" -> WeightTrend.UP
+                        "upLot" -> WeightTrend.UP_LOT
+                        "down" -> WeightTrend.DOWN
+                        else -> null
+                    },
+                    traits = dto.traits.map {
+                        Trait(it.id, it.name ?: it.id, it.description, it.icon, when (it.tone) {
+                            "good" -> TraitTone.GOOD
+                            "bad" -> TraitTone.BAD
+                            else -> TraitTone.NEUTRAL
+                        })
+                    },
+                    hair = dto.hair,
+                    canChangeHair = dto.canChangeHair,
+                    beard = dto.beard,
+                    canChangeBeard = dto.canChangeBeard,
+                    favouriteWeapon = dto.favouriteWeapon,
+                    kills = dto.kills,
+                    survived = dto.survived,
+                ))
+            }
+            "skills" -> json.decodeFromJsonElement<SkillsDto>(data).let { dto ->
+                state.copy(skills = Skills(dto.groups.map { group ->
+                    SkillGroup(group.id, group.name.ifEmpty { group.id }, group.skills.map {
+                        Skill(it.id, it.name ?: it.id, it.level, it.xp, it.xpNeeded, it.boost, it.multiplier)
+                    })
+                }))
+            }
+            "temperature" -> if (data !is JsonObject) state.copy(temperature = null) else json.decodeFromJsonElement<TemperatureDto>(data).let { dto ->
+                state.copy(temperature = dto.core?.let { core ->
+                    Temperature(core, dto.coreBar, dto.heatBar, dto.celsius, dto.parts.map {
+                        PartTemperature(it.id, it.name ?: it.id, it.skin, it.skinBar, it.response, it.insulation,
+                            it.insulationBar, it.wind, it.windBar, it.bodyWet, it.clothesWet)
+                    })
+                })
             }
             "moodles" -> json.decodeFromJsonElement<MoodlesDto>(data).let { dto ->
                 state.copy(moodles = Moodles(dto.moodles.map {

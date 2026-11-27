@@ -44,7 +44,7 @@ class LooseFileIconSourceTest {
         IconService service = new IconService(name -> {
             asked.add(name);
             return Optional.of(new byte[] {1});
-        });
+        }, name -> Optional.empty());
 
         assertTrue(service.find("Moodles/128/Mood_Sad").isPresent());
         assertTrue(service.find("Item_Hammer").isPresent());

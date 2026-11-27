@@ -25,6 +25,9 @@ local Config = {
         building = 250,    -- what the player is placing with the game's build cursor; only sent when it changes
         map = 250,         -- the player on the minimap: only sent when they move or turn
         here = 200,        -- how often "Here" checks for a move/turn while the app watches (cheap when not)
+        character = 2000,  -- the Info tab: profession, traits, weight, hair; only sent when it changes
+        skills = 1000,     -- levels and XP; only sent when they change
+        temperature = 1000, -- core and per-part temperature, insulation, wetness; only sent when it changes
         vehicle = 100,     -- while in a vehicle (speedometer)
         vehicleIdle = 1000,
     },

@@ -74,6 +74,8 @@ fun BuildScreen(building: Building, iconUrl: (String) -> String, changes: Any?, 
     }
     var canBuildOnly by rememberSaveable { mutableStateOf(true) }
     var category by rememberSaveable { mutableStateOf<String?>(null) }
+    var search by rememberSaveable { mutableStateOf("") }
+    var searching by rememberSaveable { mutableStateOf(false) }
     var selected by remember { mutableStateOf<String?>(null) } // a group key
     var message by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(message) {
@@ -90,7 +92,9 @@ fun BuildScreen(building: Building, iconUrl: (String) -> String, changes: Any?, 
             is Fetched.Failed -> FailedRow(result.reason, "Retry") { reload++ }
             is Fetched.Ready -> {
                 val groups = result.value.groups
-                val inCategory = groups.filter { category == null || it.category == category }
+                val inCategory = groups.filter {
+                    (category == null || it.category == category) && (matchesSearch(it.name, search) || it.versions.any { v -> matchesSearch(v.name, search) })
+                }
                 val shown = inCategory.filter { !canBuildOnly || it.canBuild }
                 Column(verticalArrangement = Arrangement.spacedBy(PaneSpacing)) {
                     if (placing != null) {
@@ -101,7 +105,12 @@ fun BuildScreen(building: Building, iconUrl: (String) -> String, changes: Any?, 
                         })
                         PlacingHelp(placing)
                     } else {
-                        RecipeFilters("Can build", canBuildOnly, { canBuildOnly = it }, result.value.categories, category, { category = it })
+                        if (searching) {
+                            SearchBar(search, onClose = { search = ""; searching = false })
+                        } else {
+                            RecipeFilters("Can build", canBuildOnly, { canBuildOnly = it }, result.value.categories, category, { category = it },
+                                search = search, onSearch = { searching = true })
+                        }
                         Text(
                             if (canBuildOnly) "You can build ${shown.size} of ${inCategory.size}" else "${shown.size} to build",
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -111,12 +120,15 @@ fun BuildScreen(building: Building, iconUrl: (String) -> String, changes: Any?, 
                     if (shown.isEmpty()) {
                         Text(
                             if (canBuildOnly) "Nothing you can build with what's in reach. Turn off \"Can build\" to see the rest."
+                            else if (search.isNotBlank()) "Nothing called \"${search.trim()}\" to build here."
                             else "Nothing to build here.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 64.dp),
+                        columns = GridCells.Adaptive(minSize = TileMinWidth),
+                        // Room to scroll the last rows out from under the search keyboard.
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = if (searching) SearchKeyboardHeight else 0.dp),
                         horizontalArrangement = Arrangement.spacedBy(Gap),
                         verticalArrangement = Arrangement.spacedBy(Gap),
                         modifier = Modifier.fillMaxSize(),
@@ -127,6 +139,9 @@ fun BuildScreen(building: Building, iconUrl: (String) -> String, changes: Any?, 
                                 onClick = { selected = group.key })
                         }
                     }
+                }
+                if (searching && selected == null && placing == null) {
+                    SearchKeyboard(search, { search = it }, onDone = { searching = false })
                 }
                 groups.firstOrNull { it.key == selected }?.let { group ->
                     BuildPanel(
@@ -160,10 +175,10 @@ private fun BuildTile(group: BuildGroup, iconUrl: (String) -> String, canBuildOn
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
-                Box(Modifier.fillMaxWidth().height(38.dp), contentAlignment = Alignment.Center) {
-                    GameIcon(group.icon, iconUrl, 36.dp)
+                Box(Modifier.fillMaxWidth().height(TileIcon + 2.dp), contentAlignment = Alignment.Center) {
+                    GameIcon(group.icon, iconUrl, TileIcon)
                 }
-                Text(group.name, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 1,
+                Text(group.name, style = TileNameStyle, textAlign = TextAlign.Center, maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
             }
             val count = if (canBuildOnly) group.buildable else group.versions.size

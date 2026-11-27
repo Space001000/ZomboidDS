@@ -1,5 +1,6 @@
 package dev.zomboidds.companion.ui
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -61,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.zomboidds.companion.ContainerLayout
 import dev.zomboidds.companion.CraftMode
+import dev.zomboidds.companion.StatusMode
 import dev.zomboidds.companion.InventoryLayout
 import dev.zomboidds.companion.MapPlacement
 import dev.zomboidds.companion.devtools.DevTools
@@ -81,6 +83,7 @@ import dev.zomboidds.companion.domain.ItemActions
 import dev.zomboidds.companion.domain.ItemCommand
 import dev.zomboidds.companion.domain.ItemMenuResult
 import dev.zomboidds.companion.domain.PlayerStatus
+import dev.zomboidds.companion.domain.StyleKind
 import dev.zomboidds.companion.domain.SessionInfo
 import dev.zomboidds.companion.domain.Tailoring
 import dev.zomboidds.companion.domain.Vehicle
@@ -118,6 +121,9 @@ fun CompanionScreen(
     /** What the Craft tab shows (its ▾ menu), and how to change it. */
     craftMode: CraftMode = CraftMode.CRAFT,
     onCraftModeChange: (CraftMode) -> Unit = {},
+    /** What the Status tab shows (its ▾ menu), and how to change it. */
+    statusMode: StatusMode = StatusMode.STATUS,
+    onStatusModeChange: (StatusMode) -> Unit = {},
     /** The Command deck's buttons (deck command ids, in order), and how to change them. */
     deckCommands: List<String> = emptyList(),
     onDeckCommandsChange: (List<String>) -> Unit = {},
@@ -139,9 +145,9 @@ fun CompanionScreen(
             // Keep clear of system bars on ordinary phones (the Thor's bottom screen has none).
             Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                 val inGame = connection == ConnectionStatus.Connected && state.session?.inGame == true
-                if (inGame) {
+                if (inGame) CompositionLocalProvider(LocalItemSizes provides inventoryDisplay.size.sizes()) {
                     InGame(state, iconUrl, actions, controls, inventoryDisplay, onInventoryDisplayChange, events, crafting,
-                        building, tailoring, devices, ovens, windows, reader, devTools, craftMode, onCraftModeChange, deckCommands, onDeckCommandsChange,
+                        building, tailoring, devices, ovens, windows, reader, devTools, craftMode, onCraftModeChange, statusMode, onStatusModeChange, deckCommands, onDeckCommandsChange,
                         pinnedCommands, onPinnedCommandsChange, emoteSettings, map, tabSettings)
                 } else {
                     // Outside a game is when setup matters: show what's left to do.
@@ -214,6 +220,8 @@ private fun InGame(
     devTools: DevTools?,
     craftMode: CraftMode,
     onCraftModeChange: (CraftMode) -> Unit,
+    statusMode: StatusMode,
+    onStatusModeChange: (StatusMode) -> Unit,
     deckCommands: List<String>,
     onDeckCommandsChange: (List<String>) -> Unit,
     pinnedCommands: List<String>,
@@ -238,6 +246,15 @@ private fun InGame(
         }
     }
     val mode = craftMode.takeIf { it in craftModes } ?: CraftMode.CRAFT
+    // The Status tab's modes: Info and Skills only with a mod that reports them.
+    val statusModes = StatusMode.entries.filter {
+        when (it) {
+            StatusMode.STATUS -> true
+            StatusMode.INFO -> "character" in capabilities
+            StatusMode.SKILLS -> "skills" in capabilities
+        }
+    }
+    val status = statusMode.takeIf { it in statusModes } ?: StatusMode.STATUS
     val mapTab = map?.placement == MapPlacement.OWN_TAB
     val order = orderTabs(Tab.entries, tabSettings.order) { it.name }
     val tabs = order.filter { (it != Tab.CRAFT || canCraft) && (it != Tab.MAP || mapTab) }
@@ -317,6 +334,7 @@ private fun InGame(
                     when {
                         it == Tab.HERE && driving != null -> "Vehicle"
                         it == Tab.CRAFT -> mode.title
+                        it == Tab.STATUS -> status.title
                         else -> it.title
                     }
                 },
@@ -329,11 +347,16 @@ private fun InGame(
                             onHold = { pinRunner.panel = null; pinning = it.id })
                     }
                 },
-                craftModes = craftModes, craftMode = mode,
-                onCraftMode = {
-                    onCraftModeChange(it)
-                    choose(Tab.CRAFT)
-                },
+                menus = mapOf(
+                    Tab.CRAFT to TabMenu(craftModes.map { TabMenuEntry(it.name, it.title, it.icon) }, mode.name) { id ->
+                        onCraftModeChange(CraftMode.valueOf(id))
+                        choose(Tab.CRAFT)
+                    },
+                    Tab.STATUS to TabMenu(statusModes.map { TabMenuEntry(it.name, it.title, statusIcon(it, state)) }, status.name) { id ->
+                        onStatusModeChange(StatusMode.valueOf(id))
+                        choose(Tab.STATUS)
+                    },
+                ),
             )
             Box(Modifier.fillMaxSize().padding(10.dp)) {
                 when (shown) {
@@ -355,7 +378,12 @@ private fun InGame(
                             onHold = { pinning = it.id }, emoteSettings = emoteSettings,
                             extra = { devTools?.DeckSection(capabilities) })
                     }
-                    Tab.STATUS -> StatusScreen(state, controls, actions, iconUrl, windows)
+                    Tab.STATUS -> when (status) {
+                        StatusMode.INFO -> state.character?.let { InfoScreen(it, controls, actions, iconUrl, state.time, onUnpause = unpause) }
+                            ?: Waiting()
+                        StatusMode.SKILLS -> state.skills?.let { SkillsScreen(it, iconUrl) } ?: Waiting()
+                        StatusMode.STATUS -> StatusScreen(state, controls, actions, iconUrl, windows)
+                    }
                     Tab.CRAFT -> when {
                         mode == CraftMode.BUILD && building != null ->
                             BuildScreen(building, iconUrl, changes = state.inventory to state.containers, placing = state.placing)
@@ -403,6 +431,7 @@ private fun InGame(
                     when (it) {
                         Tab.HERE -> TabChoice(it.name, it.title, hint = "Vehicle while driving")
                         Tab.CRAFT -> TabChoice(it.name, it.title, hint = craftModes.takeIf { m -> m.size > 1 }?.joinToString(" · ") { m -> m.title })
+                        Tab.STATUS -> TabChoice(it.name, it.title, hint = statusModes.takeIf { m -> m.size > 1 }?.joinToString(" · ") { m -> m.title })
                         Tab.MAP -> TabChoice(it.name, it.title, icon = "Sidebar/128/Map_Off_128")
                         else -> TabChoice(it.name, it.title)
                     }
@@ -427,8 +456,8 @@ private fun InGame(
  * The app's main navigation. Material's tab row gives every tab the same width, which squeezed
  * "Inventory" onto two lines once the Map tab was added. Here the text tabs share the width and
  * Map is a narrow tab with the game's own sidebar map icon. Looks like Material's primary tabs.
- * With more than one [craftModes], the Craft tab is named after the mode and has a ▾: tapping the
- * arrow, or the tab while it's open, shows the modes. Holding any tab opens the tab order ([onArrange]).
+ * A tab with a [menus] entry of more than one mode (Craft, Status) is named after the mode and has a
+ * ▾: tapping the arrow, or the tab while it's open, shows the modes. Holding any tab opens the tab order ([onArrange]).
  * Pinned Deck commands ([pins]) take their width from the text tabs.
  */
 @Composable
@@ -439,9 +468,7 @@ private fun TabBar(
     title: (Tab) -> String,
     onSelect: (Tab) -> Unit,
     onArrange: () -> Unit = {},
-    craftModes: List<CraftMode> = emptyList(),
-    craftMode: CraftMode = CraftMode.CRAFT,
-    onCraftMode: (CraftMode) -> Unit = {},
+    menus: Map<Tab, TabMenu> = emptyMap(),
     /** After the tabs: the pinned Deck commands. */
     pins: @Composable () -> Unit = {},
 ) {
@@ -450,7 +477,8 @@ private fun TabBar(
         Row(Modifier.fillMaxWidth().height(48.dp)) {
             tabs.forEach { tab ->
                 val isSelected = tab == selected
-                val withMenu = tab == Tab.CRAFT && craftModes.size > 1
+                val menu = menus[tab]?.takeIf { it.entries.size > 1 }
+                val withMenu = menu != null
                 var menuOpen by remember { mutableStateOf(false) }
                 var labelWidth by remember { mutableIntStateOf(0) }
                 val width = if (tab == Tab.MAP) Modifier.width(64.dp) else Modifier.weight(1f)
@@ -484,18 +512,18 @@ private fun TabBar(
                                 .background(color, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)),
                         )
                     }
-                    if (withMenu) {
+                    if (menu != null) {
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }, properties = NoFocusMenu) {
-                            craftModes.forEach { mode ->
+                            menu.entries.forEach { entry ->
                                 DropdownMenuItem(
-                                    text = { Text(mode.title) },
-                                    leadingIcon = { AsyncImage(iconUrl(mode.icon), null, Modifier.size(32.dp, 24.dp)) },
-                                    trailingIcon = if (mode == craftMode) {
+                                    text = { Text(entry.title) },
+                                    leadingIcon = { AsyncImage(entry.icon?.let(iconUrl), null, Modifier.size(32.dp, 24.dp)) },
+                                    trailingIcon = if (entry.id == menu.selected) {
                                         { Text("✓", color = color) }
                                     } else null,
                                     onClick = {
                                         menuOpen = false
-                                        onCraftMode(mode)
+                                        menu.onPick(entry.id)
                                     },
                                 )
                             }
@@ -507,6 +535,22 @@ private fun TabBar(
         }
         HorizontalDivider()
     }
+}
+
+/** A tab's ▾ menu: its modes, the one shown, and what picking one does. */
+private class TabMenu(val entries: List<TabMenuEntry>, val selected: String, val onPick: (String) -> Unit)
+
+private class TabMenuEntry(val id: String, val title: String, val icon: String?)
+
+/**
+ * Status: the heart the game's sidebar opens its character window with. Info: the character's own
+ * profession icon, like the game's Info tab (Unemployed has none: the heart again). Skills: a
+ * skill book.
+ */
+private fun statusIcon(mode: StatusMode, state: GameState): String = when (mode) {
+    StatusMode.STATUS -> "Sidebar/64/Heart_On_64"
+    StatusMode.INFO -> state.character?.professionIcon ?: "Sidebar/64/Heart_On_64"
+    StatusMode.SKILLS -> "Item_Book8"
 }
 
 /** The game's sidebar icon for each mode: its crafting window's and its build window's; thread for Tailor. */
@@ -673,6 +717,7 @@ private fun InGamePreview() {
             override suspend fun setAlarm(hour: Int, minute: Int, on: Boolean) = CommandResult.Ok
             override fun watchHere(on: Boolean) {}
             override suspend fun bodyPartMenu(partId: String) = ItemMenuResult.Failed("preview")
+            override suspend fun styleMenu(kind: StyleKind) = ItemMenuResult.Failed("preview")
         },
         inventoryDisplay = InventoryDisplay(InventoryLayout.GRID, ContainerLayout.SPLIT),
         onInventoryDisplayChange = {},

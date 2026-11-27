@@ -28,6 +28,12 @@ data class GameState(
     val mapSymbols: List<MapSymbol> = emptyList(),
     /** What the player is placing with the game's build cursor; null when nothing. */
     val placing: Placing? = null,
+    /** The game's Info tab; null until the game reported it (or an older mod). */
+    val character: CharacterInfo? = null,
+    /** The game's Skills tab; null until the game reported it (or an older mod). */
+    val skills: Skills? = null,
+    /** The game's Temperature tab; null until the game reported it (or an older mod). */
+    val temperature: Temperature? = null,
 )
 
 /** What the game's moodle column shows, most urgent first, and the images to draw them with. */

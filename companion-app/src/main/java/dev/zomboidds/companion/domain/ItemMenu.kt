@@ -1,7 +1,17 @@
 package dev.zomboidds.companion.domain
 
-/** The game's own right-click menu for an item, as built by the game. */
-data class ItemMenu(val menuId: String, val options: List<MenuOption>)
+/**
+ * The game's own right-click menu for an item, as built by the game; for one item also [details],
+ * the lines of the game's hover tooltip for it.
+ */
+data class ItemMenu(val menuId: String, val options: List<MenuOption>, val details: List<DetailRow> = emptyList())
+
+/**
+ * One line of the game's item tooltip: a label, with a value, a bar (0-1) or neither (a line of
+ * text like "Limited impact when used one-handed."). [tone]: the game's colour for the bar or text,
+ * from bad (0) to good (1); null for plain text.
+ */
+data class DetailRow(val label: String, val value: String? = null, val bar: Float? = null, val tone: Float? = null)
 
 data class MenuOption(
     val id: String,

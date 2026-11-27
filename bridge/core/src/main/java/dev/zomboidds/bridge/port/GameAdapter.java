@@ -1,5 +1,7 @@
 package dev.zomboidds.bridge.port;
 
+import java.util.Optional;
+
 /**
  * The seam between the version-neutral bridge and one specific game build.
  *
@@ -14,6 +16,14 @@ public interface GameAdapter {
 
     /** Where item icons come from in this build. */
     IconSource createIconSource(GameEnvironment env);
+
+    /**
+     * Icons from the player's other mods, asked when {@link #createIconSource} has none. Which mods
+     * are on can change, so these are never cached.
+     */
+    default IconSource createModIconSource(GameEnvironment env) {
+        return name -> Optional.empty();
+    }
 
     /**
      * Connects the adapter to the bridge. Everything the adapter needs from the bridge comes

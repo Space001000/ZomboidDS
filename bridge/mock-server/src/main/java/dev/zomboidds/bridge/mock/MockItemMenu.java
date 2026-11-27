@@ -108,7 +108,47 @@ final class MockItemMenu {
         Map<String, Object> menu = new LinkedHashMap<>();
         menu.put("menuId", currentId);
         menu.put("options", options);
+        menu.put("details", details(item, category));
         return menu;
+    }
+
+    /** Rows like the game's tooltip for this kind of item (see PROTOCOL.md "The game's item menu"). */
+    private static List<Object> details(Map<String, Object> item, String category) {
+        List<Object> rows = new ArrayList<>();
+        Object weight = item.getOrDefault("weight", 0.5);
+        switch (category) {
+            case "Weapon" -> {
+                rows.add(row("Encumbrance", weight + " (" + weight + " unequipped)", null, null));
+                rows.add(row("Sharpness", null, 0.6, 0.6));
+                rows.add(row("Handle Condition", null, 0.85, 0.85));
+                rows.add(row("Head Condition", null, 0.7, 0.7));
+                rows.add(row("Damage", null, 0.55, 0.55));
+                rows.add(row("Bloody", null, 0.3, 0.7));
+                rows.add(row("Limited impact when used one-handed.", null, null, null));
+                rows.add(row("Handle Repaired", "1x", null, null));
+            }
+            case "Food" -> {
+                rows.add(row("Encumbrance", String.valueOf(weight), null, null));
+                rows.add(row("Hunger", "-8", null, 1.0));
+                rows.add(row("Thirst", "-2", null, 1.0));
+                rows.add(row("Calories", "95", null, null));
+                rows.add(row("Fresh", null, null, null));
+            }
+            default -> {
+                rows.add(row("Encumbrance", String.valueOf(weight), null, null));
+                rows.add(row("Condition", null, 0.9, 0.9));
+            }
+        }
+        return rows;
+    }
+
+    private static Map<String, Object> row(String label, String value, Double bar, Double tone) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("label", label);
+        if (value != null) row.put("value", value);
+        if (bar != null) row.put("bar", bar);
+        if (tone != null) row.put("tone", tone);
+        return row;
     }
 
     private boolean doorOpen;
@@ -231,6 +271,21 @@ final class MockItemMenu {
         menu.put("menuId", currentId);
         menu.put("options", options);
         return menu;
+    }
+
+    /** The Info tab's haircut or beard menu: one style you can cut to, one that needs a tool. */
+    Map<String, Object> openStyle(boolean beard) {
+        List<Object> options = new ArrayList<>();
+        Map<String, Supplier<String>> actions = new LinkedHashMap<>();
+        if (beard) {
+            options.add(option("1", "Trim Beard: Goatee", true, null, null));
+            options.add(option("2", "Shave", false, "Requires a razor or scissors", null));
+        } else {
+            options.add(option("1", "Tie Hair: Ponytail", true, null, null));
+            options.add(option("2", "Cut Hair: Buzzcut", false, "Requires scissors", null));
+        }
+        actions.put("1", () -> null);
+        return register(options, actions);
     }
 
     /** A menu built elsewhere (the tailoring menu), under the same rules: only the latest, once. */

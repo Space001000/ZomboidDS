@@ -11,6 +11,16 @@ data class Release(val version: String, val title: String, val date: String?, va
  * releasing, give it its final version (same as versionName), date and title.
  */
 val RELEASES = listOf(
+    Release("1.7.0", "A closer look", "27 Nov 2026", listOf(
+        "**Status ▾** has two new pages: **Info** (profession, traits, weight, kills, time survived; change your hair and beard) and **Skills** (every skill with its level and XP; tap one for the details).",
+        "**Temperature** is on the Status tab: your core temperature, and when you're cold, hot or wet, your insulation, wind resistance and wetness. Tap it for the coldest body parts.",
+        "**Item details:** tap an item, then switch **Move to** to **Details** to see its condition, sharpness, damage, food values, wetness, ammo and more.",
+        "**Search** in Craft and Build, with a keyboard on the bottom screen.",
+        "**Bigger items:** the new **View** button in the inventory has a Large size for tiles and their names. The container layout and grid or list moved into View too, which leaves more room for your bags.",
+        "Fewer accidental selections while scrolling. To draw a selection box, hold empty space first, then drag.",
+        "Swiping in from the side of the bottom screen no longer sends the game to the background.",
+        "**Items from mods** now show their icons.",
+    )),
     Release("1.6.1", "Easier setup", "17 Nov 2026", listOf(
         "Smoother setup: if ZomboidDS is open on the top screen, it offers to move to the bottom screen. Added a button to open Zomdroid.",
         "Added a **User guide** button.",

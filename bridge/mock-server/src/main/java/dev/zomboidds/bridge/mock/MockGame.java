@@ -77,6 +77,25 @@ final class MockGame {
     MockGame(BridgeContext bridge, String inventoryFixture) {
         this.bridge = bridge;
         this.inventory = fixtureData(inventoryFixture);
+        // The full inventory is a busy character: worn and carried bags besides the school bag.
+        if (inventoryFixture.equals("inventory_full.json")) {
+            String[][] bags = {
+                {"c21", "Fanny Pack (Front)", "Item_FannyPack"}, {"c22", "Fanny Pack (Back)", "Item_FannyPack"},
+                {"c23", "Hiking Bag", "Item_BigHikingBag"}, {"c24", "Duffel Bag", "Item_Duffelbag"},
+            };
+            int at = 2;
+            for (String[] b : bags) {
+                Map<String, Object> bag = new LinkedHashMap<>();
+                bag.put("id", b[0]);
+                bag.put("kind", "bag");
+                bag.put("name", b[1]);
+                bag.put("icon", b[2]);
+                bag.put("weight", 0.5);
+                bag.put("capacity", 18.0);
+                bag.put("items", new ArrayList<>());
+                containers.add(at++, bag);
+            }
+        }
         // Inspect on a garment: the game sends the app to its garment panel. The inventory fixtures'
         // clothes aren't among the tailoring ones, so they all show the Leather Jacket.
         menu.inspect = item -> bridge.state().publish("show", Map.of("panel", "garment", "item", 30003));
@@ -137,6 +156,9 @@ final class MockGame {
             bridge.state().publish("session", fixtureData("session.json"));
             bridge.state().publish("health", fixtureData("health.json"));
             bridge.state().publish("moodles", fixtureData("moodles.json"));
+            bridge.state().publish("character", fixtureData("character.json"));
+            bridge.state().publish("skills", fixtureData("skills.json"));
+            bridge.state().publish("temperature", fixtureData("temperature.json"));
         });
         gameThread.scheduleAtFixedRate(this::tick, 0, 100, TimeUnit.MILLISECONDS);
     }
@@ -307,6 +329,13 @@ final class MockGame {
                     yield "The game is paused"; // like the game: no treatment menu while paused
                 }
                 data[0] = menu.openHealth();
+                yield null;
+            }
+            case "style_menu" -> {
+                if (speed == 0) {
+                    yield "The game is paused";
+                }
+                data[0] = menu.openStyle("beard".equals(command.args().get("kind")));
                 yield null;
             }
             case "world_menu" -> {

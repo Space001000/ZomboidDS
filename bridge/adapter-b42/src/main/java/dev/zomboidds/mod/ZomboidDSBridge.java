@@ -15,6 +15,7 @@ import se.krka.kahlua.vm.KahluaTable;
  *   ZomboidDSBridge.poll(8)                -- array of { id, name, args } commands, or nil
  *   ZomboidDSBridge.publishExplored()      -- send the map areas the player has seen, if changed
  *   ZomboidDSBridge.publishSymbols()       -- send the player's map symbols and notes, if changed
+ *   ZomboidDSBridge.itemDetails(item, player) -- the item's rows from the game's tooltip, or nil
  *   ZomboidDSBridge.clients()              -- number of connected companion apps
  *   ZomboidDSBridge.clockMs()              -- milliseconds with fractions, for timing
  *   ZomboidDSBridge.gcCount()              -- garbage collections so far, for timing (-1: unknown)
@@ -69,6 +70,12 @@ public final class ZomboidDSBridge {
         if (api != null) {
             api.publishSymbols();
         }
+    }
+
+    /** The item's rows from the game's tooltip, as { label, value?, bar?, tone? }; nil without a bridge or on error. */
+    public static KahluaTable itemDetails(Object item, Object character) {
+        LuaApi api = LuaApi.current();
+        return api != null ? api.itemDetails(item, character) : null;
     }
 
     public static int clients() {

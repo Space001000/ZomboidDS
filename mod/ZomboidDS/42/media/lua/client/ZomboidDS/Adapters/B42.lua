@@ -24,12 +24,13 @@ local InfoWindows = require("ZomboidDS/Adapters/B42/InfoWindows")
 local Exercise = require("ZomboidDS/Adapters/B42/Exercise")
 local PrintMedia = require("ZomboidDS/Adapters/B42/PrintMedia")
 local Map = require("ZomboidDS/Adapters/B42/Map")
+local Character = require("ZomboidDS/Adapters/B42/Character")
 local try, round = Util.try, Util.round
 
 local B42 = {
     id = "b42",
     capabilities = { "player", "inventory", "vehicle", "cmd.equip", "cmd.wear", "cmd.unequip", "cmd.drop", "item_menu",
-                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "build", "tailor", "devices", "ovens", "questions", "info", "exercise", "print", "deck", "map" },
+                     "containers", "transfer", "time", "world_menu", "here", "select_container", "health", "moodles", "craft", "build", "tailor", "devices", "ovens", "questions", "info", "exercise", "print", "deck", "map", "character", "skills", "temperature", "item_details" },
     dirtyEvents = {
         -- Not OnRefreshInventoryWindowContainers: it fires on every step, and walking doesn't change
         -- what you carry. Moves into the inventory are caught by dirtyChannels below.
@@ -54,6 +55,9 @@ B42.snapshotHere = Here.snapshot
 B42.snapshotDeck = Deck.snapshot
 B42.snapshotMap = Map.snapshot
 B42.snapshotBuilding = Building.snapshot
+B42.snapshotCharacter = Character.snapshot
+B42.snapshotSkills = Character.snapshotSkills
+B42.snapshotTemperature = Character.snapshotTemperature
 
 --- Something was moved, taken or dropped: the game flags its inventory windows for a refresh
 --- without an event (see Containers.windowsDirty). Both channels at once, on the next tick.
@@ -202,6 +206,11 @@ B42.commands = {
     -- The game's treatment menu for a body part from `health` (see B42Menu.openHealth).
     health_menu = function(player, args)
         return B42Menu.openHealth(player, tostring(args.part))
+    end,
+
+    -- The haircut or beard menu of the game's Info tab (`kind` "hair" or "beard"; see B42Menu.openStyle).
+    style_menu = function(player, args)
+        return B42Menu.openStyle(player, args.kind == "beard" and "beard" or "hair")
     end,
 
     -- The game's world menu for where the player stands (see B42Menu.openWorld).

@@ -4,6 +4,12 @@
     "id": "c-18", "ok": true,
     "data": {
       "menuId": "m7",
+      "details": [
+        { "label": "Encumbrance", "value": "0.5" },
+        { "label": "Condition", "bar": 0.85, "tone": 0.85 },
+        { "label": "Limited impact when used one-handed." },
+        { "label": "Tainted", "tone": 0 }
+      ],
       "options": [
         {"id": "1", "name": "Read", "enabled": true, "pill": "action"},
         {"id": "2", "name": "Eat", "enabled": true, "pill": "action", "children": [

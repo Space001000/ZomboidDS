@@ -39,8 +39,15 @@ internal fun RecipeFilters(
     categories: List<RecipeCategory>,
     category: String?,
     onCategory: (String?) -> Unit,
+    search: String = "",
+    onSearch: (() -> Unit)? = null,
 ) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Search first: it's what a long list needs most. Shows the words searched for while they filter.
+        if (onSearch != null) {
+            FilterChip(selected = search.isNotBlank(), onClick = onSearch,
+                label = { Text(if (search.isBlank()) "Search" else "\u201C${search.trim()}\u201D") })
+        }
         FilterChip(
             selected = only, onClick = { onOnly(!only) }, label = { Text(onlyLabel) },
             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Good.copy(alpha = 0.25f)),

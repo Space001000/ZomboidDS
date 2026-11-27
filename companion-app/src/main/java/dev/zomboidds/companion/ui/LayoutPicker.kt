@@ -74,18 +74,8 @@ internal fun <T> LayoutPicker(
                 Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     options.forEach { option ->
-                        val selected = option == current
-                        Column(
-                            Modifier.width(68.dp).clip(shape)
-                                .background(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                                .border(1.dp, if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, shape)
-                                .clickable { open = false; onChange(option) }
-                                .padding(vertical = 8.dp, horizontal = 2.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
-                        ) {
+                        PickerOption(label(option), option == current, onClick = { open = false; onChange(option) }) {
                             LayoutGlyph(parts(option), Size(40f, 28f))
-                            Text(label(option), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
                         }
                     }
                 }
@@ -94,9 +84,27 @@ internal fun <T> LayoutPicker(
     }
 }
 
+/** One choice in a picker card: a little picture over its name, outlined when [selected]. */
+@Composable
+internal fun PickerOption(label: String, selected: Boolean, onClick: () -> Unit, picture: @Composable () -> Unit) {
+    val shape = RoundedCornerShape(8.dp)
+    Column(
+        Modifier.width(68.dp).clip(shape)
+            .background(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+            .border(1.dp, if (selected) MaterialTheme.colorScheme.primary else Color.Transparent, shape)
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Box(Modifier.size(40.dp, 28.dp), contentAlignment = Alignment.Center) { picture() }
+        Text(label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+    }
+}
+
 /** A small screen outline with [parts] filled in. */
 @Composable
-private fun LayoutGlyph(parts: List<Rect>, sizeDp: Size) {
+internal fun LayoutGlyph(parts: List<Rect>, sizeDp: Size) {
     val color = MaterialTheme.colorScheme.onSurface
     Canvas(Modifier.size(sizeDp.width.dp, sizeDp.height.dp)) {
         val stroke = 1.5.dp.toPx()

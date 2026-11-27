@@ -60,6 +60,9 @@ interface GameControls {
 
     /** The game's treatment menu for a body part ([BodyPartStatus.id]). Never throws. */
     suspend fun bodyPartMenu(partId: String): ItemMenuResult
+
+    /** The haircut or beard menu of the game's Info tab (its Change buttons). Never throws. */
+    suspend fun styleMenu(kind: StyleKind): ItemMenuResult
 }
 
 sealed interface GameEvent {

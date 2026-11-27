@@ -76,16 +76,16 @@ internal fun GridTile(
         Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().padding(3.dp)) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Box(Modifier.fillMaxWidth().height(38.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().height(TileIcon + 2.dp), contentAlignment = Alignment.Center) {
                     Box(Modifier.alpha(if (item.unwanted) UnwantedAlpha else 1f)) {
-                        ItemIcon(item, iconUrl, 36.dp)
+                        ItemIcon(item, iconUrl, TileIcon)
                         if (item.read) ReadTick(iconUrl, Modifier.align(Alignment.BottomStart))
                     }
                     if (stack.count > 1) StackBadge(stack.count, fold, onFold, Modifier.align(Alignment.BottomEnd), 9.sp)
                 }
                 Text(
                     if (item.isKeyRing) "Keys" else item.tileName,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = TileNameStyle,
                     color = if (item.unwanted) LocalContentColor.current.copy(alpha = UnwantedAlpha) else Color.Unspecified,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
@@ -261,7 +261,7 @@ internal fun ListRow(
         ) {
             if (picked) PickedCheck(Modifier)
             Box(Modifier.alpha(if (item.unwanted) UnwantedAlpha else 1f)) {
-                ItemIcon(item, iconUrl, 32.dp)
+                ItemIcon(item, iconUrl, LocalItemSizes.current.rowIcon)
                 if (item.read) ReadTick(iconUrl, Modifier.align(Alignment.BottomStart))
             }
             Column(Modifier.weight(1f)) {

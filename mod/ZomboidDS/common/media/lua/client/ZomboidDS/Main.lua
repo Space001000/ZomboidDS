@@ -107,7 +107,9 @@ local function onGameStart()
     for _, channel in ipairs({ { "containers", "snapshotContainers" }, { "time", "snapshotTime" },
                                { "health", "snapshotHealth" }, { "moodles", "snapshotMoodles" },
                                { "here", "snapshotHere" }, { "deck", "snapshotDeck" },
-                               { "map", "snapshotMap" }, { "building", "snapshotBuilding" } }) do
+                               { "map", "snapshotMap" }, { "building", "snapshotBuilding" },
+                               { "character", "snapshotCharacter" }, { "skills", "snapshotSkills" },
+                               { "temperature", "snapshotTemperature" } }) do
         local name, snapshot = channel[1], adapter[channel[2]]
         if snapshot then
             emitter:addChannel(name, snapshot, Config.intervalsMs[name])

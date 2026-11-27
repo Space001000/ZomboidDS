@@ -126,7 +126,7 @@ fun TailorScreen(
                         )
                     }
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 64.dp),
+                        columns = GridCells.Adaptive(minSize = TileMinWidth),
                         horizontalArrangement = Arrangement.spacedBy(Gap),
                         verticalArrangement = Arrangement.spacedBy(Gap),
                         modifier = Modifier.fillMaxSize(),
@@ -181,10 +181,10 @@ private fun GarmentTile(garment: GarmentSummary, iconUrl: (String) -> String, se
     Card(onClick = onClick, border = selectedBorder(selected) ?: wornBorder(garment.worn), modifier = Modifier.height(TileHeight)) {
         Box(Modifier.fillMaxSize().padding(3.dp)) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Box(Modifier.fillMaxWidth().height(38.dp), contentAlignment = Alignment.Center) {
-                    GameIcon(garment.icon, iconUrl, 36.dp)
+                Box(Modifier.fillMaxWidth().height(TileIcon + 2.dp), contentAlignment = Alignment.Center) {
+                    GameIcon(garment.icon, iconUrl, TileIcon)
                 }
-                Text(garment.name, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 1,
+                Text(garment.name, style = TileNameStyle, textAlign = TextAlign.Center, maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
             }
             if (garment.holes > 0) {

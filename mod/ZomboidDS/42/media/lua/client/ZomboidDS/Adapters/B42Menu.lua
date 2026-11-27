@@ -22,7 +22,7 @@ local MAX_DEPTH = 4
 
 -- Only the latest menu of each kind is kept: the item menu (the app asks for a fresh one each time
 -- an item is tapped) and the world menu ("Here"), so one never invalidates the other.
-local menus = { item = nil, world = nil, health = nil, garment = nil }
+local menus = { item = nil, world = nil, health = nil, garment = nil, style = nil }
 local nextMenuId = 0
 
 --- The game's tooltips use rich-text tags (<RGB:1,0,0>, <LINE>, ...): keep only the text.
@@ -256,7 +256,13 @@ function B42Menu.open(player, items)
 
     nextMenuId = nextMenuId + 1
     menus.item = { id = "m" .. nextMenuId, created = getTimestampMs(), itemId = item:getID(), calls = calls }
-    return true, nil, { menuId = menus.item.id, options = options }
+    local result = { menuId = menus.item.id, options = options }
+    -- One item: its details as the game's hover tooltip lists them (read by the bridge).
+    if #items == 1 and ZomboidDSBridge and ZomboidDSBridge.itemDetails then
+        local okDetails, details = pcall(ZomboidDSBridge.itemDetails, item, player)
+        if okDetails and details ~= nil then result.details = details end
+    end
+    return true, nil, result
 end
 
 --- The game's world menu for where the player stands ("Here" on the app's deck): what the
@@ -605,6 +611,50 @@ function B42Menu.openGarment(player, clothing, partId)
     nextMenuId = nextMenuId + 1
     menus.garment = { id = "m" .. nextMenuId, created = getTimestampMs(), itemId = clothing:getID(), calls = calls }
     return true, nil, { menuId = menus.garment.id, options = options }
+end
+
+--- The game's haircut or beard menu (`kind` "hair" or "beard"), as the Info tab's Change buttons
+--- build it (42.21 ISCharacterScreen:hairMenu / beardMenu): the styles you can cut, tie or shave
+--- to, greyed with the game's reason when a tool is missing.
+--- Returns true, nil, { menuId, options } or false, reason.
+function B42Menu.openStyle(player, kind)
+    local playerNum = player:getPlayerNum()
+    local info = getPlayerInfoPanel and getPlayerInfoPanel(playerNum)
+    local screen = info and info.charScreen
+    local build = screen and (kind == "beard" and screen.beardMenu or screen.hairMenu)
+    if build == nil then
+        return false, "The game's character window is not available"
+    end
+    if isPaused() then
+        return false, "The game is paused"
+    end
+    local joypad = JoypadState and JoypadState.players[playerNum + 1]
+    local focusBefore = joypad and joypad.focus
+    -- The game places the menu under the button; any position does, it's never shown.
+    local button = { getAbsoluteX = function() return 0 end, getAbsoluteY = function() return 0 end,
+                     getHeight = function() return 0 end }
+    local built, err = pcall(build, screen, button)
+    local menu = getPlayerContextMenu(playerNum)
+    local calls = {}
+    local ok, options = false, err
+    if built then
+        ok, options = pcall(snapshot, menu, calls, "", 1)
+    end
+    menu:hideAndChildren() -- same tick as the game built it, so it never shows on the top screen
+    if joypad and joypad.focus ~= focusBefore then
+        joypad.focus = focusBefore
+        if updateJoypadFocus then updateJoypadFocus(joypad) end
+    end
+    if not ok then
+        return false, "Could not read the game's menu: " .. tostring(options)
+    end
+    if #options == 0 then
+        return false, getText(kind == "beard" and "Tooltip_NoBeard" or "Tooltip_NoHair")
+    end
+
+    nextMenuId = nextMenuId + 1
+    menus.style = { id = "m" .. nextMenuId, created = getTimestampMs(), calls = calls }
+    return true, nil, { menuId = menus.style.id, options = options }
 end
 
 --- Runs option `args.optionId` of menu `args.menuId`, like clicking it in the game.

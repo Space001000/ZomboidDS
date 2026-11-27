@@ -1,0 +1,34 @@
+{
+  "v": 1, "type": "skills", "seq": 31,
+  "data": {
+    "groups": [
+      { "id": "Passiv", "name": "Passive", "skills": [
+        { "id": "Fitness", "name": "Fitness", "level": 6, "xp": 4800, "xpNeeded": 12000, "boost": 0 },
+        { "id": "Strength", "name": "Strength", "level": 10, "boost": 2 }
+      ] },
+      { "id": "Agility", "name": "Agility", "skills": [
+        { "id": "Sprinting", "name": "Running", "level": 3, "xp": 48, "xpNeeded": 240, "boost": 0 },
+        { "id": "Lightfoot", "name": "Lightfooted", "level": 2, "xp": 60, "xpNeeded": 120, "boost": 0 },
+        { "id": "Nimble", "name": "Nimble", "level": 4, "xp": 48, "xpNeeded": 480, "boost": 0 },
+        { "id": "Sneak", "name": "Sneaking", "level": 3, "xp": 144, "xpNeeded": 240, "boost": 0 }
+      ] },
+      { "id": "Combat", "name": "Combat", "skills": [
+        { "id": "Axe", "name": "Axe", "level": 2, "xp": 36, "xpNeeded": 120, "boost": 0 },
+        { "id": "Blunt", "name": "Long Blunt", "level": 6, "xp": 768, "xpNeeded": 960, "boost": 0, "multiplier": 2 },
+        { "id": "SmallBlunt", "name": "Short Blunt", "level": 3, "xp": 24, "xpNeeded": 240, "boost": 1 },
+        { "id": "LongBlade", "name": "Long Blade", "level": 0, "xp": 15, "xpNeeded": 75, "boost": 0 },
+        { "id": "SmallBlade", "name": "Short Blade", "level": 1, "xp": 75, "xpNeeded": 150, "boost": 0 },
+        { "id": "Spear", "name": "Spear", "level": 2, "xp": 0, "xpNeeded": 120, "boost": 0 },
+        { "id": "Maintenance", "name": "Maintenance", "level": 5, "xp": 288, "xpNeeded": 720, "boost": 1 }
+      ] },
+      { "id": "Crafting", "name": "Crafting", "skills": [
+        { "id": "Woodwork", "name": "Carpentry", "level": 8, "xp": 1116, "xpNeeded": 1800, "boost": 3, "multiplier": 3 },
+        { "id": "Carving", "name": "Carving", "level": 3, "xp": 120, "xpNeeded": 240, "boost": 1 },
+        { "id": "Cooking", "name": "Cooking", "level": 4, "xp": 96, "xpNeeded": 480, "boost": 0 },
+        { "id": "Electricity", "name": "Electrical", "level": 2, "xp": 108, "xpNeeded": 120, "boost": 0 },
+        { "id": "Masonry", "name": "Masonry", "level": 3, "xp": 168, "xpNeeded": 240, "boost": 1, "multiplier": 1 },
+        { "id": "Tailoring", "name": "Tailoring", "level": 3, "xp": 120, "xpNeeded": 240, "boost": 0 }
+      ] }
+    ]
+  }
+}

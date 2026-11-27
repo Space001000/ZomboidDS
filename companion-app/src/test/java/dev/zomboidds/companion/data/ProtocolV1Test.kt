@@ -1,6 +1,7 @@
 package dev.zomboidds.companion.data
 
 import dev.zomboidds.companion.domain.HealthLine
+import dev.zomboidds.companion.domain.DetailRow
 import dev.zomboidds.companion.domain.MenuPill
 import dev.zomboidds.companion.domain.CookState
 import dev.zomboidds.companion.domain.Cooking
@@ -157,6 +158,15 @@ class ProtocolV1Test {
         assertEquals(listOf("2.1", "2.2"), menu.options[1].children.map { it.id })
         assertFalse(menu.options[2].enabled)
         assertEquals("Requires a knife", menu.options[2].tooltip)
+        assertEquals(
+            listOf(
+                DetailRow("Encumbrance", value = "0.5"),
+                DetailRow("Condition", bar = 0.85f, tone = 0.85f),
+                DetailRow("Limited impact when used one-handed."),
+                DetailRow("Tainted", tone = 0f),
+            ),
+            menu.details,
+        )
     }
 
     @Test
@@ -401,6 +411,42 @@ class ProtocolV1Test {
         assertEquals("Moodles/128/_Moodles_BGsolid", moodles.background)
         val none = ProtocolV1.apply(GameState(), """{"v":1,"type":"moodles","data":{"moodles":[]}}""")
         assertEquals("no moodles is an empty list, not unknown", emptyList<Any>(), none.moodles!!.list)
+    }
+
+    @Test
+    fun `character info comes with the game's profession, traits and styles`() {
+        val info = applyAll("character.json").character!!
+        assertEquals("Jake Ward", info.name)
+        assertEquals("profession_hammer2", info.professionIcon)
+        assertEquals(dev.zomboidds.companion.domain.WeightTrend.UP, info.weightTrend)
+        assertEquals(8, info.traits.size)
+        assertEquals(dev.zomboidds.companion.domain.TraitTone.BAD, info.traits.first { it.name == "Smoker" }.tone)
+        assertEquals("Full Beard", info.beard)
+        assertEquals(1284, info.kills)
+    }
+
+    @Test
+    fun `skills come grouped with level, XP and multipliers`() {
+        val skills = applyAll("skills.json").skills!!
+        assertEquals(listOf("Passive", "Agility", "Combat", "Crafting"), skills.groups.map { it.name })
+        val carpentry = skills.groups.last().skills.first()
+        assertEquals(8, carpentry.level)
+        assertEquals(0.62f, carpentry.progress, 0.001f)
+        assertEquals(3f, carpentry.multiplier)
+        val strength = skills.groups.first().skills.last()
+        assertNull("level 10 has nothing to go", strength.xpNeeded)
+        assertEquals(0f, strength.progress)
+    }
+
+    @Test
+    fun `temperature reads cold below the game's 36_5 and shows the player's unit`() {
+        val temperature = applyAll("temperature.json").temperature!!
+        assertEquals(dev.zomboidds.companion.domain.TemperatureState.COLD, temperature.state)
+        assertEquals("35.6 °C", temperature.format(temperature.core).replace(',', '.'))
+        assertEquals("the average over the parts", 0.268f, temperature.insulation!!, 0.001f)
+        val fahrenheit = temperature.copy(celsius = false)
+        assertEquals("96.1 °F", fahrenheit.format(35.6f).replace(',', '.'))
+        assertNull(ProtocolV1.apply(GameState(), """{"v":1,"type":"temperature","data":[]}""").temperature)
     }
 
     @Test

@@ -131,6 +131,8 @@ private val SPLASHES = listOf(
     "Burnt toast is still toast.",
     "Do not microwave!",
     "Sledgehammer not included!",
+    "Wet socks are a choice.",
+    "Fresh haircut, same apocalypse.",
 )
 
 /** The splash for a special day, instead of a random one. */

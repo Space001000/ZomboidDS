@@ -1,5 +1,7 @@
 package dev.zomboidds.companion.ui
 
+import dev.zomboidds.companion.ItemSize
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
@@ -25,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -156,7 +159,7 @@ internal fun ContainerPane(
                     val entries = remember(shown.stacks, wornOpen, unfolded) { shown.stacks.paneEntries(wornOpen, unfolded) }
                     LazyVerticalGrid(
                         // Compact grid: ~7 columns on the Thor's bottom screen. List: 2 columns of rows.
-                        columns = GridCells.Adaptive(minSize = if (layout == InventoryLayout.GRID) 64.dp else 200.dp),
+                        columns = GridCells.Adaptive(minSize = if (layout == InventoryLayout.GRID) TileMinWidth else 200.dp),
                         horizontalArrangement = Arrangement.spacedBy(Gap),
                         verticalArrangement = Arrangement.spacedBy(Gap),
                         modifier = Modifier.fillMaxWidth().height((itemHeight + Gap) * rows - Gap),
@@ -169,10 +172,14 @@ internal fun ContainerPane(
                         }) { entry ->
                             when (entry) {
                                 // Hold and drag onto a container tab or the other open container to move it; hold
-                                // and let go to pick it (worn clothes stay put).
+                                // still to pick it (worn clothes stay put).
                                 is PaneEntry.Stack -> Box(
                                     if (entry.worn) Modifier.boxSolid(boxSelect, entry.stack.first.id)
-                                    else Modifier.draggableItem(entry.stack, shown.id) { onHold(entry.stack) }.boxTile(boxSelect, entry.stack, if (entry.part) "part${entry.stack.first.id}" else entry.stack.first.id),
+                                    else Modifier.draggableItem(
+                                        entry.stack, shown.id,
+                                        picked = if (entry.unfolded) entry.stack.items.all { it.id in picked } else entry.stack.items.any { it.id in picked },
+                                        onTap = { onItem(entry.stack) },
+                                    ) { onHold(entry.stack) }.boxTile(boxSelect, entry.stack, if (entry.part) "part${entry.stack.first.id}" else entry.stack.first.id),
                                 ) {
                                     // An unfolded stack is picked once all of it is; its items show their own picks.
                                     val isPicked = if (entry.unfolded) entry.stack.items.all { it.id in picked } else entry.stack.items.any { it.id in picked }
@@ -351,28 +358,81 @@ internal fun ContainerIcon(container: Container, iconUrl: (String) -> String, si
     }
 }
 
-/** Two small toggles showing the current modes; a tap switches to the other one. */
+/**
+ * One View button for how the inventory shows: container layout, grid or list, and item size. A tap
+ * opens a card with all of them as little pictures; a choice applies at once and the card stays open,
+ * so several can be changed in one go. One button leaves the tab row's room to the bags.
+ */
 @Composable
 internal fun DisplaySwitch(display: InventoryDisplay, onChange: (InventoryDisplay) -> Unit, showContainerLayout: Boolean) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (showContainerLayout) {
-            LayoutPicker(
-                "Containers", display.containers, ContainerLayout.entries, { it.label }, { it.parts },
-                onChange = { onChange(display.copy(containers = it)) }, buttonSize = 34.dp,
-            )
-        }
-        val grid = display.items == InventoryLayout.GRID
-        ToggleIcon(if (grid) "Grid view" else "List view", onClick = {
-            onChange(display.copy(items = if (grid) InventoryLayout.LIST else InventoryLayout.GRID))
-        }) { color ->
-            val cell = size.width * 0.42f
-            if (grid) {
-                for (x in listOf(0f, size.width - cell)) for (y in listOf(0f, size.height - cell)) {
-                    drawRect(color, Offset(x, y), Size(cell, cell))
-                }
-            } else {
-                for (i in 0..2) drawRect(color, Offset(0f, size.height * (0.08f + i * 0.36f)), Size(size.width, size.height * 0.16f))
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Surface(
+            onClick = { open = true },
+            shape = RoundedCornerShape(8.dp),
+            color = if (open) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+            border = if (open) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+            modifier = Modifier.size(34.dp).semantics { contentDescription = "View" },
+        ) {
+            // The button shows the container layout, or grid/list where there's only one pane.
+            Box(contentAlignment = Alignment.Center) {
+                if (showContainerLayout) LayoutGlyph(display.containers.parts, Size(17f, 13f))
+                else ItemsGlyph(display.items, 16.dp)
             }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, properties = NoFocusMenu) {
+            Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (showContainerLayout) {
+                    PickerSection("Containers") {
+                        ContainerLayout.entries.forEach { option ->
+                            PickerOption(option.label, option == display.containers, { onChange(display.copy(containers = option)) }) {
+                                LayoutGlyph(option.parts, Size(40f, 28f))
+                            }
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    PickerSection("Items") {
+                        InventoryLayout.entries.forEach { option ->
+                            PickerOption(if (option == InventoryLayout.GRID) "Grid" else "List", option == display.items,
+                                { onChange(display.copy(items = option)) }) { ItemsGlyph(option, 22.dp) }
+                        }
+                    }
+                    PickerSection("Size") {
+                        ItemSize.entries.forEach { option ->
+                            PickerOption(if (option == ItemSize.LARGE) "Large" else "Normal", option == display.size,
+                                { onChange(display.copy(size = option)) }) {
+                                Text("A", fontSize = if (option == ItemSize.LARGE) 24.sp else 14.sp,
+                                    lineHeight = 24.sp, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PickerSection(title: String, options: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { options() }
+    }
+}
+
+/** Four squares for the grid, three bars for the list. */
+@Composable
+private fun ItemsGlyph(layout: InventoryLayout, size: androidx.compose.ui.unit.Dp) {
+    val color = MaterialTheme.colorScheme.onSurface
+    Canvas(Modifier.size(size)) {
+        val cell = this.size.width * 0.42f
+        if (layout == InventoryLayout.GRID) {
+            for (x in listOf(0f, this.size.width - cell)) for (y in listOf(0f, this.size.height - cell)) {
+                drawRect(color, Offset(x, y), Size(cell, cell))
+            }
+        } else {
+            for (i in 0..2) drawRect(color, Offset(0f, this.size.height * (0.08f + i * 0.36f)), Size(this.size.width, this.size.height * 0.16f))
         }
     }
 }
@@ -388,17 +448,4 @@ private val ContainerLayout.parts get() = when (this) {
     ContainerLayout.SPLIT -> listOf(Rect(0f, 0f, 1f, 0.42f), Rect(0f, 0.58f, 1f, 1f))
     ContainerLayout.SIDE_BY_SIDE -> listOf(Rect(0f, 0f, 0.42f, 1f), Rect(0.58f, 0f, 1f, 1f))
     ContainerLayout.SINGLE -> listOf(Rect(0f, 0f, 1f, 1f))
-}
-
-@Composable
-private fun ToggleIcon(description: String, onClick: () -> Unit, draw: DrawScope.(Color) -> Unit) {
-    val color = MaterialTheme.colorScheme.onSurfaceVariant
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.size(34.dp).semantics { contentDescription = description },
-    ) {
-        Canvas(Modifier.padding(9.dp).fillMaxSize()) { draw(color) }
-    }
 }

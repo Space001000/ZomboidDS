@@ -79,19 +79,19 @@ public final class BridgeServer extends NanoWSD {
     }
 
     private Response serveIcon(String name) {
-        Optional<byte[]> png = icons.find(name);
-        if (png.isEmpty()) {
+        Optional<IconService.Icon> icon = icons.find(name);
+        if (icon.isEmpty()) {
             Response missing = text(Response.Status.NOT_FOUND, "no icon " + name);
             // Never cached: the app's image cache otherwise kept serving "not found" for icons a
             // later bridge version can provide (seen on the Thor with world object icons).
             missing.addHeader("Cache-Control", "no-store");
             return missing;
         }
-        byte[] bytes = png.get();
+        byte[] bytes = icon.get().png();
         Response response = newFixedLengthResponse(Response.Status.OK, "image/png",
                 new ByteArrayInputStream(bytes), bytes.length);
-        // Icons never change for a given game install, so let the app cache them for good.
-        response.addHeader("Cache-Control", "public, max-age=31536000, immutable");
+        // The game's icons never change for a given install, so let the app cache them for good.
+        response.addHeader("Cache-Control", icon.get().permanent() ? "public, max-age=31536000, immutable" : "no-store");
         return response;
     }
 

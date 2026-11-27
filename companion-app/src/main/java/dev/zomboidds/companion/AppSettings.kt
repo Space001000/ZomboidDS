@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 enum class InventoryLayout { GRID, LIST }
 
+/** How big items are drawn: Large for players who find the tiles hard to read. */
+enum class ItemSize { NORMAL, LARGE }
+
 /**
  * SPLIT: your containers on top, the ones around you below. SIDE_BY_SIDE: yours on the left, the
  * ones around you on the right. SINGLE: one container at a time.
@@ -19,6 +22,9 @@ enum class MapPlacement { LEFT_OF_HERE, RIGHT_OF_HERE, OWN_TAB }
 /** What the Craft tab shows: the game's crafting window or its build window (the tab's ▾ menu). */
 enum class CraftMode(val title: String) { CRAFT("Craft"), BUILD("Build"), TAILOR("Tailor") }
 
+/** What the Status tab shows: health and temperature, the game's Info tab, or its Skills tab. */
+enum class StatusMode(val title: String) { STATUS("Status"), INFO("Info"), SKILLS("Skills") }
+
 /** The user's display choices, kept across app restarts. */
 class AppSettings(context: Context) {
 
@@ -28,6 +34,15 @@ class AppSettings(context: Context) {
         InventoryLayout.entries.firstOrNull { it.name == prefs.getString(KEY_INVENTORY_LAYOUT, null) }
             ?: InventoryLayout.GRID)
     val inventoryLayout: StateFlow<InventoryLayout> = _inventoryLayout.asStateFlow()
+
+    private val _itemSize = MutableStateFlow(
+        ItemSize.entries.firstOrNull { it.name == prefs.getString(KEY_ITEM_SIZE, null) } ?: ItemSize.NORMAL)
+    val itemSize: StateFlow<ItemSize> = _itemSize.asStateFlow()
+
+    fun setItemSize(size: ItemSize) {
+        prefs.edit().putString(KEY_ITEM_SIZE, size.name).apply()
+        _itemSize.value = size
+    }
 
     fun setInventoryLayout(layout: InventoryLayout) {
         prefs.edit().putString(KEY_INVENTORY_LAYOUT, layout.name).apply()
@@ -61,6 +76,15 @@ class AppSettings(context: Context) {
     fun setCraftMode(mode: CraftMode) {
         prefs.edit().putString(KEY_CRAFT_MODE, mode.name).apply()
         _craftMode.value = mode
+    }
+
+    private val _statusMode = MutableStateFlow(
+        StatusMode.entries.firstOrNull { it.name == prefs.getString(KEY_STATUS_MODE, null) } ?: StatusMode.STATUS)
+    val statusMode: StateFlow<StatusMode> = _statusMode.asStateFlow()
+
+    fun setStatusMode(mode: StatusMode) {
+        prefs.edit().putString(KEY_STATUS_MODE, mode.name).apply()
+        _statusMode.value = mode
     }
 
     private val _mapSymbols = MutableStateFlow(prefs.getBoolean(KEY_MAP_SYMBOLS, false))
@@ -155,6 +179,8 @@ class AppSettings(context: Context) {
         private const val KEY_WHATS_NEW_SEEN = "whatsNewSeen"
         private const val KEY_MAP_SYMBOLS = "mapSymbols"
         private const val KEY_CRAFT_MODE = "craftMode"
+        private const val KEY_ITEM_SIZE = "itemSize"
+        private const val KEY_STATUS_MODE = "statusMode"
         private const val KEY_PINNED_COMMANDS = "pinnedCommands"
         private const val KEY_FAVOURITE_EMOTES = "favouriteEmotes"
         private const val KEY_LAST_EMOTE_GROUP = "lastEmoteGroup"

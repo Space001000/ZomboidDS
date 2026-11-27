@@ -237,6 +237,40 @@ kit("info", "Info", "A placed generator next to you (east), 60% fuel: use Genera
         add(inventory, "Base.WaterBottle")
     end)
 
+kit("character", "Character", "Long hair and a long beard to cut (Info: Change), scissors and a razor; soaked to the "
+    .. "skin with wet clothes (Status: the temperature card, colder outside); Carpentry 8, Long Blunt 6, "
+    .. "Fitness 6, and a skill book's x3 on Carpentry (Skills: the arrows).",
+    function(player)
+        local inventory = player:getInventory()
+        add(inventory, "Base.Scissors")
+        add(inventory, "Base.Razor")
+        local visual = player:getHumanVisual()
+        if player:isFemale() then
+            visual:setHairModel("Long2")
+        else
+            visual:setHairModel("Fabian")
+            visual:setBeardModel("Long")
+        end
+        player:resetModel()
+        -- Soaked like the game's own "A Really CD DA" challenge does it, and the clothes too.
+        player:getStats():set(CharacterStat.WETNESS, CharacterStat.WETNESS:getMaximumValue())
+        local parts = player:getBodyDamage():getBodyParts()
+        for i = 0, parts:size() - 1 do
+            parts:get(i):setWetness(CharacterStat.WETNESS:getMaximumValue())
+        end
+        local worn = player:getWornItems()
+        for i = 0, worn:size() - 1 do
+            local item = worn:getItemByIndex(i)
+            if item then
+                pcall(function() item:setWetness(100) end) -- clothing only
+            end
+        end
+        setSkill(player, Perks.Woodwork, 8)
+        setSkill(player, Perks.Blunt, 6)
+        setSkill(player, Perks.Fitness, 6)
+        player:getXp():addXpMultiplier(Perks.Woodwork, 3, 0, 10)
+    end)
+
 B42.commands.dev_kits = function(_player, _args)
     local list = {}
     for _, id in ipairs(order) do

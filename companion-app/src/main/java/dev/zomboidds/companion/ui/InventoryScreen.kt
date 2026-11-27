@@ -1,5 +1,10 @@
 package dev.zomboidds.companion.ui
 
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
+import dev.zomboidds.companion.ItemSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -59,8 +64,26 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Fixed sizes, so a pane can show whole rows only (no tiles cut in half at the bottom).
-internal val TileHeight = 66.dp
-internal val RowHeight = 50.dp
+/** Item sizes for [ItemSize]: tile and row heights, a grid column's least width, icons, names. */
+internal class ItemSizes(val tileHeight: Dp, val rowHeight: Dp, val minTileWidth: Dp, val tileIcon: Dp, val rowIcon: Dp, val large: Boolean)
+
+private val NormalSizes = ItemSizes(66.dp, 50.dp, 64.dp, 36.dp, 32.dp, large = false)
+private val LargeSizes = ItemSizes(86.dp, 60.dp, 84.dp, 48.dp, 40.dp, large = true)
+
+internal fun ItemSize.sizes() = if (this == ItemSize.LARGE) LargeSizes else NormalSizes
+
+/** The item size chosen in the inventory, for every item grid (inventory, Craft, Build, Tailor). */
+internal val LocalItemSizes = staticCompositionLocalOf { NormalSizes }
+
+internal val TileHeight: Dp @Composable @ReadOnlyComposable get() = LocalItemSizes.current.tileHeight
+internal val RowHeight: Dp @Composable @ReadOnlyComposable get() = LocalItemSizes.current.rowHeight
+internal val TileMinWidth: Dp @Composable @ReadOnlyComposable get() = LocalItemSizes.current.minTileWidth
+internal val TileIcon: Dp @Composable @ReadOnlyComposable get() = LocalItemSizes.current.tileIcon
+
+/** A tile's name: labelSmall, larger with Large items. */
+internal val TileNameStyle: TextStyle
+    @Composable @ReadOnlyComposable get() =
+        if (LocalItemSizes.current.large) MaterialTheme.typography.labelLarge else MaterialTheme.typography.labelSmall
 internal val Gap = 5.dp
 internal val PaneHeader = 36.dp
 internal val PaneSpacing = 6.dp
@@ -73,7 +96,7 @@ private val SplitSpacing = 8.dp
 class ShowRequest(val containerId: String?)
 
 /** How the inventory tab is laid out: the user's choice, kept in AppSettings. */
-data class InventoryDisplay(val items: InventoryLayout, val containers: ContainerLayout)
+data class InventoryDisplay(val items: InventoryLayout, val containers: ContainerLayout, val size: ItemSize = ItemSize.NORMAL)
 
 /** A container as shown. The main inventory's items and weight come from the `inventory` message. */
 internal class ContainerView(
@@ -296,7 +319,7 @@ fun InventoryScreen(
                 val grids = maxHeight - (PaneHeader + PaneSpacing) * 2 - SplitDivider - SplitSpacing * 2 + Gap * 2
                 val rows = (grids / row).toInt().coerceAtLeast(2)
                 // Neither half keeps rows it has nothing for: the other one gets them.
-                val columns = ((maxWidth + Gap) / ((if (display.items == InventoryLayout.GRID) 64.dp else 200.dp) + Gap)).toInt().coerceAtLeast(1)
+                val columns = ((maxWidth + Gap) / ((if (display.items == InventoryLayout.GRID) TileMinWidth else 200.dp) + Gap)).toInt().coerceAtLeast(1)
                 // With the worn clothes as shown: unfolded, they need their rows too (2 per row in the list).
                 fun rowsFor(view: ContainerView?) = ((view?.stacks?.paneEntries(wornOpen, unfolded)?.size ?: 0) + columns - 1) / columns
                 val mineNeed = rowsFor(mineShown).coerceAtLeast(1)

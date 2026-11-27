@@ -80,6 +80,8 @@ fun StatusScreen(
     windows: GameWindows? = null,
 ) {
     var exercising by remember { mutableStateOf(false) }
+    var temperatureOpen by remember { mutableStateOf(false) }
+    val temperature = state.temperature
     val scope = rememberCoroutineScope()
     var selectedId by remember { mutableStateOf<String?>(null) }
     var failure by remember { mutableStateOf<String?>(null) }
@@ -104,16 +106,27 @@ fun StatusScreen(
                         .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(10.dp))
                         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp)),
                 ) {
+                    // With the temperature line under Health, the body starts lower.
                     BodySilhouette(parts.orEmpty(), state.health?.female == true, iconUrl,
-                        Modifier.fillMaxSize().padding(top = 34.dp, bottom = 10.dp, start = 10.dp, end = 10.dp))
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Health", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f))
-                        Text(state.player?.health?.let { "%.0f".format(it) } ?: "?", style = MaterialTheme.typography.titleMedium)
+                        Modifier.fillMaxSize().padding(top = if (temperature != null) 54.dp else 34.dp, bottom = 10.dp, start = 10.dp, end = 10.dp))
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Health", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f))
+                            Text(state.player?.health?.let { "%.0f".format(it) } ?: "?", style = MaterialTheme.typography.titleMedium)
+                        }
+                        temperature?.let { t ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Temp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f))
+                                Text(t.format(t.core), style = MaterialTheme.typography.bodyMedium, color = t.color())
+                            }
+                        }
                     }
                 }
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     failure?.let { Text(it, color = ErrorText) }
+                    temperature?.let { TemperatureCard(it, iconUrl, onClick = { temperatureOpen = true }) }
                     when {
                         parts == null -> Hint("Waiting for the game...")
                         parts.isEmpty() -> Hint("No injuries")
@@ -153,6 +166,9 @@ fun StatusScreen(
                 },
                 onClose = { selectedId = null },
             )
+        }
+        if (temperatureOpen && temperature != null) {
+            TemperaturePanel(temperature, state.health?.female == true, iconUrl, onClose = { temperatureOpen = false })
         }
         if (exercising && windows != null) {
             ExercisePanel(windows, iconUrl, time = state.time,

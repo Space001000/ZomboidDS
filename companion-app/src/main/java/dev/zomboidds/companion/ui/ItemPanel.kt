@@ -48,6 +48,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.unit.sp
+import dev.zomboidds.companion.domain.DetailRow
 import dev.zomboidds.companion.domain.EquipSlot
 import dev.zomboidds.companion.domain.InventoryItem
 import dev.zomboidds.companion.domain.ItemAction
@@ -98,6 +104,28 @@ internal fun BoxScope.ItemPanel(
     val key = stacks.map { it.first.id }
     // One stack of several: each target also offers one and half, like the game's Grab one / Grab half.
     val stackSize = stacks.singleOrNull()?.count ?: 0
+    // One item: the left column switches between Move to and the game's tooltip lines (Details),
+    // which come with its menu.
+    val canDetail = stacks.size == 1 && loadMenu != null
+    var showDetails by remember(key) { mutableStateOf(false) }
+    var loaded by remember(key) { mutableStateOf<ItemMenuResult?>(null) }
+    val load = remember(key, loadMenu) {
+        loadMenu?.let { menu -> suspend { menu().also { loaded = it } } }
+    }
+    val hasLeft = !targets.isEmpty || canDetail
+    val left: @Composable ColumnScope.() -> Unit = {
+        when {
+            !canDetail -> MoveColumn(targets, iconUrl, stackSize, onMoveTo)
+            targets.isEmpty -> {
+                Text("Details", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                DetailsList(loaded)
+            }
+            else -> {
+                TwoWaySwitch("Move to", "Details", showDetails) { showDetails = it }
+                if (showDetails) DetailsList(loaded) else MoveColumn(targets, iconUrl, stackSize, onMoveTo, label = false)
+            }
+        }
+    }
     Box(
         Modifier.fillMaxSize()
             .background(Color.Black.copy(alpha = 0.4f))
@@ -111,24 +139,24 @@ internal fun BoxScope.ItemPanel(
             BoxWithConstraints(Modifier.weight(1f)) {
                 if (maxWidth >= TwoColumnWidth) {
                     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (!targets.isEmpty) {
+                        if (hasLeft) {
                             Column(Modifier.weight(0.42f).fillMaxHeight().verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                MoveColumn(targets, iconUrl, stackSize, onMoveTo)
+                                left()
                             }
                             VerticalDivider()
                         }
                         Column(Modifier.weight(0.58f).fillMaxHeight().verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Actions(item, key, loadMenu, appActions, onAction, onMenuOption)
+                            Actions(item, key, load, appActions, onAction, onMenuOption)
                             onUnpick?.let { PickedList(stacks, iconUrl, it) }
                         }
                     }
                 } else {
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (!targets.isEmpty) MoveColumn(targets, iconUrl, stackSize, onMoveTo)
+                        if (hasLeft) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) { left() }
                         HorizontalDivider()
-                        Actions(item, key, loadMenu, appActions, onAction, onMenuOption)
+                        Actions(item, key, load, appActions, onAction, onMenuOption)
                         onUnpick?.let { PickedList(stacks, iconUrl, it) }
                     }
                 }
@@ -215,13 +243,76 @@ private fun ColumnScope.MoveColumn(
     iconUrl: (String) -> String,
     stackSize: Int,
     onMoveTo: (ContainerView, Int?) -> Unit,
+    label: Boolean = true,
 ) {
-    Text("Move to", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (label) Text("Move to", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     targets.yours.forEach { TargetButton(it, iconUrl, outlined = false, stackSize, onMoveTo) }
     if (targets.yours.isNotEmpty() && targets.around.isNotEmpty()) {
         HorizontalDivider(Modifier.padding(vertical = 2.dp))
     }
     targets.around.forEach { TargetButton(it, iconUrl, outlined = it.id == targets.open?.id, stackSize, onMoveTo) }
+}
+
+/** Two halves, the chosen one filled: Move to | Details. */
+@Composable
+private fun TwoWaySwitch(first: String, second: String, secondOn: Boolean, onChange: (Boolean) -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(Modifier.fillMaxWidth().height(32.dp).clip(shape).border(1.dp, MaterialTheme.colorScheme.outline, shape)) {
+        listOf(first to false, second to true).forEachIndexed { index, (text, value) ->
+            if (index == 1) VerticalDivider(color = MaterialTheme.colorScheme.outline)
+            val on = secondOn == value
+            Box(
+                Modifier.weight(1f).fillMaxHeight()
+                    .background(if (on) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                    .clickable { onChange(value) },
+                contentAlignment = Alignment.Center,
+            ) { Text(text, style = MaterialTheme.typography.labelLarge) }
+        }
+    }
+}
+
+/** The game's tooltip lines for the item, as they come with its menu. */
+@Composable
+private fun DetailsList(loaded: ItemMenuResult?) {
+    when (loaded) {
+        null -> LoadingRow("Loading...")
+        is ItemMenuResult.Failed -> Text(loaded.reason, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        is ItemMenuResult.Ready -> {
+            val rows = loaded.menu.details
+            if (rows.isEmpty()) {
+                Text("Update the mod from the app's checklist to see the game's details here.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) { rows.forEach { DetailLine(it) } }
+        }
+    }
+}
+
+/** The game's red-to-green, in the app's colours. */
+private fun toneColor(tone: Float) = lerp(Danger, Good, tone)
+
+/** "Sharpness ▬▬▬──", "Encumbrance 2.4 (3.0 unequipped)", or a line of text. */
+@Composable
+private fun DetailLine(row: DetailRow) {
+    val tone = row.tone?.let(::toneColor)
+    when {
+        row.bar != null -> Row(Modifier.heightIn(min = 24.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(row.label, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            FillMeter(row.bar, tone ?: MaterialTheme.colorScheme.primary, Modifier.width(72.dp))
+        }
+        row.value != null -> Row(Modifier.heightIn(min = 24.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // The label keeps its words whole; a long value ("2.4 (3.0 unequipped)") wraps instead.
+            Text(row.label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(row.value, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+                color = tone ?: MaterialTheme.colorScheme.onSurface, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+        }
+        else -> Text(row.label, Modifier.padding(vertical = 3.dp), style = MaterialTheme.typography.bodySmall,
+            color = tone ?: MaterialTheme.colorScheme.onSurface)
+    }
 }
 
 /**

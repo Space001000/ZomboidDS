@@ -31,7 +31,7 @@ public final class Bridge implements BridgeContext, BridgeServer.Listener {
     private Bridge(BridgeConfig config, GameAdapter adapter, GameEnvironment env) {
         this.adapter = adapter;
         this.inbox = new CommandInbox(config.commandQueueCapacity());
-        this.icons = new IconService(adapter.createIconSource(env));
+        this.icons = new IconService(adapter.createIconSource(env), adapter.createModIconSource(env));
         this.server = new BridgeServer(config.host(), config.port(), icons);
         this.hub = new StateHub(codec, this::helloData);
         server.setListener(this);

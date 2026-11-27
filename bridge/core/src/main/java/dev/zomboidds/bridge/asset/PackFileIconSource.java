@@ -115,6 +115,12 @@ public final class PackFileIconSource implements IconSource {
         index();
     }
 
+    /** Lets go of the decoded page (up to tens of MB); it's read again when needed. */
+    public synchronized void releasePage() {
+        cachedPage = null;
+        cachedImage = null;
+    }
+
     private BufferedImage decode(PackIndex.Page page) throws IOException {
         if (page != cachedPage) {
             byte[] png = new byte[page.pngLength()];

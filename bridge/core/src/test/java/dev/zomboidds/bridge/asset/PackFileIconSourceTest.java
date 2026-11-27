@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,6 +56,38 @@ class PackFileIconSourceTest {
     @Test
     void unknownIconIsEmpty() throws Exception {
         assertTrue(new PackFileIconSource(List.of(writePack(1))).loadPng("Item_Nope").isEmpty());
+    }
+
+    @Test
+    void modIconsComeFromThePackTheGameHasThemFromUnlessItsTheGames() throws Exception {
+        Path pack = writePack(1);
+        boolean[] gamesOwn = {false};
+        ModIconSource icons = new ModIconSource(new ModIconSource.Mods() {
+            @Override
+            public Object state() {
+                return "loaded";
+            }
+
+            @Override
+            public Map<String, String> files() {
+                return Map.of("media/texturepacks/mypack.pack", pack.toString());
+            }
+
+            @Override
+            public String packOf(String texture) {
+                return texture.equals("Item_Blue") ? "MyPack" : null;
+            }
+
+            @Override
+            public boolean isGameFile(String path) {
+                return gamesOwn[0];
+            }
+        });
+
+        assertTrue(icons.loadPng("Item_Red").isEmpty());
+        assertTrue(icons.loadPng("Item_Blue").isPresent());
+        gamesOwn[0] = true;
+        assertTrue(icons.loadPng("Item_Blue").isEmpty());
     }
 
     private static void assertIconIsBlue(PackFileIconSource source) throws IOException {
